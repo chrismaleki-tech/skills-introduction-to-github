@@ -35,3 +35,53 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Python #
+##########
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+pip-selfcheck.json
+
+# AWS & CDK #
+#############
+.env
+*.pem
+*.key
+cdk.out/
+cdk-outputs.json
+.aws/
+
+# Security & Reports #
+######################
+bandit-report.json
+safety-report.json
+deployment-report.md
+
+# IDE #
+#######
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node.js #
+###########
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files #
+###################
+.tmp/
+temp/
+tmp/
