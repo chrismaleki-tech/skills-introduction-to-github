@@ -1,0 +1,7 @@
+boto3>=1.26.137
+pandas>=1.5.3
+numpy>=1.24.3
+jupyter>=1.0.0
+matplotlib>=3.7.1
+seaborn>=0.12.2
+s3fs>=2023.5.0
