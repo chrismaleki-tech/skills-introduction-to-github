@@ -1,75 +1,214 @@
-<header>
+# Rearc Data Quest - Complete End-to-End Solution
 
-<!--
-  <<< Author notes: Course header >>>
-  Include a 1280×640 image, course title in sentence case, and a concise description in emphasis.
-  In your repository settings: enable template repository, add your 1280×640 social image, auto delete head branches.
-  Add your open source license, GitHub uses MIT license.
--->
+A comprehensive data engineering solution showcasing data management, AWS services, analytics, and infrastructure-as-code skills.
 
-# Introduction to GitHub
+## Overview
 
-_Get started using GitHub in less than an hour._
+This project implements a complete data pipeline architecture with 4 main components:
 
-</header>
+1. **AWS S3 & Data Sourcing**: Automated sync of BLS (Bureau of Labor Statistics) datasets to S3
+2. **API Integration**: Population data fetching from DataUSA API
+3. **Data Analytics**: Statistical analysis and reporting using Python/Pandas
+4. **Infrastructure as Code**: Automated AWS pipeline using CDK/CloudFormation
 
-<!--
-  <<< Author notes: Step 1 >>>
-  Choose 3-5 steps for your course.
-  The first step is always the hardest, so pick something easy!
-  Link to docs.github.com for further explanations.
-  Encourage users to open new tabs for steps!
--->
+## Architecture
 
-## Step 1: Create a branch
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   BLS Dataset   │    │  DataUSA API    │    │    AWS S3       │
+│   (Source)      │───▶│   (Source)      │───▶│   (Storage)     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                       │
+                                              ┌─────────────────┐
+                                              │   Lambda        │
+                                              │ (Processing)    │
+                                              └─────────────────┘
+                                                       │
+                                              ┌─────────────────┐
+                                              │     SQS         │
+                                              │   (Queue)       │
+                                              └─────────────────┘
+                                                       │
+                                              ┌─────────────────┐
+                                              │   Analytics     │
+                                              │   Lambda        │
+                                              └─────────────────┘
+```
 
-_Welcome to "Introduction to GitHub"! :wave:_
+## Project Structure
 
-**What is GitHub?**: GitHub is a collaboration platform that uses _[Git](https://docs.github.com/get-started/quickstart/github-glossary#git)_ for versioning. GitHub is a popular place to share and contribute to [open-source](https://docs.github.com/get-started/quickstart/github-glossary#open-source) software.
-<br>:tv: [Video: What is GitHub?](https://www.youtube.com/watch?v=pBy1zgt0XPc)
+```
+rearc-data-quest/
+├── part1_data_sourcing/
+│   ├── bls_data_sync.py
+│   └── requirements.txt
+├── part2_api_integration/
+│   ├── population_api.py
+│   └── requirements.txt
+├── part3_analytics/
+│   ├── data_analysis.ipynb
+│   └── requirements.txt
+├── part4_infrastructure/
+│   ├── cdk/
+│   │   ├── app.py
+│   │   ├── pipeline_stack.py
+│   │   └── requirements.txt
+│   └── lambda_functions/
+│       ├── data_processor.py
+│       └── analytics_processor.py
+├── shared/
+│   └── utils.py
+├── requirements.txt
+└── README.md
+```
 
-**What is a repository?**: A _[repository](https://docs.github.com/get-started/quickstart/github-glossary#repository)_ is a project containing files and folders. A repository tracks versions of files and folders. For more information, see "[About repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/about-repositories)" from GitHub Docs.
+## Quick Start
 
-**What is a branch?**: A _[branch](https://docs.github.com/en/get-started/quickstart/github-glossary#branch)_ is a parallel version of your repository. By default, your repository has one branch named `main` and it is considered to be the definitive branch. Creating additional branches allows you to copy the `main` branch of your repository and safely make any changes without disrupting the main project. Many people use branches to work on specific features without affecting any other parts of the project.
+### Prerequisites
 
-Branches allow you to separate your work from the `main` branch. In other words, everyone's work is safe while you contribute. For more information, see "[About branches](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-branches)".
+- Python 3.9+
+- AWS CLI configured with appropriate permissions
+- AWS CDK installed (for Part 4)
+- Jupyter Notebook (for Part 3)
 
-**What is a profile README?**: A _[profile README](https://docs.github.com/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme)_ is essentially an "About me" section on your GitHub profile where you can share information about yourself with the community on GitHub.com. GitHub shows your profile README at the top of your profile page. For more information, see "[Managing your profile README](https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-github-profile/customizing-your-profile/managing-your-profile-readme)".
+### Installation
 
-![profile-readme-example](/images/profile-readme-example.png)
+```bash
+# Clone the repository
+git clone <repository-url>
+cd rearc-data-quest
 
-### :keyboard: Activity: Your first branch
+# Install dependencies
+pip install -r requirements.txt
 
-1. Open a new browser tab and navigate to your newly made repository. Then, work on the steps in your second tab while you read the instructions in this tab.
-2. Navigate to the **< > Code** tab in the header menu of your repository.
+# Set up AWS credentials
+aws configure
+```
 
-   ![code-tab](/images/code-tab.png)
+### Running Each Part
 
-3. Click on the **main** branch drop-down.
+#### Part 1: Data Sourcing
+```bash
+cd part1_data_sourcing
+python bls_data_sync.py
+```
 
-   ![main-branch-dropdown](/images/main-branch-dropdown.png)
+#### Part 2: API Integration
+```bash
+cd part2_api_integration
+python population_api.py
+```
 
-4. In the field, name your branch `my-first-branch`. In this case, the name must be `my-first-branch` to trigger the course workflow.
-5. Click **Create branch: my-first-branch** to create your branch.
+#### Part 3: Analytics
+```bash
+cd part3_analytics
+jupyter notebook data_analysis.ipynb
+```
 
-   ![create-branch-button](/images/create-branch-button.png)
+#### Part 4: Infrastructure Deployment
+```bash
+cd part4_infrastructure/cdk
+cdk deploy
+```
 
-   The branch will automatically switch to the one you have just created.
-   The **main** branch drop-down bar will reflect your new branch and display the new branch name.
+## Features
 
-6. Wait about 20 seconds then refresh this page (the one you're following instructions from). [GitHub Actions](https://docs.github.com/en/actions) will automatically update to the next step.
+### Part 1: BLS Data Synchronization
+- **Smart Sync**: Only uploads new or changed files
+- **Dynamic Discovery**: Automatically handles added/removed files
+- **Error Handling**: Robust handling of 403 Forbidden errors with proper User-Agent headers
+- **Incremental Updates**: Efficient delta synchronization
 
-<footer>
+### Part 2: Population API Integration
+- **DataUSA API**: Fetches US population data
+- **JSON Storage**: Saves results to S3 in structured format
+- **Error Handling**: Comprehensive API error handling and retries
 
-<!--
-  <<< Author notes: Footer >>>
-  Add a link to get support, GitHub status page, code of conduct, license link.
--->
+### Part 3: Data Analytics
+- **Statistical Analysis**: Mean and standard deviation calculations
+- **Time Series Analysis**: Best year identification by series
+- **Data Joining**: Cross-dataset analysis and reporting
+- **Data Cleaning**: Handles whitespace and format inconsistencies
 
----
+### Part 4: Infrastructure as Code
+- **AWS CDK**: Complete infrastructure deployment
+- **Lambda Functions**: Automated data processing
+- **SQS Integration**: Event-driven analytics
+- **CloudWatch**: Monitoring and logging
+- **S3 Notifications**: Automatic triggering
 
-Get help: [Post in our discussion board](https://github.com/orgs/skills/discussions/categories/introduction-to-github) &bull; [Review the GitHub status page](https://www.githubstatus.com/)
+## Key Technologies
 
-&copy; 2024 GitHub &bull; [Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/code_of_conduct.md) &bull; [MIT License](https://gh.io/mit)
+- **Languages**: Python 3.9+
+- **Analytics**: Pandas, NumPy, Jupyter
+- **AWS Services**: S3, Lambda, SQS, CloudWatch
+- **Infrastructure**: AWS CDK, CloudFormation
+- **Data Formats**: CSV, JSON
+- **APIs**: REST, DataUSA API
 
-</footer>
+## Data Sources
+
+1. **BLS Dataset**: Bureau of Labor Statistics time-series data
+   - URL: https://download.bls.gov/pub/time.series/pr/
+   - Format: CSV files
+   - Content: Labor productivity data
+
+2. **DataUSA Population API**: US demographic data
+   - URL: https://datausa.io/api/
+   - Format: JSON
+   - Content: Annual US population statistics
+
+## Results and Deliverables
+
+### Part 1 Deliverables
+- ✅ S3 bucket with synchronized BLS data
+- ✅ Automated sync script with delta updates
+- ✅ Source code with comprehensive error handling
+
+### Part 2 Deliverables  
+- ✅ Population data JSON files in S3
+- ✅ API integration script with retry logic
+- ✅ Source code with documentation
+
+### Part 3 Deliverables
+- ✅ Jupyter notebook with complete analysis
+- ✅ Statistical reports (mean, std deviation)
+- ✅ Best year analysis by series
+- ✅ Combined dataset insights
+
+### Part 4 Deliverables
+- ✅ Complete CDK infrastructure code
+- ✅ Automated Lambda pipeline
+- ✅ SQS-triggered analytics
+- ✅ Monitoring and logging setup
+
+## Security & Best Practices
+
+- **IAM Roles**: Least-privilege access patterns
+- **Environment Variables**: Secure configuration management
+- **Error Handling**: Comprehensive logging and monitoring
+- **Data Validation**: Input sanitization and format validation
+- **Cost Optimization**: Efficient resource usage
+
+## Monitoring & Observability
+
+- **CloudWatch Logs**: Centralized logging
+- **Metrics**: Custom metrics for data pipeline health
+- **Alarms**: Automated failure notifications
+- **Dashboards**: Real-time pipeline monitoring
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Contact
+
+For questions or support, please contact [your-email@domain.com]
