@@ -192,8 +192,18 @@ jobs:
         timeout-minutes: 15
 
       - name: Deploy CDK Stack
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
         run: |
           cd part4_infrastructure/cdk
+
+          # Set CDK environment variables
+          export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+          export CDK_DEFAULT_REGION=$AWS_DEFAULT_REGION
+
+          echo "Deploying CDK stack..."
           cdk deploy --require-approval never --verbose
         timeout-minutes: 30
 
