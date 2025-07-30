@@ -1,0 +1,102 @@
+name: CDK Deploy (Fixed)
+
+on:
+  push:
+    branches: [ main ]
+    paths: 
+      - 'part4_infrastructure/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js 20
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+        
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install AWS CLI
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip awscliv2.zip
+        sudo ./aws/install
+        
+    - name: Install CDK
+      run: npm install -g aws-cdk@latest
+      
+    - name: Configure AWS credentials
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      run: |
+        echo "AWS credentials configured"
+        aws sts get-caller-identity
+        
+    - name: Install Python dependencies
+      run: |
+        cd part4_infrastructure/cdk
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    - name: Check and Bootstrap CDK
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      run: |
+        cd part4_infrastructure/cdk
+        
+        # Get account details
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        REGION=$AWS_DEFAULT_REGION
+        
+        echo "Account: $ACCOUNT_ID"
+        echo "Region: $REGION"
+        
+        # Check if CDK is already bootstrapped
+        if aws ssm get-parameter --name "/cdk-bootstrap/hnb659fds/version" --region $REGION 2>/dev/null; then
+          echo "✅ CDK environment already bootstrapped"
+          BOOTSTRAP_VERSION=$(aws ssm get-parameter --name "/cdk-bootstrap/hnb659fds/version" --region $REGION --query 'Parameter.Value' --output text)
+          echo "Bootstrap version: $BOOTSTRAP_VERSION"
+        else
+          echo "⚠️ CDK environment not bootstrapped. Bootstrapping now..."
+          
+          # Bootstrap CDK with explicit account and region
+          cdk bootstrap aws://$ACCOUNT_ID/$REGION --verbose
+          
+          echo "✅ CDK bootstrap completed"
+        fi
+        
+    - name: Deploy CDK Stack
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      run: |
+        cd part4_infrastructure/cdk
+        
+        # Set CDK environment variables
+        export CDK_DEFAULT_ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
+        export CDK_DEFAULT_REGION=$AWS_DEFAULT_REGION
+        
+        echo "Deploying CDK stack..."
+        cdk deploy --require-approval never --verbose
+        
+    - name: Verify Deployment
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+      run: |
+        echo "Verifying stack deployment..."
+        aws cloudformation describe-stacks --stack-name RearcDataQuestPipeline --region $AWS_DEFAULT_REGION --query 'Stacks[0].StackStatus' --output text
