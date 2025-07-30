@@ -130,11 +130,65 @@ jobs:
           name: cdk-outputs-e2e
           path: part4_infrastructure/cdk/cdk-outputs.json
 
+  discover-existing-infrastructure:
+    name: Discover Existing Infrastructure
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip-deployment == 'true' }}
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      stack-name: ${{ steps.get-stack-info.outputs.stack-name }}
+      bucket-bls: ${{ steps.get-stack-info.outputs.bucket-bls }}
+      bucket-population: ${{ steps.get-stack-info.outputs.bucket-population }}
+      lambda-processor: ${{ steps.get-stack-info.outputs.lambda-processor }}
+      lambda-analytics: ${{ steps.get-stack-info.outputs.lambda-analytics }}
+      sqs-queue: ${{ steps.get-stack-info.outputs.sqs-queue }}
+    
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Discover Stack Information
+        id: get-stack-info
+        run: |
+          echo "🔍 Discovering existing infrastructure..."
+          
+          # Set static values for known infrastructure
+          echo "stack-name=RearcDataQuestStack" >> $GITHUB_OUTPUT
+          echo "bucket-bls=rearc-quest-bls-data" >> $GITHUB_OUTPUT
+          echo "bucket-population=rearc-quest-population-data" >> $GITHUB_OUTPUT
+          
+          # Get Lambda function names dynamically
+          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          SQS_QUEUE=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          
+          echo "lambda-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
+          echo "lambda-analytics=${ANALYTICS_PROCESSOR}" >> $GITHUB_OUTPUT
+          echo "sqs-queue=${SQS_QUEUE}" >> $GITHUB_OUTPUT
+          
+          echo "Discovered infrastructure:"
+          echo "Data Processor: ${DATA_PROCESSOR}"
+          echo "Analytics Processor: ${ANALYTICS_PROCESSOR}"
+          echo "SQS Queue: ${SQS_QUEUE}"
+          
+          # Verify critical infrastructure exists
+          if [ -z "$DATA_PROCESSOR" ]; then
+            echo "❌ Error: Data Processor Lambda function not found"
+            echo "Available Lambda functions:"
+            aws lambda list-functions --query 'Functions[].FunctionName' --output table
+            exit 1
+          fi
+
   trigger-data-pipeline:
     name: Trigger End-to-End Data Pipeline
     runs-on: ubuntu-latest
-    needs: [deploy-infrastructure]
-    if: always() && (needs.deploy-infrastructure.result == 'success' || needs.deploy-infrastructure.result == 'skipped')
+    needs: [deploy-infrastructure, discover-existing-infrastructure]
+    if: always() && (needs.deploy-infrastructure.result == 'success' || needs.deploy-infrastructure.result == 'skipped' || needs.discover-existing-infrastructure.result == 'success')
     environment: 
       name: ${{ github.event.inputs.environment || 'dev' }}
     outputs:
@@ -155,10 +209,29 @@ jobs:
       - name: Get Infrastructure Information
         id: get-infra
         run: |
-          # Get Lambda function names and SQS queue
-          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
-          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
-          SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          # Use outputs from either deployment or discovery job
+          if [ "${{ github.event.inputs.skip-deployment }}" == "true" ]; then
+            # Use outputs from discover-existing-infrastructure job
+            DATA_PROCESSOR="${{ needs.discover-existing-infrastructure.outputs.lambda-processor }}"
+            ANALYTICS_PROCESSOR="${{ needs.discover-existing-infrastructure.outputs.lambda-analytics }}"
+            SQS_QUEUE_URL="${{ needs.discover-existing-infrastructure.outputs.sqs-queue }}"
+          else
+            # Use outputs from deploy-infrastructure job  
+            DATA_PROCESSOR="${{ needs.deploy-infrastructure.outputs.lambda-processor }}"
+            ANALYTICS_PROCESSOR="${{ needs.deploy-infrastructure.outputs.lambda-analytics }}"
+            SQS_QUEUE_URL="${{ needs.deploy-infrastructure.outputs.sqs-queue }}"
+          fi
+          
+          # Fallback to dynamic discovery if outputs are empty
+          if [ -z "$DATA_PROCESSOR" ]; then
+            DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
+          fi
+          if [ -z "$ANALYTICS_PROCESSOR" ]; then
+            ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          fi
+          if [ -z "$SQS_QUEUE_URL" ]; then
+            SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          fi
           
           echo "data-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
           echo "analytics-processor=${ANALYTICS_PROCESSOR}" >> $GITHUB_OUTPUT
