@@ -54,9 +54,9 @@ class PopulationAPIClient:
         # Setup session with enhanced retry strategy for server errors
         self.session = requests.Session()
         retry_strategy = Retry(
-            total=5,  # Increased retries
-            backoff_factor=2,  # Exponential backoff
-            status_forcelist=[429, 500, 502, 503, 504],
+            total=7,  # Increased retries for server errors
+            backoff_factor=3,  # More aggressive exponential backoff 
+            status_forcelist=[429, 500, 502, 503, 504, 520, 521, 522, 523, 524],  # Added more server error codes
             allowed_methods=["HEAD", "GET", "OPTIONS"],
             raise_on_status=False  # Don't raise on retry status codes
         )
@@ -98,9 +98,15 @@ class PopulationAPIClient:
             
             response = self.session.get(self.datausa_base_url, params=params, timeout=30)
             
-            # Check for server errors specifically
+            # Check for server errors specifically with detailed logging
             if response.status_code in [502, 503, 504]:
                 self.logger.warning(f"DataUSA API returned {response.status_code} (server error). Service may be temporarily unavailable.")
+                self.logger.info(f"Response headers: {dict(response.headers)}")
+                self.logger.info(f"Will attempt fallback to Census Bureau API")
+                return None
+            elif response.status_code in [520, 521, 522, 523, 524]:
+                self.logger.warning(f"DataUSA API returned {response.status_code} (CloudFlare error). CDN/server issue detected.")
+                self.logger.info(f"Will attempt fallback to Census Bureau API")
                 return None
             
             response.raise_for_status()

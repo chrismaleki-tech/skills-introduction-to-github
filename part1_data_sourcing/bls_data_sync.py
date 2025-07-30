@@ -72,6 +72,20 @@ class BLSDataSyncer:
             'Cache-Control': 'max-age=0'
         })
         
+        # Enhanced retry strategy for BLS server issues
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        
+        retry_strategy = Retry(
+            total=5,
+            backoff_factor=2,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "OPTIONS"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=20)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
         # Add rate limiting
         self.request_delay = 1  # seconds between requests
         self.max_workers = int(os.environ.get('BLS_MAX_WORKERS', '3'))  # Concurrent requests

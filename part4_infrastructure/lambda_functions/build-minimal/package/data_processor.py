@@ -38,7 +38,7 @@ def lambda_handler(event, context):
     # Get environment variables
     bls_bucket = os.environ['BLS_BUCKET_NAME']
     population_bucket = os.environ['POPULATION_BUCKET_NAME']
-    analytics_queue_url ="https://download.bls.gov/pub/time.series/pr/" #os.environ['ANALYTICS_QUEUE_URL']
+    analytics_queue_url = os.environ['ANALYTICS_QUEUE_URL']
     
     results = {
         'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0},
@@ -223,6 +223,22 @@ class PopulationAPIClient:
         self.bucket_name = bucket_name
         self.base_url = "https://datausa.io/api/data"
         self.session = requests.Session()
+        
+        # Enhanced retry strategy for server errors
+        from requests.adapters import HTTPAdapter
+        from urllib3.util.retry import Retry
+        
+        retry_strategy = Retry(
+            total=7,  # Increased retries for server errors
+            backoff_factor=3,  # More aggressive exponential backoff
+            status_forcelist=[429, 500, 502, 503, 504, 520, 521, 522, 523, 524],
+            allowed_methods=["HEAD", "GET", "OPTIONS"],
+            raise_on_status=False
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
         self.session.headers.update({
             'User-Agent': 'Rearc-Data-Quest-Lambda/1.0',
             'Accept': 'application/json'
@@ -241,6 +257,16 @@ class PopulationAPIClient:
                 params['year'] = ','.join(map(str, years))
             
             response = self.session.get(self.base_url, params=params, timeout=30)
+            
+            # Enhanced error handling for server errors
+            if response.status_code in [502, 503, 504]:
+                logger.warning(f"DataUSA API returned {response.status_code} (server error). Service may be temporarily unavailable.")
+                logger.info(f"Response headers: {dict(response.headers)}")
+                return None
+            elif response.status_code in [520, 521, 522, 523, 524]:
+                logger.warning(f"DataUSA API returned {response.status_code} (CloudFlare error). CDN/server issue detected.")
+                return None
+            
             response.raise_for_status()
             
             data = response.json()
