@@ -81,6 +81,36 @@ jobs:
           npm install -g aws-cdk@latest
           cdk --version
 
+      - name: Build Lambda Packages
+        run: |
+          cd part4_infrastructure/lambda_functions
+          
+          # Ensure we have the necessary files
+          if [ ! -f "build_minimal_package.sh" ]; then
+            echo "ERROR: build_minimal_package.sh not found!"
+            exit 1
+          fi
+          
+          # Make build scripts executable
+          chmod +x build_minimal_package.sh
+          chmod +x build_lambda_package.sh
+          chmod +x build_analytics_package.sh
+          
+          # Build the minimal package required by CDK
+          echo "Building minimal Lambda package..."
+          ./build_minimal_package.sh
+          
+          # Verify the package was created
+          if [ ! -f "build-minimal/lambda-minimal-package.zip" ]; then
+            echo "ERROR: lambda-minimal-package.zip was not created!"
+            ls -la build-minimal/ || echo "build-minimal directory does not exist"
+            exit 1
+          fi
+          
+          echo "✅ Lambda packages built successfully"
+          echo "Package size: $(du -h build-minimal/lambda-minimal-package.zip | cut -f1)"
+          ls -la build-minimal/
+
       - name: Bootstrap CDK (if needed)
         run: |
           cd part4_infrastructure/cdk
