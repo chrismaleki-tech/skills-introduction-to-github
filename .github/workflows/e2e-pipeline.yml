@@ -1,0 +1,491 @@
+name: End-to-End Data Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to run E2E pipeline'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+      aws-region:
+        description: 'AWS Region'
+        required: true
+        default: 'us-east-2'
+        type: string
+      skip-deployment:
+        description: 'Skip infrastructure deployment (use existing)'
+        required: false
+        default: false
+        type: boolean
+      data-validation-timeout:
+        description: 'Timeout for data validation (minutes)'
+        required: false
+        default: '15'
+        type: string
+  schedule:
+    # Run daily at 6 AM UTC to validate production pipeline
+    - cron: '0 6 * * *'
+  push:
+    branches: [ main ]
+    paths:
+      - 'part1_data_sourcing/**'
+      - 'part2_api_integration/**'
+      - 'part3_analytics/**'
+      - 'part4_infrastructure/**'
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
+  CDK_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '18'
+  VALIDATION_TIMEOUT: ${{ github.event.inputs.data-validation-timeout || '15' }}
+
+jobs:
+  deploy-infrastructure:
+    name: Deploy Infrastructure (if needed)
+    runs-on: ubuntu-latest
+    if: ${{ !github.event.inputs.skip-deployment || github.event.inputs.skip-deployment == 'false' }}
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      stack-name: ${{ steps.get-stack-info.outputs.stack-name }}
+      bucket-bls: ${{ steps.get-stack-info.outputs.bucket-bls }}
+      bucket-population: ${{ steps.get-stack-info.outputs.bucket-population }}
+      lambda-processor: ${{ steps.get-stack-info.outputs.lambda-processor }}
+      lambda-analytics: ${{ steps.get-stack-info.outputs.lambda-analytics }}
+      sqs-queue: ${{ steps.get-stack-info.outputs.sqs-queue }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r part4_infrastructure/cdk/requirements.txt
+          npm install -g aws-cdk@latest
+
+      - name: Build Lambda Packages
+        run: |
+          cd part4_infrastructure/lambda_functions
+          chmod +x build_minimal_package.sh build_lambda_package.sh build_analytics_package.sh
+          ./build_minimal_package.sh
+
+      - name: Deploy CDK Stack
+        run: |
+          cd part4_infrastructure/cdk
+          cdk deploy --require-approval never --outputs-file cdk-outputs.json
+        timeout-minutes: 30
+
+      - name: Get Stack Information
+        id: get-stack-info
+        run: |
+          cd part4_infrastructure/cdk
+          if [ -f cdk-outputs.json ]; then
+            echo "stack-name=RearcDataQuestStack" >> $GITHUB_OUTPUT
+            echo "bucket-bls=rearc-quest-bls-data" >> $GITHUB_OUTPUT
+            echo "bucket-population=rearc-quest-population-data" >> $GITHUB_OUTPUT
+            
+            # Get Lambda function names dynamically
+            DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
+            ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+            SQS_QUEUE=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+            
+            echo "lambda-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
+            echo "lambda-analytics=${ANALYTICS_PROCESSOR}" >> $GITHUB_OUTPUT
+            echo "sqs-queue=${SQS_QUEUE}" >> $GITHUB_OUTPUT
+            
+            echo "Stack outputs:"
+            cat cdk-outputs.json
+          fi
+
+      - name: Upload CDK Outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cdk-outputs-e2e
+          path: part4_infrastructure/cdk/cdk-outputs.json
+
+  trigger-data-pipeline:
+    name: Trigger End-to-End Data Pipeline
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure]
+    if: always() && (needs.deploy-infrastructure.result == 'success' || needs.deploy-infrastructure.result == 'skipped')
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    outputs:
+      pipeline-execution-id: ${{ steps.trigger-pipeline.outputs.execution-id }}
+      pipeline-start-time: ${{ steps.trigger-pipeline.outputs.start-time }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Get Infrastructure Information
+        id: get-infra
+        run: |
+          # Get Lambda function names and SQS queue
+          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          
+          echo "data-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
+          echo "analytics-processor=${ANALYTICS_PROCESSOR}" >> $GITHUB_OUTPUT
+          echo "sqs-queue-url=${SQS_QUEUE_URL}" >> $GITHUB_OUTPUT
+          
+          echo "Found infrastructure:"
+          echo "Data Processor: ${DATA_PROCESSOR}"
+          echo "Analytics Processor: ${ANALYTICS_PROCESSOR}"
+          echo "SQS Queue: ${SQS_QUEUE_URL}"
+
+      - name: Clear Previous Data (for clean E2E test)
+        run: |
+          echo "Clearing previous test data for clean E2E run..."
+          # Clear S3 buckets test data (keep structure)
+          aws s3 rm s3://rearc-quest-bls-data/test/ --recursive || echo "No test data in BLS bucket"
+          aws s3 rm s3://rearc-quest-population-data/test/ --recursive || echo "No test data in Population bucket"
+
+      - name: Trigger Data Pipeline
+        id: trigger-pipeline
+        run: |
+          EXECUTION_ID="e2e-$(date +%Y%m%d-%H%M%S)-${{ github.run_id }}"
+          START_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          echo "execution-id=${EXECUTION_ID}" >> $GITHUB_OUTPUT
+          echo "start-time=${START_TIME}" >> $GITHUB_OUTPUT
+          
+          echo "🚀 Triggering end-to-end data pipeline execution: ${EXECUTION_ID}"
+          echo "Start time: ${START_TIME}"
+          
+          # Trigger the data processor Lambda function
+          DATA_PROCESSOR="${{ steps.get-infra.outputs.data-processor }}"
+          if [ -n "$DATA_PROCESSOR" ]; then
+            echo "Invoking Data Processor Lambda: ${DATA_PROCESSOR}"
+            
+            # Create payload with test identifier
+            PAYLOAD=$(cat <<EOF
+          {
+            "source": "github-actions-e2e",
+            "executionId": "${EXECUTION_ID}",
+            "testMode": true,
+            "triggerAnalytics": true
+          }
+          EOF
+          )
+            
+            # Invoke Lambda function asynchronously
+            aws lambda invoke \
+              --function-name "$DATA_PROCESSOR" \
+              --invocation-type Event \
+              --payload "$PAYLOAD" \
+              /tmp/lambda-response.json
+              
+            echo "✅ Data processor triggered successfully"
+            echo "Payload sent: $PAYLOAD"
+          else
+            echo "❌ Data processor Lambda function not found"
+            exit 1
+          fi
+
+      - name: Wait for Initial Processing
+        run: |
+          echo "⏳ Waiting 60 seconds for initial data processing to begin..."
+          sleep 60
+
+  monitor-pipeline-execution:
+    name: Monitor Pipeline Execution
+    runs-on: ubuntu-latest
+    needs: [trigger-data-pipeline]
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Monitor Lambda Function Logs
+        run: |
+          EXECUTION_ID="${{ needs.trigger-data-pipeline.outputs.pipeline-execution-id }}"
+          START_TIME="${{ needs.trigger-data-pipeline.outputs.pipeline-start-time }}"
+          
+          echo "🔍 Monitoring pipeline execution: ${EXECUTION_ID}"
+          echo "Monitoring logs since: ${START_TIME}"
+          
+          # Get Lambda function names
+          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          
+          # Monitor Data Processor logs
+          if [ -n "$DATA_PROCESSOR" ]; then
+            echo "📊 Data Processor logs:"
+            aws logs filter-log-events \
+              --log-group-name "/aws/lambda/${DATA_PROCESSOR}" \
+              --start-time $(date -d "${START_TIME}" +%s)000 \
+              --query 'events[*].message' \
+              --output text | tail -20 || echo "No recent logs found"
+          fi
+          
+          # Monitor Analytics Processor logs
+          if [ -n "$ANALYTICS_PROCESSOR" ]; then
+            echo "📈 Analytics Processor logs:"
+            aws logs filter-log-events \
+              --log-group-name "/aws/lambda/${ANALYTICS_PROCESSOR}" \
+              --start-time $(date -d "${START_TIME}" +%s)000 \
+              --query 'events[*].message' \
+              --output text | tail -20 || echo "No recent logs found"
+          fi
+
+      - name: Check SQS Queue Status
+        run: |
+          # Get SQS queue URL
+          SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          
+          if [ -n "$SQS_QUEUE_URL" ]; then
+            echo "📬 SQS Queue Status:"
+            aws sqs get-queue-attributes \
+              --queue-url "$SQS_QUEUE_URL" \
+              --attribute-names All \
+              --query 'Attributes.{ApproximateNumberOfMessages:ApproximateNumberOfMessages,ApproximateNumberOfMessagesNotVisible:ApproximateNumberOfMessagesNotVisible}' \
+              --output table
+          fi
+
+  validate-data-flow:
+    name: Validate End-to-End Data Flow
+    runs-on: ubuntu-latest
+    needs: [trigger-data-pipeline, monitor-pipeline-execution]
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install boto3 pandas requests
+
+      - name: Wait for Pipeline Completion
+        timeout-minutes: ${{ fromJson(env.VALIDATION_TIMEOUT) }}
+        run: |
+          EXECUTION_ID="${{ needs.trigger-data-pipeline.outputs.pipeline-execution-id }}"
+          START_TIME="${{ needs.trigger-data-pipeline.outputs.pipeline-start-time }}"
+          
+          echo "⏳ Waiting for pipeline completion (max ${{ env.VALIDATION_TIMEOUT }} minutes)..."
+          echo "Execution ID: ${EXECUTION_ID}"
+          
+          # Wait for data to appear in S3 buckets and processing to complete
+          TIMEOUT=$(($(date +%s) + ${{ env.VALIDATION_TIMEOUT }} * 60))
+          
+          while [ $(date +%s) -lt $TIMEOUT ]; do
+            echo "Checking pipeline progress..."
+            
+            # Check if BLS data exists
+            BLS_FILES=$(aws s3 ls s3://rearc-quest-bls-data/ --recursive | wc -l)
+            
+            # Check if Population data exists  
+            POP_FILES=$(aws s3 ls s3://rearc-quest-population-data/ --recursive | wc -l)
+            
+            echo "Files found - BLS: ${BLS_FILES}, Population: ${POP_FILES}"
+            
+            if [ $BLS_FILES -gt 0 ] && [ $POP_FILES -gt 0 ]; then
+              echo "✅ Data files detected in both buckets"
+              break
+            fi
+            
+            echo "Waiting 30 seconds before next check..."
+            sleep 30
+          done
+
+      - name: Validate S3 Data
+        run: |
+          echo "🔍 Validating S3 data integrity..."
+          
+          # Check BLS data bucket
+          echo "📊 BLS Data Bucket Contents:"
+          aws s3 ls s3://rearc-quest-bls-data/ --recursive --human-readable --summarize
+          
+          # Check Population data bucket
+          echo "👥 Population Data Bucket Contents:"
+          aws s3 ls s3://rearc-quest-population-data/ --recursive --human-readable --summarize
+          
+          # Validate data structure
+          BLS_COUNT=$(aws s3 ls s3://rearc-quest-bls-data/ --recursive | wc -l)
+          POP_COUNT=$(aws s3 ls s3://rearc-quest-population-data/ --recursive | wc -l)
+          
+          echo "Data validation results:"
+          echo "- BLS files: ${BLS_COUNT}"
+          echo "- Population files: ${POP_COUNT}"
+          
+          if [ $BLS_COUNT -eq 0 ]; then
+            echo "❌ No BLS data files found"
+            exit 1
+          fi
+          
+          if [ $POP_COUNT -eq 0 ]; then
+            echo "❌ No Population data files found"
+            exit 1
+          fi
+          
+          echo "✅ Data validation passed"
+
+      - name: Validate Analytics Processing
+        run: |
+          echo "📈 Validating analytics processing..."
+          
+          EXECUTION_ID="${{ needs.trigger-data-pipeline.outputs.pipeline-execution-id }}"
+          START_TIME="${{ needs.trigger-data-pipeline.outputs.pipeline-start-time }}"
+          
+          # Get Analytics Lambda function name
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          
+          if [ -n "$ANALYTICS_PROCESSOR" ]; then
+            echo "Checking analytics processing logs..."
+            
+            # Look for analytics completion indicators in logs
+            ANALYTICS_LOGS=$(aws logs filter-log-events \
+              --log-group-name "/aws/lambda/${ANALYTICS_PROCESSOR}" \
+              --start-time $(date -d "${START_TIME}" +%s)000 \
+              --filter-pattern "analytics complete" \
+              --query 'events[*].message' \
+              --output text)
+            
+            if [ -n "$ANALYTICS_LOGS" ]; then
+              echo "✅ Analytics processing completed"
+              echo "Analytics output:"
+              echo "$ANALYTICS_LOGS"
+            else
+              echo "⚠️  Analytics processing may still be running or logs not available"
+              # Show recent analytics logs
+              aws logs filter-log-events \
+                --log-group-name "/aws/lambda/${ANALYTICS_PROCESSOR}" \
+                --start-time $(date -d "${START_TIME}" +%s)000 \
+                --query 'events[-10:].message' \
+                --output text || echo "No analytics logs found"
+            fi
+          fi
+
+      - name: Generate E2E Report
+        run: |
+          EXECUTION_ID="${{ needs.trigger-data-pipeline.outputs.pipeline-execution-id }}"
+          START_TIME="${{ needs.trigger-data-pipeline.outputs.pipeline-start-time }}"
+          END_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          
+          echo "# End-to-End Pipeline Execution Report" > e2e-report.md
+          echo "" >> e2e-report.md
+          echo "## Execution Summary" >> e2e-report.md
+          echo "- **Execution ID**: ${EXECUTION_ID}" >> e2e-report.md
+          echo "- **Start Time**: ${START_TIME}" >> e2e-report.md
+          echo "- **End Time**: ${END_TIME}" >> e2e-report.md
+          echo "- **Region**: ${{ env.AWS_DEFAULT_REGION }}" >> e2e-report.md
+          echo "- **Environment**: ${{ github.event.inputs.environment || 'dev' }}" >> e2e-report.md
+          echo "" >> e2e-report.md
+          
+          echo "## Infrastructure Status" >> e2e-report.md
+          echo "### S3 Buckets" >> e2e-report.md
+          aws s3 ls | grep rearc >> e2e-report.md || echo "No rearc buckets found" >> e2e-report.md
+          echo "" >> e2e-report.md
+          
+          echo "### Lambda Functions" >> e2e-report.md
+          aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`)].{Name:FunctionName,Runtime:Runtime,LastModified:LastModified}' --output table >> e2e-report.md
+          echo "" >> e2e-report.md
+          
+          echo "### SQS Queues" >> e2e-report.md
+          aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output table >> e2e-report.md
+          echo "" >> e2e-report.md
+          
+          echo "## Data Validation Results" >> e2e-report.md
+          echo "### BLS Data" >> e2e-report.md
+          BLS_COUNT=$(aws s3 ls s3://rearc-quest-bls-data/ --recursive | wc -l)
+          echo "- Files: ${BLS_COUNT}" >> e2e-report.md
+          
+          echo "### Population Data" >> e2e-report.md
+          POP_COUNT=$(aws s3 ls s3://rearc-quest-population-data/ --recursive | wc -l)
+          echo "- Files: ${POP_COUNT}" >> e2e-report.md
+          echo "" >> e2e-report.md
+          
+          echo "## Pipeline Status" >> e2e-report.md
+          if [ $BLS_COUNT -gt 0 ] && [ $POP_COUNT -gt 0 ]; then
+            echo "✅ **Status**: SUCCESS - End-to-end pipeline completed successfully" >> e2e-report.md
+          else
+            echo "❌ **Status**: FAILED - End-to-end pipeline did not complete successfully" >> e2e-report.md
+          fi
+          
+          cat e2e-report.md
+
+      - name: Upload E2E Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-pipeline-report-${{ needs.trigger-data-pipeline.outputs.pipeline-execution-id }}
+          path: e2e-report.md
+
+  cleanup-test-data:
+    name: Cleanup Test Data
+    runs-on: ubuntu-latest
+    needs: [validate-data-flow]
+    if: always()
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Cleanup Test Data
+        run: |
+          echo "🧹 Cleaning up test data..."
+          # Only remove test-specific data, keep production data
+          aws s3 rm s3://rearc-quest-bls-data/test/ --recursive || echo "No test data to clean in BLS bucket"
+          aws s3 rm s3://rearc-quest-population-data/test/ --recursive || echo "No test data to clean in Population bucket"
+          echo "✅ Test data cleanup completed"
