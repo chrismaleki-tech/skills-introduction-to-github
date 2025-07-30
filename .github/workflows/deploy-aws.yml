@@ -138,6 +138,59 @@ jobs:
           cd part4_infrastructure/cdk
           cdk diff || echo "No differences found or first deployment"
 
+      - name: Check Stack Status and Handle Rollback Failed
+        run: |
+          cd part4_infrastructure/cdk
+          
+          # Check if stack exists and its status
+          STACK_STATUS=$(aws cloudformation describe-stacks --stack-name RearcDataQuestPipeline --query 'Stacks[0].StackStatus' --output text 2>/dev/null || echo "STACK_NOT_FOUND")
+          
+          echo "Current stack status: $STACK_STATUS"
+          
+          if [ "$STACK_STATUS" = "UPDATE_ROLLBACK_FAILED" ]; then
+            echo "⚠️  Stack is in UPDATE_ROLLBACK_FAILED state. Attempting to recover..."
+            
+            # Try to continue rollback first
+            if aws cloudformation continue-update-rollback --stack-name RearcDataQuestPipeline; then
+              echo "✅ Continue rollback initiated successfully"
+              
+              # Wait for rollback to complete
+              echo "⏳ Waiting for rollback to complete..."
+              aws cloudformation wait stack-update-rollback-complete --stack-name RearcDataQuestPipeline || {
+                echo "⚠️  Rollback did not complete successfully. Checking for stuck resources..."
+                
+                # Get stuck resources and try to skip them
+                STUCK_RESOURCES=$(aws cloudformation describe-stack-resources --stack-name RearcDataQuestPipeline --query 'StackResources[?ResourceStatus==`UPDATE_FAILED` || ResourceStatus==`DELETE_FAILED`].LogicalResourceId' --output text)
+                
+                if [ -n "$STUCK_RESOURCES" ]; then
+                  echo "Found stuck resources: $STUCK_RESOURCES"
+                  echo "Attempting to continue rollback with skipped resources..."
+                  aws cloudformation continue-update-rollback --stack-name RearcDataQuestPipeline --resources-to-skip $STUCK_RESOURCES
+                  aws cloudformation wait stack-update-rollback-complete --stack-name RearcDataQuestPipeline
+                fi
+              }
+            else
+              echo "❌ Failed to continue rollback. Manual intervention may be required."
+              exit 1
+            fi
+          elif [ "$STACK_STATUS" = "ROLLBACK_IN_PROGRESS" ]; then
+            echo "⏳ Stack rollback already in progress. Waiting for completion..."
+            aws cloudformation wait stack-update-rollback-complete --stack-name RearcDataQuestPipeline
+          elif [ "$STACK_STATUS" = "UPDATE_IN_PROGRESS" ]; then
+            echo "⏳ Stack update in progress. Waiting for completion..."
+            aws cloudformation wait stack-update-complete --stack-name RearcDataQuestPipeline || {
+              echo "⚠️  Update failed. Checking final status..."
+              FINAL_STATUS=$(aws cloudformation describe-stacks --stack-name RearcDataQuestPipeline --query 'Stacks[0].StackStatus' --output text)
+              if [ "$FINAL_STATUS" = "UPDATE_ROLLBACK_FAILED" ]; then
+                echo "❌ Stack is now in UPDATE_ROLLBACK_FAILED state. Re-run this workflow to recover."
+                exit 1
+              fi
+            }
+          fi
+          
+          echo "✅ Stack is ready for deployment"
+        timeout-minutes: 15
+
       - name: Deploy CDK Stack
         run: |
           cd part4_infrastructure/cdk
