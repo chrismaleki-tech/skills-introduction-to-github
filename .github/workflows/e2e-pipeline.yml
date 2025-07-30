@@ -107,14 +107,14 @@ jobs:
         run: |
           cd part4_infrastructure/cdk
           if [ -f cdk-outputs.json ]; then
-            echo "stack-name=RearcDataQuestStack" >> $GITHUB_OUTPUT
+            echo "stack-name=RearcDataQuestPipeline" >> $GITHUB_OUTPUT
             echo "bucket-bls=rearc-quest-bls-data" >> $GITHUB_OUTPUT
             echo "bucket-population=rearc-quest-population-data" >> $GITHUB_OUTPUT
             
             # Get Lambda function names dynamically
-            DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
-            ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
-            SQS_QUEUE=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+            DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-data-processor`)].FunctionName' --output text | head -n1)
+            ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-analytics-processor`)].FunctionName' --output text | head -n1)
+            SQS_QUEUE=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc-quest`)]' --output text | head -n1)
             
             echo "lambda-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
             echo "lambda-analytics=${ANALYTICS_PROCESSOR}" >> $GITHUB_OUTPUT
@@ -158,14 +158,14 @@ jobs:
           echo "🔍 Discovering existing infrastructure..."
           
           # Set static values for known infrastructure
-          echo "stack-name=RearcDataQuestStack" >> $GITHUB_OUTPUT
+          echo "stack-name=RearcDataQuestPipeline" >> $GITHUB_OUTPUT
           echo "bucket-bls=rearc-quest-bls-data" >> $GITHUB_OUTPUT
           echo "bucket-population=rearc-quest-population-data" >> $GITHUB_OUTPUT
           
           # Get Lambda function names dynamically
-          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
-          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
-          SQS_QUEUE=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-data-processor`)].FunctionName' --output text | head -n1)
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-analytics-processor`)].FunctionName' --output text | head -n1)
+          SQS_QUEUE=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc-quest`)]' --output text | head -n1)
           
           echo "lambda-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
           echo "lambda-analytics=${ANALYTICS_PROCESSOR}" >> $GITHUB_OUTPUT
@@ -224,13 +224,13 @@ jobs:
           
           # Fallback to dynamic discovery if outputs are empty
           if [ -z "$DATA_PROCESSOR" ]; then
-            DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
+            DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-data-processor`)].FunctionName' --output text | head -n1)
           fi
           if [ -z "$ANALYTICS_PROCESSOR" ]; then
-            ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+            ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-analytics-processor`)].FunctionName' --output text | head -n1)
           fi
           if [ -z "$SQS_QUEUE_URL" ]; then
-            SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+            SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc-quest`)]' --output text | head -n1)
           fi
           
           echo "data-processor=${DATA_PROCESSOR}" >> $GITHUB_OUTPUT
@@ -320,8 +320,8 @@ jobs:
           echo "Monitoring logs since: ${START_TIME}"
           
           # Get Lambda function names
-          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `DataProcessor`)].FunctionName' --output text | head -n1)
-          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          DATA_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-data-processor`)].FunctionName' --output text | head -n1)
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-analytics-processor`)].FunctionName' --output text | head -n1)
           
           # Monitor Data Processor logs
           if [ -n "$DATA_PROCESSOR" ]; then
@@ -346,7 +346,7 @@ jobs:
       - name: Check SQS Queue Status
         run: |
           # Get SQS queue URL
-          SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output text | head -n1)
+          SQS_QUEUE_URL=$(aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc-quest`)]' --output text | head -n1)
           
           if [ -n "$SQS_QUEUE_URL" ]; then
             echo "📬 SQS Queue Status:"
@@ -457,7 +457,7 @@ jobs:
           START_TIME="${{ needs.trigger-data-pipeline.outputs.pipeline-start-time }}"
           
           # Get Analytics Lambda function name
-          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`) && contains(FunctionName, `Analytics`)].FunctionName' --output text | head -n1)
+          ANALYTICS_PROCESSOR=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest-analytics-processor`)].FunctionName' --output text | head -n1)
           
           if [ -n "$ANALYTICS_PROCESSOR" ]; then
             echo "Checking analytics processing logs..."
@@ -507,11 +507,11 @@ jobs:
           echo "" >> e2e-report.md
           
           echo "### Lambda Functions" >> e2e-report.md
-          aws lambda list-functions --query 'Functions[?contains(FunctionName, `RearcDataQuest`)].{Name:FunctionName,Runtime:Runtime,LastModified:LastModified}' --output table >> e2e-report.md
+          aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc-quest`)].{Name:FunctionName,Runtime:Runtime,LastModified:LastModified}' --output table >> e2e-report.md
           echo "" >> e2e-report.md
           
           echo "### SQS Queues" >> e2e-report.md
-          aws sqs list-queues --query 'QueueUrls[?contains(@, `RearcDataQuest`)]' --output table >> e2e-report.md
+          aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc-quest`)]' --output table >> e2e-report.md
           echo "" >> e2e-report.md
           
           echo "## Data Validation Results" >> e2e-report.md
