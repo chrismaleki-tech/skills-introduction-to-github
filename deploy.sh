@@ -99,22 +99,6 @@ pip install -r part4_infrastructure/cdk/requirements.txt > /dev/null 2>&1
 
 echo
 
-# Optional: Run code quality checks
-echo -e "${BLUE}Running Code Quality Checks...${NC}"
-
-if pip list | grep -q flake8; then
-    print_status "Code quality tools already installed"
-else
-    print_status "Installing code quality tools..."
-    pip install flake8 black isort bandit safety > /dev/null 2>&1
-fi
-
-print_status "Running linting..."
-flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || print_warning "Linting warnings found"
-
-print_status "Running security scan..."
-bandit -r . -f json -o bandit-report.json > /dev/null 2>&1 || print_warning "Security scan completed with warnings"
-
 echo
 
 # CDK Bootstrap
