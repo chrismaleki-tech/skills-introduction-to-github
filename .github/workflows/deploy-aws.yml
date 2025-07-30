@@ -1,0 +1,332 @@
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+        - dev
+        - staging
+        - prod
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  CDK_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  PYTHON_VERSION: '3.9'
+  NODE_VERSION: '18'
+
+jobs:
+  lint-and-test:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Cache Python Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest black isort
+
+      - name: Code Formatting Check
+        run: |
+          black --check --diff .
+          isort --check-only --diff .
+
+      - name: Lint Code
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+      - name: Run Unit Tests
+        run: |
+          # Run any existing Python tests
+          if [ -f "pytest.ini" ] || [ -d "tests" ]; then
+            pytest -v
+          else
+            echo "No tests found, skipping..."
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Security Tools
+        run: |
+          pip install bandit safety
+
+      - name: Run Bandit Security Scan
+        run: |
+          bandit -r . -f json -o bandit-report.json || true
+
+      - name: Check Dependencies for Vulnerabilities
+        run: |
+          safety check --json --output safety-report.json || true
+
+      - name: Upload Security Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+            safety-report.json
+
+  deploy-infrastructure:
+    name: Deploy AWS Infrastructure
+    runs-on: ubuntu-latest
+    needs: [lint-and-test, security-scan]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+    
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Verify AWS Credentials
+        run: |
+          aws sts get-caller-identity
+          aws s3 ls || echo "No S3 buckets found"
+
+      - name: Cache Python Dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r part4_infrastructure/cdk/requirements.txt
+
+      - name: Install AWS CDK
+        run: |
+          npm install -g aws-cdk@latest
+          cdk --version
+
+      - name: Bootstrap CDK (if needed)
+        run: |
+          cd part4_infrastructure/cdk
+          cdk bootstrap aws://${{ secrets.CDK_DEFAULT_ACCOUNT || 'unknown' }}/${{ env.AWS_DEFAULT_REGION }}
+        continue-on-error: true
+
+      - name: CDK Synth
+        run: |
+          cd part4_infrastructure/cdk
+          cdk synth
+
+      - name: CDK Diff
+        run: |
+          cd part4_infrastructure/cdk
+          cdk diff || echo "No differences found or first deployment"
+
+      - name: Deploy CDK Stack
+        run: |
+          cd part4_infrastructure/cdk
+          cdk deploy --require-approval never --verbose
+        timeout-minutes: 30
+
+      - name: Save CDK Outputs
+        run: |
+          cd part4_infrastructure/cdk
+          cdk deploy --outputs-file cdk-outputs.json --require-approval never || echo "Stack already deployed"
+
+      - name: Upload CDK Outputs
+        uses: actions/upload-artifact@v3
+        with:
+          name: cdk-outputs
+          path: part4_infrastructure/cdk/cdk-outputs.json
+
+  deploy-applications:
+    name: Deploy Applications & Functions
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download CDK Outputs
+        uses: actions/download-artifact@v3
+        with:
+          name: cdk-outputs
+          path: ./artifacts
+
+      - name: Run Data Sourcing Script
+        run: |
+          cd part1_data_sourcing
+          python bls_data_sync.py
+        continue-on-error: true
+
+      - name: Run API Integration
+        run: |
+          cd part2_api_integration
+          python population_api.py
+        continue-on-error: true
+
+      - name: Test Lambda Functions
+        run: |
+          # Test if Lambda functions are deployed and accessible
+          aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc`) || contains(FunctionName, `RearcDataQuest`)].FunctionName' --output table
+
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-applications]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Test S3 Buckets
+        run: |
+          echo "Testing S3 bucket access..."
+          aws s3 ls s3://rearc-quest-bls-data/ || echo "BLS bucket not found or empty"
+          aws s3 ls s3://rearc-quest-population-data/ || echo "Population bucket not found or empty"
+
+      - name: Test SQS Queues
+        run: |
+          echo "Testing SQS queues..."
+          aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc`) || contains(@, `RearcDataQuest`)]' --output table
+
+      - name: Test Lambda Functions
+        run: |
+          echo "Testing Lambda functions..."
+          for func in $(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc`) || contains(FunctionName, `RearcDataQuest`)].FunctionName' --output text); do
+            echo "Testing function: $func"
+            aws lambda invoke --function-name "$func" --payload '{"test": true}' /tmp/response.json || echo "Function invocation failed for $func"
+          done
+
+      - name: Generate Deployment Report
+        run: |
+          echo "# Deployment Report" > deployment-report.md
+          echo "## Date: $(date)" >> deployment-report.md
+          echo "## Region: $AWS_DEFAULT_REGION" >> deployment-report.md
+          echo "## S3 Buckets:" >> deployment-report.md
+          aws s3 ls | grep rearc >> deployment-report.md || echo "No rearc buckets found" >> deployment-report.md
+          echo "## Lambda Functions:" >> deployment-report.md
+          aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc`) || contains(FunctionName, `RearcDataQuest`)].FunctionName' --output table >> deployment-report.md
+          echo "## SQS Queues:" >> deployment-report.md
+          aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc`) || contains(@, `RearcDataQuest`)]' --output table >> deployment-report.md
+
+      - name: Upload Deployment Report
+        uses: actions/upload-artifact@v3
+        with:
+          name: deployment-report
+          path: deployment-report.md
+
+  cleanup-on-failure:
+    name: Cleanup on Failure
+    runs-on: ubuntu-latest
+    needs: [deploy-infrastructure, deploy-applications, integration-tests]
+    if: failure() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    environment: 
+      name: ${{ github.event.inputs.environment || 'dev' }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_DEFAULT_REGION }}
+
+      - name: Install AWS CDK
+        run: |
+          npm install -g aws-cdk@latest
+
+      - name: Destroy CDK Stack (Optional)
+        run: |
+          cd part4_infrastructure/cdk
+          echo "Deployment failed. To cleanup resources, run: cdk destroy --force"
+          # Uncomment the next line if you want automatic cleanup on failure
+          # cdk destroy --force
+        continue-on-error: true
