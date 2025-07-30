@@ -312,6 +312,9 @@ jobs:
 
       - name: Trigger E2E Pipeline Workflow
         uses: actions/github-script@v7
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+          AWS_REGION: ${{ github.event.inputs.aws-region || 'us-east-2' }}
         with:
           script: |
             const response = await github.rest.actions.createWorkflowDispatch({
@@ -320,8 +323,8 @@ jobs:
               workflow_id: 'e2e-pipeline.yml',
               ref: 'main',
               inputs: {
-                environment: '${{ github.event.inputs.environment || "dev" }}',
-                'aws-region': '${{ github.event.inputs.aws-region || "us-east-2" }}',
+                environment: process.env.ENVIRONMENT,
+                'aws-region': process.env.AWS_REGION,
                 'skip-deployment': 'true',
                 'data-validation-timeout': '15'
               }
@@ -335,8 +338,8 @@ jobs:
             
             The deployment completed successfully and the end-to-end pipeline has been triggered.
             
-            **Environment**: ${{ github.event.inputs.environment || 'dev' }}
-            **Region**: ${{ github.event.inputs.aws-region || 'us-east-2' }}
+            **Environment**: ${process.env.ENVIRONMENT}
+            **Region**: ${process.env.AWS_REGION}
             **Skip Deployment**: true (using existing infrastructure)
             
             Check the [Actions tab](${context.payload.repository.html_url}/actions) to monitor the E2E pipeline execution.
