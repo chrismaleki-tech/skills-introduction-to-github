@@ -137,6 +137,103 @@ cdk deploy
 - **CloudWatch**: Monitoring and logging
 - **S3 Notifications**: Automatic triggering
 
+## End-to-End Pipeline & CI/CD
+
+This project includes a comprehensive end-to-end pipeline that can be triggered via GitHub Actions to validate the complete data flow from source to analytics output.
+
+### E2E Pipeline Features
+
+- **🚀 Complete Pipeline Execution**: Triggers the entire data pipeline from BLS data sync to analytics processing
+- **📊 Real-time Monitoring**: Monitors Lambda function logs and SQS queue status during execution
+- **✅ Data Validation**: Validates data integrity across all S3 buckets and processing stages
+- **📈 Analytics Verification**: Confirms analytics processing completion and output
+- **📋 Comprehensive Reporting**: Generates detailed execution reports with timestamps and metrics
+- **🧹 Automated Cleanup**: Cleans up test data after validation
+
+### Triggering the E2E Pipeline
+
+#### Via GitHub Actions UI
+1. Go to the **Actions** tab in your repository
+2. Select **"End-to-End Data Pipeline"** workflow
+3. Click **"Run workflow"**
+4. Configure options:
+   - **Environment**: dev, staging, or prod
+   - **AWS Region**: Target AWS region
+   - **Skip Deployment**: Use existing infrastructure
+   - **Validation Timeout**: How long to wait for data processing
+
+#### Via GitHub CLI
+```bash
+# Trigger with default settings (dev environment)
+gh workflow run e2e-pipeline.yml
+
+# Trigger in production with existing infrastructure
+gh workflow run e2e-pipeline.yml \
+  --field environment=prod \
+  --field skip-deployment=true
+```
+
+#### Via Manual Script
+```bash
+# Basic trigger
+./trigger_e2e_pipeline.sh
+
+# With custom options
+./trigger_e2e_pipeline.sh --environment prod --skip-deployment --timeout 20
+```
+
+### E2E Pipeline Workflow
+
+1. **Infrastructure Deployment** (optional)
+   - Deploys AWS CDK stack if not skipped
+   - Builds and packages Lambda functions
+   - Sets up S3 buckets, SQS queues, and IAM roles
+
+2. **Pipeline Trigger**
+   - Invokes the data processor Lambda function
+   - Sends test payload with execution tracking ID
+   - Initiates BLS data sync and population API calls
+
+3. **Execution Monitoring**
+   - Monitors CloudWatch logs for both Lambda functions
+   - Tracks SQS queue status and message processing
+   - Reports real-time pipeline progress
+
+4. **Data Validation**
+   - Validates S3 bucket contents and file counts
+   - Verifies data integrity and structure
+   - Confirms analytics processing completion
+
+5. **Report Generation**
+   - Creates comprehensive execution report
+   - Includes timestamps, metrics, and status
+   - Uploads artifacts for download
+
+6. **Cleanup**
+   - Removes test-specific data
+   - Preserves production data and infrastructure
+
+### Integration with Deployment Workflow
+
+The existing `deploy-aws.yml` workflow now includes an option to automatically trigger the E2E pipeline after successful deployment:
+
+```yaml
+# In GitHub Actions UI, check "Trigger end-to-end pipeline after deployment"
+trigger-e2e-pipeline: true
+```
+
+### Scheduled Validation
+
+The E2E pipeline runs automatically daily at 6 AM UTC to validate the production pipeline health and ensure continuous operational readiness.
+
+### Pipeline Monitoring
+
+Monitor pipeline execution through:
+- **GitHub Actions UI**: Real-time workflow progress
+- **AWS CloudWatch**: Lambda function logs and metrics
+- **Generated Reports**: Detailed execution summaries
+- **GitHub CLI**: `gh run watch <run-id>`
+
 ## Key Technologies
 
 - **Languages**: Python 3.9+
