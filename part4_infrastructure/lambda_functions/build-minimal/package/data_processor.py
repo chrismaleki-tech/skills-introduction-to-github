@@ -38,7 +38,7 @@ def lambda_handler(event, context):
     # Get environment variables
     bls_bucket = os.environ['BLS_BUCKET_NAME']
     population_bucket = os.environ['POPULATION_BUCKET_NAME']
-    analytics_queue_url = os.environ['ANALYTICS_QUEUE_URL']
+    analytics_queue_url ="https://download.bls.gov/pub/time.series/pr/" #os.environ['ANALYTICS_QUEUE_URL']
     
     results = {
         'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0},
