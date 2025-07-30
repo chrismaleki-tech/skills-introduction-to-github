@@ -123,7 +123,7 @@ class RearcDataPipelineStack(Stack):
             function_name="rearc-quest-data-processor",
             runtime=lambda_.Runtime.PYTHON_3_9,
             handler="data_processor.lambda_handler",
-            code=lambda_.Code.from_asset("../lambda_functions"),
+            code=lambda_.Code.from_asset("../lambda_functions/build-minimal/lambda-minimal-package.zip"),
             timeout=Duration.minutes(15),
             memory_size=512,
             role=self.data_processor_role,
@@ -135,6 +135,8 @@ class RearcDataPipelineStack(Stack):
         )
 
         # Analytics processor Lambda (Part 3)
+        # Note: This Lambda requires pandas/numpy which exceed the 50MB deployment limit
+        # Consider using Lambda Layers or container images for production deployment
         self.analytics_processor_lambda = lambda_.Function(
             self, "AnalyticsProcessorFunction",
             function_name="rearc-quest-analytics-processor",

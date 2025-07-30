@@ -8,41 +8,56 @@
         "packaging": "zip"
       },
       "destinations": {
-        "944355516553-us-east-2-b553de00": {
-          "bucketName": "cdk-hnb659fds-assets-944355516553-us-east-2",
+        "current_account-us-east-1-e650c2de": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1",
           "objectKey": "faa95a81ae7d7373f3e1f242268f904eb748d8d0fdd306e8a6fe515a1905a7d6.zip",
-          "region": "us-east-2",
-          "assumeRoleArn": "arn:${AWS::Partition}:iam::944355516553:role/cdk-hnb659fds-file-publishing-role-944355516553-us-east-2"
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-us-east-1"
         }
       }
     },
-    "4288b71fd4d8e74a39a0100930db3a9058f0e78f5eb6a67e9903034e7aa846fe": {
+    "27f35ac10f3e0c4eb05b270f20e7da29c28ebc51b393e94dbe914d5455bfbfea": {
       "displayName": "DataProcessorFunction/Code",
       "source": {
-        "path": "asset.4288b71fd4d8e74a39a0100930db3a9058f0e78f5eb6a67e9903034e7aa846fe",
+        "path": "asset.27f35ac10f3e0c4eb05b270f20e7da29c28ebc51b393e94dbe914d5455bfbfea.zip",
+        "packaging": "file"
+      },
+      "destinations": {
+        "current_account-us-east-1-69bcc030": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1",
+          "objectKey": "27f35ac10f3e0c4eb05b270f20e7da29c28ebc51b393e94dbe914d5455bfbfea.zip",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-us-east-1"
+        }
+      }
+    },
+    "5fe17f1f4f9f428d91578b2b6e7e1a89dec82e7b3e9d9000dfb3f662130c1c7d": {
+      "displayName": "AnalyticsProcessorFunction/Code",
+      "source": {
+        "path": "asset.5fe17f1f4f9f428d91578b2b6e7e1a89dec82e7b3e9d9000dfb3f662130c1c7d",
         "packaging": "zip"
       },
       "destinations": {
-        "944355516553-us-east-2-7b9cf4dd": {
-          "bucketName": "cdk-hnb659fds-assets-944355516553-us-east-2",
-          "objectKey": "4288b71fd4d8e74a39a0100930db3a9058f0e78f5eb6a67e9903034e7aa846fe.zip",
-          "region": "us-east-2",
-          "assumeRoleArn": "arn:${AWS::Partition}:iam::944355516553:role/cdk-hnb659fds-file-publishing-role-944355516553-us-east-2"
+        "current_account-us-east-1-fadf090c": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1",
+          "objectKey": "5fe17f1f4f9f428d91578b2b6e7e1a89dec82e7b3e9d9000dfb3f662130c1c7d.zip",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-us-east-1"
         }
       }
     },
-    "a16bb5292c67f7211fda3da0fc372a7ddf6c00f958188e891a26595161649d38": {
+    "fda322fc39984476f709f098f35db34f16bb1528316ba68767fe8ec457109ce5": {
       "displayName": "RearcDataQuestPipeline Template",
       "source": {
         "path": "RearcDataQuestPipeline.template.json",
         "packaging": "file"
       },
       "destinations": {
-        "944355516553-us-east-2-be273bd6": {
-          "bucketName": "cdk-hnb659fds-assets-944355516553-us-east-2",
-          "objectKey": "a16bb5292c67f7211fda3da0fc372a7ddf6c00f958188e891a26595161649d38.json",
-          "region": "us-east-2",
-          "assumeRoleArn": "arn:${AWS::Partition}:iam::944355516553:role/cdk-hnb659fds-file-publishing-role-944355516553-us-east-2"
+        "current_account-us-east-1-424de3a5": {
+          "bucketName": "cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1",
+          "objectKey": "fda322fc39984476f709f098f35db34f16bb1528316ba68767fe8ec457109ce5.json",
+          "region": "us-east-1",
+          "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-file-publishing-role-${AWS::AccountId}-us-east-1"
         }
       }
     }

@@ -11,7 +11,7 @@
     },
     "RearcDataQuestPipeline": {
       "type": "aws:cloudformation:stack",
-      "environment": "aws://944355516553/us-east-2",
+      "environment": "aws://unknown-account/us-east-1",
       "properties": {
         "templateFile": "RearcDataQuestPipeline.template.json",
         "terminationProtection": false,
@@ -21,16 +21,16 @@
           "Project": "Rearc-Data-Quest"
         },
         "validateOnSynth": false,
-        "assumeRoleArn": "arn:${AWS::Partition}:iam::944355516553:role/cdk-hnb659fds-deploy-role-944355516553-us-east-2",
-        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::944355516553:role/cdk-hnb659fds-cfn-exec-role-944355516553-us-east-2",
-        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-944355516553-us-east-2/a16bb5292c67f7211fda3da0fc372a7ddf6c00f958188e891a26595161649d38.json",
+        "assumeRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-deploy-role-${AWS::AccountId}-us-east-1",
+        "cloudFormationExecutionRoleArn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-cfn-exec-role-${AWS::AccountId}-us-east-1",
+        "stackTemplateAssetObjectUrl": "s3://cdk-hnb659fds-assets-${AWS::AccountId}-us-east-1/fda322fc39984476f709f098f35db34f16bb1528316ba68767fe8ec457109ce5.json",
         "requiresBootstrapStackVersion": 6,
         "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version",
         "additionalDependencies": [
           "RearcDataQuestPipeline.assets"
         ],
         "lookupRole": {
-          "arn": "arn:${AWS::Partition}:iam::944355516553:role/cdk-hnb659fds-lookup-role-944355516553-us-east-2",
+          "arn": "arn:${AWS::Partition}:iam::${AWS::AccountId}:role/cdk-hnb659fds-lookup-role-${AWS::AccountId}-us-east-1",
           "requiresBootstrapStackVersion": 8,
           "bootstrapStackVersionSsmParameter": "/cdk-bootstrap/hnb659fds/version"
         }
