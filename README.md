@@ -85,6 +85,17 @@ pip install -r requirements.txt
 aws configure
 ```
 
+### ⚠️  Important: S3 Permissions Setup
+
+**Before running Part 1**, ensure you have the required S3 permissions:
+
+```bash
+# Quick fix for Part 1 S3 permissions
+./fix_part1_s3_permissions.sh
+```
+
+For detailed guidance, see: [`PART1_S3_PERMISSIONS_GUIDE.md`](PART1_S3_PERMISSIONS_GUIDE.md)
+
 ### Running Each Part
 
 #### Part 1: Data Sourcing
