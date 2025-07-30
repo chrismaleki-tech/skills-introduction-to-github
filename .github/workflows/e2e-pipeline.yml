@@ -31,7 +31,7 @@ on:
     # Run daily at 6 AM UTC to validate production pipeline
     - cron: '0 6 * * *'
   push:
-    branches: [ main ]
+    branches: [ main, 'cursor/**' ]  # Include cursor branches for development
     paths:
       - 'part1_data_sourcing/**'
       - 'part2_api_integration/**'

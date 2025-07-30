@@ -2,7 +2,7 @@ name: Deploy to AWS
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, 'cursor/**' ]  # Include cursor branches for development
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -39,7 +39,8 @@ jobs:
   deploy-infrastructure:
     name: Deploy AWS Infrastructure
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    # Updated condition to include cursor branches for development
+    if: github.ref == 'refs/heads/main' || contains(github.ref, 'cursor/') || github.event_name == 'workflow_dispatch'
     environment: 
       name: ${{ github.event.inputs.environment || 'dev' }}
     
@@ -158,7 +159,7 @@ jobs:
     name: Deploy Applications & Functions
     runs-on: ubuntu-latest
     needs: [deploy-infrastructure]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' || contains(github.ref, 'cursor/') || github.event_name == 'workflow_dispatch'
     environment: 
       name: ${{ github.event.inputs.environment || 'dev' }}
 
@@ -210,7 +211,7 @@ jobs:
     name: Integration Tests
     runs-on: ubuntu-latest
     needs: [deploy-applications]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: github.ref == 'refs/heads/main' || contains(github.ref, 'cursor/') || github.event_name == 'workflow_dispatch'
     environment: 
       name: ${{ github.event.inputs.environment || 'dev' }}
 
@@ -266,7 +267,7 @@ jobs:
     name: Cleanup on Failure
     runs-on: ubuntu-latest
     needs: [deploy-infrastructure, deploy-applications, integration-tests]
-    if: failure() && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    if: failure() && (github.ref == 'refs/heads/main' || contains(github.ref, 'cursor/') || github.event_name == 'workflow_dispatch')
     environment: 
       name: ${{ github.event.inputs.environment || 'dev' }}
 
