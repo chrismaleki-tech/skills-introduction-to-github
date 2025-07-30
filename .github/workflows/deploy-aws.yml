@@ -104,7 +104,7 @@ jobs:
           cdk deploy --outputs-file cdk-outputs.json --require-approval never || echo "Stack already deployed"
 
       - name: Upload CDK Outputs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: cdk-outputs
           path: part4_infrastructure/cdk/cdk-outputs.json
@@ -139,7 +139,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download CDK Outputs
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: cdk-outputs
           path: ./artifacts
@@ -212,7 +212,7 @@ jobs:
           aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc`) || contains(@, `RearcDataQuest`)]' --output table >> deployment-report.md
 
       - name: Upload Deployment Report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployment-report
           path: deployment-report.md
