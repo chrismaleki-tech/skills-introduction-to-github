@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-07-30 06:51:01.539087",
+  "error_id": "beb9f99a-d3c6-40e5-9ec7-012dbf7bffca",
+  "error_description": "No such file or directory: '/pub/time.series/pr/pr.txt'",
+  "diagnostics": {
+    "environment_variables": 0,
+    "config_files": 0,
+    "lambda_issues": 0,
+    "bls_syncer_valid": true
+  },
+  "recommendations": [],
+  "fixes_applied": [
+    "Created temporary /pub/time.series/pr/ directory structure"
+  ]
+}
