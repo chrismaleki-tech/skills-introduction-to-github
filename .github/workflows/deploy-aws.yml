@@ -16,12 +16,17 @@ on:
         - dev
         - staging
         - prod
+      aws-region:
+        description: 'AWS Region to deploy to'
+        required: true
+        default: 'us-east-2'
+        type: string
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-  CDK_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  AWS_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
+  CDK_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
   PYTHON_VERSION: '3.9'
   NODE_VERSION: '18'
 
@@ -79,7 +84,12 @@ jobs:
       - name: Bootstrap CDK (if needed)
         run: |
           cd part4_infrastructure/cdk
-          cdk bootstrap aws://${{ secrets.CDK_DEFAULT_ACCOUNT || 'unknown' }}/${{ env.AWS_DEFAULT_REGION }}
+          # Get AWS account ID dynamically if not provided in secrets
+          ACCOUNT_ID="${{ secrets.CDK_DEFAULT_ACCOUNT }}"
+          if [ -z "$ACCOUNT_ID" ]; then
+            ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          fi
+          cdk bootstrap aws://$ACCOUNT_ID/${{ env.AWS_DEFAULT_REGION }}
         continue-on-error: true
 
       - name: CDK Synth
