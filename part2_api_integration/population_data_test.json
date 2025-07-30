@@ -1,0 +1,29 @@
+{
+  "metadata": {
+    "source": "Mock Data (Testing)",
+    "url": "N/A - Generated locally",
+    "fetched_at": "2025-07-30T04:53:51.161567",
+    "total_records": 3,
+    "warning": "This is mock data for testing purposes only",
+    "api_info": {
+      "note": "Generated when external APIs are unavailable"
+    }
+  },
+  "data": [
+    {
+      "Year": 2018,
+      "Population": 327349339,
+      "Nation": "United States"
+    },
+    {
+      "Year": 2019,
+      "Population": 329640784,
+      "Nation": "United States"
+    },
+    {
+      "Year": 2020,
+      "Population": 331948270,
+      "Nation": "United States"
+    }
+  ]
+}

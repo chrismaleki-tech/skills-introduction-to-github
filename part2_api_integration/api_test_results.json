@@ -1,0 +1,63 @@
+{
+  "datausa_api": null,
+  "census_api": null,
+  "fallback_data": {
+    "metadata": {
+      "source": "Mock Data (Testing)",
+      "url": "N/A - Generated locally",
+      "fetched_at": "2025-07-30T04:51:20.910255",
+      "total_records": 3,
+      "warning": "This is mock data for testing purposes only",
+      "api_info": {
+        "note": "Generated when external APIs are unavailable"
+      }
+    },
+    "data": [
+      {
+        "Year": 2013,
+        "Population": 316128839,
+        "Nation": "United States"
+      },
+      {
+        "Year": 2014,
+        "Population": 318341740,
+        "Nation": "United States"
+      },
+      {
+        "Year": 2015,
+        "Population": 320570133,
+        "Nation": "United States"
+      }
+    ]
+  },
+  "mock_data": {
+    "metadata": {
+      "source": "Mock Data (Testing)",
+      "url": "N/A - Generated locally",
+      "fetched_at": "2025-07-30T04:51:20.910331",
+      "total_records": 3,
+      "warning": "This is mock data for testing purposes only",
+      "api_info": {
+        "note": "Generated when external APIs are unavailable"
+      }
+    },
+    "data": [
+      {
+        "Year": 2015,
+        "Population": 320570133,
+        "Nation": "United States"
+      },
+      {
+        "Year": 2016,
+        "Population": 322814123,
+        "Nation": "United States"
+      },
+      {
+        "Year": 2017,
+        "Population": 325073822,
+        "Nation": "United States"
+      }
+    ]
+  },
+  "test_timestamp": "2025-07-30T04:51:20.910365"
+}

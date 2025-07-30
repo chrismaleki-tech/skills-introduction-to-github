@@ -1,15 +1,7 @@
 #!/usr/bin/env python3
 """
-Part 2: API Integration
-Population Data API Script
-
-This script fetches US population data from the DataUSA API with fallback options.
-It includes comprehensive error handling, retry logic, and data validation.
-Enhanced with Census Bureau API fallback for reliability.
-
-API Documentation: 
-- DataUSA: https://datausa.io/about/api/
-- Census Bureau: https://www.census.gov/data/developers/data-sets/popest-popproj/popest.html
+Test script for API functionality only (without AWS S3)
+Tests the DataUSA API with fallback mechanisms.
 """
 
 import os
@@ -24,24 +16,15 @@ from urllib3.util.retry import Retry
 
 # Add parent directory to path to import shared utilities
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from shared.utils import (
-    setup_logging, create_s3_bucket_if_not_exists, save_json_to_s3, 
-    validate_aws_credentials, get_timestamp
-)
+from shared.utils import setup_logging, get_timestamp
 
-class PopulationAPIClient:
+class PopulationAPITester:
     """
-    Client for fetching US population data from DataUSA API with Census Bureau fallback.
+    Client for testing US population data APIs without S3 integration.
     """
     
-    def __init__(self, bucket_name: str):
-        """
-        Initialize the Population API client.
-        
-        Args:
-            bucket_name: S3 bucket name to save data to
-        """
-        self.bucket_name = bucket_name
+    def __init__(self):
+        """Initialize the Population API tester."""
         self.logger = setup_logging(__name__)
         
         # Primary API (DataUSA)
@@ -298,173 +281,68 @@ class PopulationAPIClient:
             end_year = 2018
         
         return self.generate_mock_data(start_year, end_year)
-
-    def fetch_historical_population_data(self, start_year: int = 2013, end_year: int = 2018) -> Optional[Dict[str, Any]]:
-        """
-        Fetch historical US population data for specific year range.
-        
-        Args:
-            start_year: Starting year (inclusive)
-            end_year: Ending year (inclusive)
-            
-        Returns:
-            Population data as dictionary or None if failed
-        """
-        years = list(range(start_year, end_year + 1))
-        return self.fetch_population_data(years)
     
-    def validate_population_data(self, data: Dict[str, Any]) -> bool:
-        """
-        Validate the structure and content of population data.
+    def test_apis(self):
+        """Test all API endpoints and fallback mechanisms."""
+        print("🧪 Testing Population Data APIs")
+        print("=" * 50)
         
-        Args:
-            data: Population data dictionary
-            
-        Returns:
-            True if data is valid
-        """
-        try:
-            # Check required fields
-            if 'data' not in data or 'metadata' not in data:
-                self.logger.error("Missing required fields in population data")
-                return False
-            
-            # Check data records
-            records = data['data']
-            if not isinstance(records, list) or len(records) == 0:
-                self.logger.error("Population data is empty or invalid")
-                return False
-            
-            # Validate each record has required fields
-            required_fields = ['Year', 'Population', 'Nation']
-            for i, record in enumerate(records):
-                for field in required_fields:
-                    if field not in record:
-                        self.logger.error(f"Record {i} missing required field: {field}")
-                        return False
-                
-                # Validate data types
-                try:
-                    int(record['Year'])
-                    int(record['Population'])
-                except (ValueError, TypeError):
-                    self.logger.error(f"Record {i} has invalid data types")
-                    return False
-            
-            self.logger.info("Population data validation passed")
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error validating population data: {e}")
-            return False
-    
-    def save_to_s3(self, data: Dict[str, Any], filename: Optional[str] = None) -> bool:
-        """
-        Save population data to S3.
-        
-        Args:
-            data: Population data to save
-            filename: Optional custom filename
-            
-        Returns:
-            True if save was successful
-        """
-        if not filename:
-            timestamp = get_timestamp()
-            filename = f"population_data_{timestamp}.json"
-        
-        s3_key = f"population-data/{filename}"
-        
-        return save_json_to_s3(data, self.bucket_name, s3_key)
-    
-    def run(self) -> bool:
-        """
-        Run the complete population data fetch and save process.
-        
-        Returns:
-            True if process completed successfully
-        """
-        # Validate AWS credentials
-        if not validate_aws_credentials():
-            self.logger.error("AWS credentials not configured properly")
-            return False
-        
-        # Create S3 bucket if it doesn't exist
-        if not create_s3_bucket_if_not_exists(self.bucket_name):
-            self.logger.error(f"Failed to create/access bucket {self.bucket_name}")
-            return False
-        
-        # Fetch all available population data
-        self.logger.info("Fetching all available population data")
-        all_data = self.fetch_population_data()
-        
-        if all_data and self.validate_population_data(all_data):
-            if self.save_to_s3(all_data, "population_data_all.json"):
-                self.logger.info("Successfully saved all population data to S3")
-                
-                # Show data source in output
-                source = all_data['metadata']['source']
-                if 'Mock' in source:
-                    print(f"\n⚠️  Using mock data due to API unavailability")
-                elif 'Census' in source:
-                    print(f"\n✅ Data fetched from Census Bureau (fallback)")
-                else:
-                    print(f"\n✅ Data fetched from DataUSA API")
-            else:
-                self.logger.error("Failed to save all population data to S3")
-                return False
+        # Test 1: DataUSA API directly
+        print("\n1. Testing DataUSA API...")
+        datausa_data = self.fetch_datausa_population_data([2018, 2019, 2020])
+        if datausa_data:
+            print(f"✅ DataUSA API: {len(datausa_data['data'])} records retrieved")
+            print(f"   Sample: {datausa_data['data'][0] if datausa_data['data'] else 'No data'}")
         else:
-            self.logger.error("Failed to fetch or validate all population data")
-            return False
+            print("❌ DataUSA API: Failed")
         
-        # Fetch historical data for specific range (2013-2018)
-        self.logger.info("Fetching historical population data (2013-2018)")
-        historical_data = self.fetch_historical_population_data(2013, 2018)
-        
-        if historical_data and self.validate_population_data(historical_data):
-            if self.save_to_s3(historical_data, "population_data_2013_2018.json"):
-                self.logger.info("Successfully saved historical population data to S3")
-            else:
-                self.logger.error("Failed to save historical population data to S3")
-                return False
+        # Test 2: Census Bureau API directly
+        print("\n2. Testing Census Bureau API...")
+        census_data = self.fetch_census_population_data(2018, 2020)
+        if census_data:
+            print(f"✅ Census Bureau API: {len(census_data['data'])} records retrieved")
+            print(f"   Sample: {census_data['data'][0] if census_data['data'] else 'No data'}")
         else:
-            self.logger.error("Failed to fetch or validate historical population data")
-            return False
+            print("❌ Census Bureau API: Failed")
         
-        return True
+        # Test 3: Fallback strategy
+        print("\n3. Testing fallback strategy...")
+        fallback_data = self.fetch_population_data([2013, 2014, 2015])
+        if fallback_data:
+            source = fallback_data['metadata']['source']
+            print(f"✅ Fallback strategy: {len(fallback_data['data'])} records retrieved")
+            print(f"   Data source: {source}")
+            print(f"   Sample: {fallback_data['data'][0] if fallback_data['data'] else 'No data'}")
+        else:
+            print("❌ Fallback strategy: Failed")
+        
+        # Test 4: Mock data generation
+        print("\n4. Testing mock data generation...")
+        mock_data = self.generate_mock_data(2015, 2017)
+        print(f"✅ Mock data: {len(mock_data['data'])} records generated")
+        print(f"   Sample: {mock_data['data'][0] if mock_data['data'] else 'No data'}")
+        
+        print("\n" + "=" * 50)
+        print("🏁 API Testing Complete")
+        
+        # Save results to file for inspection
+        results = {
+            'datausa_api': datausa_data,
+            'census_api': census_data,
+            'fallback_data': fallback_data,
+            'mock_data': mock_data,
+            'test_timestamp': datetime.utcnow().isoformat()
+        }
+        
+        with open('api_test_results.json', 'w') as f:
+            json.dump(results, f, indent=2)
+        
+        print(f"📁 Test results saved to: api_test_results.json")
 
 def main():
-    """
-    Main function to run the population API integration.
-    """
-    # Configuration
-    BUCKET_NAME = os.environ.get('POPULATION_BUCKET_NAME', 'rearc-quest-population-data')
-    
-    # Initialize client
-    client = PopulationAPIClient(BUCKET_NAME)
-    
-    # Run the process
-    try:
-        success = client.run()
-        
-        if success:
-            print(f"\n✅ Population data successfully fetched and saved to S3")
-            print(f"S3 bucket: {BUCKET_NAME}")
-            print(f"S3 path: s3://{BUCKET_NAME}/population-data/")
-            print(f"\nFiles created:")
-            print(f"  - population_data_all.json (all available years)")
-            print(f"  - population_data_2013_2018.json (historical data for analysis)")
-            print(f"\nNote: Script includes fallback to Census Bureau API if DataUSA is unavailable")
-        else:
-            print(f"\n❌ Failed to fetch or save population data")
-            sys.exit(1)
-            
-    except KeyboardInterrupt:
-        print("\n🛑 Process interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n❌ Process failed: {e}")
-        sys.exit(1)
+    """Main function to run the API tests."""
+    tester = PopulationAPITester()
+    tester.test_apis()
 
 if __name__ == "__main__":
     main()
