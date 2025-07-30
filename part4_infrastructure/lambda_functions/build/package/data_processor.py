@@ -20,6 +20,8 @@ from typing import Dict, List, Any, Optional
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 import logging
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # Configure logging
 logger = logging.getLogger()
@@ -38,7 +40,7 @@ def lambda_handler(event, context):
     # Get environment variables
     bls_bucket = os.environ['BLS_BUCKET_NAME']
     population_bucket = os.environ['POPULATION_BUCKET_NAME']
-    analytics_queue_url = os.environ['ANALYTICS_QUEUE_URL']
+    analytics_queue_url ="https://download.bls.gov/pub/time.series/pr/" #os.environ['ANALYTICS_QUEUE_URL']
     
     results = {
         'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0},
@@ -112,6 +114,16 @@ class BLSDataSyncer:
         self.base_url = "https://download.bls.gov/pub/time.series/pr/"
         self.session = requests.Session()
         
+        # Add retry strategy for robustness
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
         # Set proper User-Agent to avoid 403 Forbidden errors
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
@@ -135,10 +147,13 @@ class BLSDataSyncer:
             for link in soup.find_all('a', href=True):
                 href = link['href']
                 if any(href.endswith(ext) for ext in ['.txt', '.csv', '.data']):
-                    files.append({
-                        'name': href,
-                        'url': urljoin(self.base_url, href)
-                    })
+                    # Extract just the filename from href (handle both relative and absolute paths)
+                    filename = os.path.basename(href) if href else href
+                    if filename:  # Ensure we have a valid filename
+                        files.append({
+                            'name': filename,
+                            'url': urljoin(self.base_url, href)
+                        })
             
             logger.info(f"Discovered {len(files)} files from BLS")
             return files
@@ -223,13 +238,24 @@ class PopulationAPIClient:
         self.bucket_name = bucket_name
         self.base_url = "https://datausa.io/api/data"
         self.session = requests.Session()
+        
+        # Add retry strategy for API robustness (especially for 502 errors)
+        retry_strategy = Retry(
+            total=5,  # More retries for API calls
+            backoff_factor=2,  # Exponential backoff
+            status_forcelist=[429, 500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
+        
         self.session.headers.update({
             'User-Agent': 'Rearc-Data-Quest-Lambda/1.0',
             'Accept': 'application/json'
         })
     
     def fetch_population_data(self, years: Optional[List[int]] = None) -> Optional[Dict[str, Any]]:
-        """Fetch population data from API"""
+        """Fetch population data from API with enhanced error handling"""
         try:
             params = {
                 'drilldowns': 'Nation',
@@ -240,13 +266,22 @@ class PopulationAPIClient:
             if years:
                 params['year'] = ','.join(map(str, years))
             
+            logger.info(f"Fetching population data from: {self.base_url}")
+            logger.info(f"Request parameters: {params}")
+            
             response = self.session.get(self.base_url, params=params, timeout=30)
+            
+            # Log response details for debugging
+            logger.info(f"Response status: {response.status_code}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            
             response.raise_for_status()
             
             data = response.json()
             
             if 'data' not in data:
                 logger.error("Invalid API response structure")
+                logger.error(f"Response content: {data}")
                 return None
             
             enriched_data = {
@@ -262,8 +297,22 @@ class PopulationAPIClient:
             logger.info(f"Fetched {len(data['data'])} population records")
             return enriched_data
             
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 502:
+                logger.error(f"502 Bad Gateway error from DataUSA API: {e}")
+                logger.error("This is likely a temporary issue with the DataUSA service")
+                logger.error(f"Full response: {e.response.text if e.response else 'No response'}")
+            else:
+                logger.error(f"HTTP error fetching population data: {e}")
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error fetching population data: {e}")
+            return None
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON response from population API: {e}")
+            return None
         except Exception as e:
-            logger.error(f"Failed to fetch population data: {e}")
+            logger.error(f"Unexpected error fetching population data: {e}")
             return None
     
     def save_to_s3(self, data: Dict[str, Any], filename: str) -> bool:
