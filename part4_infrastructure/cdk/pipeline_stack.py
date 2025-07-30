@@ -15,6 +15,7 @@ from aws_cdk import (
     Stack,
     aws_s3 as s3,
     aws_lambda as lambda_,
+    aws_lambda_event_sources as lambda_events,
     aws_sqs as sqs,
     aws_events as events,
     aws_events_targets as targets,
@@ -67,7 +68,7 @@ class RearcDataPipelineStack(Stack):
         self.dlq = sqs.Queue(
             self, "AnalyticsDLQ",
             queue_name="rearc-quest-analytics-dlq",
-            message_retention_period=Duration.days(14)
+            retention_period=Duration.days(14)
         )
 
         # Main analytics queue
@@ -189,7 +190,7 @@ class RearcDataPipelineStack(Stack):
         
         # Configure SQS as event source for analytics Lambda
         self.analytics_processor_lambda.add_event_source(
-            lambda_.SqsEventSource(
+            lambda_events.SqsEventSource(
                 self.analytics_queue,
                 batch_size=1,  # Process one message at a time
                 max_batching_window=Duration.seconds(5)
