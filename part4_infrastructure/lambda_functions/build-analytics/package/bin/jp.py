@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/workspace/venv/bin/python3
 
 import sys
 import json
