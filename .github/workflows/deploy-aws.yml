@@ -320,8 +320,8 @@ jobs:
               workflow_id: 'e2e-pipeline.yml',
               ref: 'main',
               inputs: {
-                environment: '${{ github.event.inputs.environment || ''dev'' }}',
-                'aws-region': '${{ github.event.inputs.aws-region || ''us-east-2'' }}',
+                environment: '${{ github.event.inputs.environment || "dev" }}',
+                'aws-region': '${{ github.event.inputs.aws-region || "us-east-2" }}',
                 'skip-deployment': 'true',
                 'data-validation-timeout': '15'
               }
