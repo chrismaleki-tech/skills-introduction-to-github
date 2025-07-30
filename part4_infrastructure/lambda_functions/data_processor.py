@@ -3,9 +3,11 @@ Data Processor Lambda Function
 Combines Part 1 (BLS data sync) and Part 2 (Population API) functionality
 
 This Lambda function is triggered daily by EventBridge and:
-1. Synchronizes BLS data from their website to S3
+1. Synchronizes BLS data from their website to S3 with RECURSIVE CRAWLING
 2. Fetches population data from DataUSA API and saves to S3
 3. Sends SQS message to trigger analytics processing
+
+Enhanced with comprehensive recursive directory traversal and file discovery.
 """
 
 import json
@@ -16,10 +18,12 @@ import time
 import hashlib
 import tempfile
 from datetime import datetime
-from typing import Dict, List, Any, Optional
-from urllib.parse import urljoin
+from typing import Dict, List, Any, Optional, Set, Tuple
+from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 # Configure logging
 logger = logging.getLogger()
@@ -33,59 +37,83 @@ def lambda_handler(event, context):
     """
     Main Lambda handler that orchestrates data processing
     """
-    logger.info("Starting data processing pipeline")
+    logger.info("Starting enhanced data processing pipeline with recursive crawling")
     
     # Get environment variables
     bls_bucket = os.environ['BLS_BUCKET_NAME']
     population_bucket = os.environ['POPULATION_BUCKET_NAME']
-    analytics_queue_url ="https://download.bls.gov/pub/time.series/pr/" #os.environ['ANALYTICS_QUEUE_URL']
+    analytics_queue_url = os.environ.get('ANALYTICS_QUEUE_URL', '')
+    
+    # Get Lambda-specific configuration
+    max_execution_time = int(os.environ.get('LAMBDA_MAX_EXECUTION_TIME', '840'))  # 14 minutes (900s - 60s buffer)
+    max_depth = int(os.environ.get('BLS_MAX_DEPTH', '3'))  # Limit recursion depth for Lambda
+    max_workers = int(os.environ.get('BLS_MAX_WORKERS', '5'))  # Concurrent requests
     
     results = {
-        'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0},
+        'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0, 'directories_explored': 0},
         'population_fetch': {'success': False, 'files_created': []},
-        'analytics_triggered': False
+        'analytics_triggered': False,
+        'execution_time_seconds': 0
     }
     
+    start_time = time.time()
+    
     try:
-        # Part 1: BLS Data Synchronization
-        logger.info("Starting BLS data synchronization")
-        bls_syncer = BLSDataSyncer(bls_bucket)
-        bls_results = bls_syncer.sync_files()
+        # Part 1: Enhanced BLS Data Synchronization with Recursive Crawling
+        logger.info("Starting enhanced BLS data synchronization with recursive crawling")
+        bls_syncer = EnhancedBLSDataSyncer(
+            bls_bucket, 
+            max_depth=max_depth, 
+            max_workers=max_workers,
+            max_execution_time=max_execution_time
+        )
+        bls_results = bls_syncer.sync_files_recursive()
         results['bls_sync'] = {
             'success': bls_results[0] >= 0,  # Success if no errors
             'files_uploaded': bls_results[0],
-            'total_files': bls_results[1]
+            'total_files': bls_results[1],
+            'directories_explored': bls_results[2]
         }
-        logger.info(f"BLS sync completed: {bls_results[0]}/{bls_results[1]} files uploaded")
+        logger.info(f"Enhanced BLS sync completed: {bls_results[0]}/{bls_results[1]} files uploaded from {bls_results[2]} directories")
         
-        # Part 2: Population Data Fetch
-        logger.info("Starting population data fetch")
-        population_client = PopulationAPIClient(population_bucket)
-        population_success = population_client.run()
-        results['population_fetch'] = {
-            'success': population_success,
-            'files_created': ['population_data_all.json', 'population_data_2013_2018.json'] if population_success else []
-        }
-        logger.info(f"Population data fetch completed: {'success' if population_success else 'failed'}")
+        # Check remaining execution time
+        elapsed_time = time.time() - start_time
+        remaining_time = max_execution_time - elapsed_time
         
-        # Trigger analytics if population data was updated
-        if population_success:
-            logger.info("Sending SQS message to trigger analytics")
-            message_body = {
-                'trigger': 'data_processor',
-                'timestamp': datetime.utcnow().isoformat(),
-                'bls_files_updated': bls_results[0],
-                'population_updated': True
+        if remaining_time > 60:  # Only proceed if we have at least 60 seconds left
+            # Part 2: Population Data Fetch
+            logger.info("Starting population data fetch")
+            population_client = PopulationAPIClient(population_bucket)
+            population_success = population_client.run()
+            results['population_fetch'] = {
+                'success': population_success,
+                'files_created': ['population_data_all.json', 'population_data_2013_2018.json'] if population_success else []
             }
+            logger.info(f"Population data fetch completed: {'success' if population_success else 'failed'}")
             
-            sqs_client.send_message(
-                QueueUrl=analytics_queue_url,
-                MessageBody=json.dumps(message_body)
-            )
-            results['analytics_triggered'] = True
-            logger.info("Analytics trigger message sent successfully")
+            # Trigger analytics if any data was updated
+            if bls_results[0] > 0 or population_success:
+                if analytics_queue_url:
+                    logger.info("Sending SQS message to trigger analytics")
+                    message_body = {
+                        'trigger': 'enhanced_data_processor',
+                        'timestamp': datetime.utcnow().isoformat(),
+                        'bls_files_updated': bls_results[0],
+                        'bls_directories_explored': bls_results[2],
+                        'population_updated': population_success
+                    }
+                    
+                    sqs_client.send_message(
+                        QueueUrl=analytics_queue_url,
+                        MessageBody=json.dumps(message_body)
+                    )
+                    results['analytics_triggered'] = True
+                    logger.info("Analytics trigger message sent successfully")
+        else:
+            logger.warning(f"Skipping population fetch - insufficient time remaining: {remaining_time:.1f}s")
         
-        logger.info("Data processing pipeline completed successfully")
+        results['execution_time_seconds'] = time.time() - start_time
+        logger.info(f"Enhanced data processing pipeline completed successfully in {results['execution_time_seconds']:.1f} seconds")
         
         return {
             'statusCode': 200,
@@ -93,7 +121,8 @@ def lambda_handler(event, context):
         }
         
     except Exception as e:
-        logger.error(f"Data processing pipeline failed: {str(e)}")
+        results['execution_time_seconds'] = time.time() - start_time
+        logger.error(f"Enhanced data processing pipeline failed: {str(e)}")
         return {
             'statusCode': 500,
             'body': json.dumps({
@@ -102,50 +131,202 @@ def lambda_handler(event, context):
             })
         }
 
-class BLSDataSyncer:
+class EnhancedBLSDataSyncer:
     """
-    BLS Data Synchronization class adapted for Lambda
+    Enhanced BLS Data Synchronization class with comprehensive recursive crawling
     """
     
-    def __init__(self, bucket_name: str):
+    def __init__(self, bucket_name: str, max_depth: int = 3, max_workers: int = 5, max_execution_time: int = 840):
         self.bucket_name = bucket_name
-        self.base_url = "https://download.bls.gov/pub/time.series/pr/"
+        self.base_url = "https://download.bls.gov/pub/time.series/"
         self.session = requests.Session()
+        self.max_depth = max_depth
+        self.max_workers = max_workers
+        self.max_execution_time = max_execution_time
+        self.start_time = time.time()
+        
+        # Thread-safe collections for recursive discovery
+        self.discovered_files = []
+        self.discovered_directories = set()
+        self.processed_urls = set()
+        self.lock = threading.Lock()
         
         # Set proper User-Agent to avoid 403 Forbidden errors
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Connection': 'keep-alive'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Cache-Control': 'max-age=0'
         })
         
-        self.request_delay = 0.5  # Shorter delay for Lambda
+        self.request_delay = 0.3  # Reduced delay for Lambda efficiency
     
-    def discover_files(self) -> List[Dict[str, str]]:
-        """Discover files from BLS website"""
+    def is_valid_file(self, href: str) -> bool:
+        """
+        Check if the href points to a valid BLS data file
+        """
+        # BLS file extensions and patterns
+        valid_extensions = ['.txt', '.csv', '.data', '.xlsx', '.xls', '.json', '.xml', '.tsv', '.series', '.notes']
+        
+        # Skip parent directory links and non-data files
+        if href in ['../', '../', '/', './', '.', '']:
+            return False
+            
+        # Skip external links
+        if href.startswith('http://') or href.startswith('https://'):
+            if not href.startswith(self.base_url):
+                return False
+        
+        # Check for valid file extensions or BLS-specific patterns
+        href_lower = href.lower()
+        return (any(href_lower.endswith(ext) for ext in valid_extensions) or
+                any(pattern in href_lower for pattern in ['pr.data', 'pr.series', 'pr.notes']))
+    
+    def is_valid_directory(self, href: str) -> bool:
+        """
+        Check if the href points to a valid directory to explore
+        """
+        # Skip parent directory links, external links, and non-directory patterns
+        if href in ['../', '../', '/', './', '.', '']:
+            return False
+            
+        # Skip external links
+        if href.startswith('http://') or href.startswith('https://'):
+            if not href.startswith(self.base_url):
+                return False
+        
+        # Directory indicators - ends with slash or single letter directories (a/, b/, z/, etc.)
+        return (href.endswith('/') or 
+                (len(href.rstrip('/')) == 1 and href.rstrip('/').isalpha()) or
+                href.rstrip('/') in ['data', 'series', 'time', 'Current'])
+    
+    def check_execution_time(self) -> bool:
+        """Check if we still have time to continue execution"""
+        elapsed = time.time() - self.start_time
+        return elapsed < (self.max_execution_time - 60)  # Keep 60s buffer
+    
+    def discover_files_recursive(self, url: str, depth: int = 0, relative_path: str = "") -> List[Dict[str, str]]:
+        """
+        Recursively discover all available files in the BLS directory structure
+        """
+        if depth > self.max_depth or not self.check_execution_time():
+            if depth > self.max_depth:
+                logger.warning(f"Maximum depth {self.max_depth} reached for {url}")
+            else:
+                logger.warning(f"Execution time limit approaching, stopping recursion at {url}")
+            return []
+            
+        if url in self.processed_urls:
+            return []
+            
+        with self.lock:
+            self.processed_urls.add(url)
+            self.discovered_directories.add(url)
+        
+        logger.info(f"Exploring {url} (depth: {depth})")
+        
         try:
+            # Add delay to be respectful to the server
             time.sleep(self.request_delay)
-            response = self.session.get(self.base_url, timeout=30)
+            
+            response = self.session.get(url, timeout=30)
             response.raise_for_status()
             
             soup = BeautifulSoup(response.content, 'html.parser')
             files = []
+            subdirs = []
             
+            # Find all links
             for link in soup.find_all('a', href=True):
-                href = link['href']
-                if any(href.endswith(ext) for ext in ['.txt', '.csv', '.data']):
-                    files.append({
-                        'name': href,
-                        'url': urljoin(self.base_url, href)
-                    })
+                href = link['href'].strip()
+                
+                if not href:
+                    continue
+                
+                # Build full URL
+                full_url = urljoin(url, href)
+                
+                # Check if it's a valid file
+                if self.is_valid_file(href):
+                    file_path = os.path.join(relative_path, href) if relative_path else href
+                    file_info = {
+                        'name': file_path.replace('\\', '/'),  # Normalize path separators
+                        'original_name': href,
+                        'url': full_url,
+                        'relative_path': relative_path,
+                        'depth': depth
+                    }
+                    files.append(file_info)
+                    logger.debug(f"Found file: {file_info['name']}")
+                
+                # Check if it's a valid directory to explore
+                elif self.is_valid_directory(href) and full_url not in self.processed_urls:
+                    new_relative_path = os.path.join(relative_path, href.rstrip('/')) if relative_path else href.rstrip('/')
+                    subdirs.append((full_url, new_relative_path))
+                    logger.debug(f"Found directory: {href}")
             
-            logger.info(f"Discovered {len(files)} files from BLS")
+            logger.info(f"Found {len(files)} files and {len(subdirs)} subdirectories in {url}")
+            
+            # Recursively explore subdirectories with concurrency
+            if subdirs and depth < self.max_depth and self.check_execution_time():
+                # Limit concurrent workers based on remaining subdirs and max_workers
+                actual_workers = min(self.max_workers, len(subdirs), 3)  # Cap at 3 for Lambda
+                
+                with ThreadPoolExecutor(max_workers=actual_workers) as executor:
+                    future_to_subdir = {
+                        executor.submit(self.discover_files_recursive, subdir_url, depth + 1, subdir_path): 
+                        (subdir_url, subdir_path) 
+                        for subdir_url, subdir_path in subdirs
+                    }
+                    
+                    for future in as_completed(future_to_subdir):
+                        if not self.check_execution_time():
+                            logger.warning("Execution time limit approaching, cancelling remaining subdirectory exploration")
+                            break
+                            
+                        subdir_url, subdir_path = future_to_subdir[future]
+                        try:
+                            subdir_files = future.result(timeout=30)
+                            files.extend(subdir_files)
+                        except Exception as e:
+                            logger.error(f"Error exploring subdirectory {subdir_url}: {e}")
+            
             return files
             
-        except Exception as e:
-            logger.error(f"Failed to discover BLS files: {e}")
+        except requests.RequestException as e:
+            logger.error(f"Failed to discover files from {url}: {e}")
             return []
+        except Exception as e:
+            logger.error(f"Unexpected error discovering files from {url}: {e}")
+            return []
+    
+    def discover_all_files(self) -> List[Dict[str, str]]:
+        """
+        Discover all available files on the BLS website recursively
+        """
+        logger.info(f"Starting comprehensive recursive file discovery from {self.base_url}")
+        
+        # Reset discovery state
+        self.discovered_files = []
+        self.discovered_directories = set()
+        self.processed_urls = set()
+        
+        # Start recursive discovery
+        files = self.discover_files_recursive(self.base_url)
+        
+        # Remove duplicates based on URL
+        unique_files = {}
+        for file_info in files:
+            if file_info['url'] not in unique_files:
+                unique_files[file_info['url']] = file_info
+        
+        files = list(unique_files.values())
+        
+        logger.info(f"Discovered {len(files)} unique files across {len(self.discovered_directories)} directories")
+        return files
     
     def get_file_hash(self, file_path: str) -> str:
         """Calculate MD5 hash of file"""
@@ -156,7 +337,7 @@ class BLSDataSyncer:
         return hash_md5.hexdigest()
     
     def should_upload_file(self, file_info: Dict[str, str], local_path: str) -> bool:
-        """Check if file should be uploaded"""
+        """Check if file should be uploaded to S3"""
         s3_key = f"bls-data/{file_info['name']}"
         
         try:
@@ -174,30 +355,48 @@ class BLSDataSyncer:
                 return False
                 
         except s3_client.exceptions.NoSuchKey:
-            logger.info(f"File {file_info['name']} doesn't exist, will upload")
+            logger.info(f"File {file_info['name']} doesn't exist in S3, will upload")
             return True
         except Exception as e:
             logger.error(f"Error checking file {file_info['name']}: {e}")
             return True  # Upload on error to be safe
     
-    def sync_files(self) -> tuple:
-        """Sync files to S3"""
-        files = self.discover_files()
+    def sync_files_recursive(self) -> Tuple[int, int, int]:
+        """
+        Sync files to S3 with comprehensive recursive discovery
+        Returns: (successful_uploads, total_files, directories_explored)
+        """
+        # Discover all files recursively
+        files = self.discover_all_files()
+        directories_explored = len(self.discovered_directories)
+        
         if not files:
-            return 0, 0
+            logger.warning("No files discovered during recursive crawling")
+            return 0, 0, directories_explored
         
         successful_uploads = 0
+        processed_files = 0
+        max_files_for_lambda = 50  # Reasonable limit for Lambda execution
         
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Limit to first 5 files for Lambda timeout constraints
-            for file_info in files[:5]:
+            # Process files with execution time awareness
+            for file_info in files[:max_files_for_lambda]:
+                if not self.check_execution_time():
+                    logger.warning(f"Execution time limit approaching, stopping at {processed_files} files")
+                    break
+                    
                 try:
+                    processed_files += 1
+                    logger.info(f"Processing file {processed_files}/{min(len(files), max_files_for_lambda)}: {file_info['name']}")
+                    
                     # Download file
                     time.sleep(self.request_delay)
                     response = self.session.get(file_info['url'], timeout=60)
                     response.raise_for_status()
                     
-                    local_path = os.path.join(temp_dir, file_info['name'])
+                    # Save to temp file with safe filename
+                    safe_filename = file_info['name'].replace('/', '_').replace('\\', '_')
+                    local_path = os.path.join(temp_dir, safe_filename)
                     with open(local_path, 'wb') as f:
                         f.write(response.content)
                     
@@ -206,13 +405,14 @@ class BLSDataSyncer:
                         s3_key = f"bls-data/{file_info['name']}"
                         s3_client.upload_file(local_path, self.bucket_name, s3_key)
                         successful_uploads += 1
-                        logger.info(f"Uploaded {file_info['name']}")
+                        logger.info(f"Successfully uploaded {file_info['name']}")
                         
                 except Exception as e:
                     logger.error(f"Failed to process {file_info['name']}: {e}")
                     continue
         
-        return successful_uploads, len(files[:5])
+        logger.info(f"Recursive sync completed: {successful_uploads} uploads from {processed_files} processed files across {directories_explored} directories")
+        return successful_uploads, processed_files, directories_explored
 
 class PopulationAPIClient:
     """
