@@ -38,7 +38,7 @@ def get_stack_name():
         pass
     
     # Default stack name
-    return "RearcDataQuestPipeline"
+    return "DataQuestPipelineV2"
 
 def check_stack_status(cf_client, stack_name):
     """Check the current status of the stack."""
@@ -128,8 +128,8 @@ def delete_stuck_resources_manually(stack_name):
     print("="*60)
     print("\nThe Lambda functions appear to be stuck. Try these manual steps:")
     print("\n1. Delete Lambda functions manually:")
-    print("   aws lambda delete-function --function-name rearc-quest-data-processor")
-    print("   aws lambda delete-function --function-name rearc-quest-analytics-processor")
+    print("   aws lambda delete-function --function-name data-quest-v2-data-processor")
+    print("   aws lambda delete-function --function-name data-quest-v2-analytics-processor")
     
     print("\n2. Then retry the rollback:")
     print(f"   aws cloudformation continue-update-rollback --stack-name {stack_name}")

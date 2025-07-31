@@ -5,7 +5,7 @@
 
 set -e
 
-STACK_NAME="RearcDataQuestPipeline"
+STACK_NAME="DataQuestPipelineV2"
 REGION="${AWS_DEFAULT_REGION:-us-east-2}"
 
 echo "🚀 Quick CloudFormation Rollback Recovery"

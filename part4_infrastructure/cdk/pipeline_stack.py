@@ -26,9 +26,9 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-class RearcDataPipelineStack(Stack):
+class DataQuestPipelineStackV2(Stack):
     """
-    Main stack for the Rearc Data Quest pipeline infrastructure.
+    Main stack for the Data Quest pipeline infrastructure - Version 2.
     """
 
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -41,7 +41,7 @@ class RearcDataPipelineStack(Stack):
         # BLS data bucket
         self.bls_bucket = s3.Bucket(
             self, "BLSDataBucket",
-            bucket_name="rearc-quest-bls-data",
+            bucket_name="data-quest-v2-bls-data",
             versioned=True,
             removal_policy=RemovalPolicy.DESTROY,  # For demo purposes
             auto_delete_objects=True,  # For demo purposes
@@ -52,7 +52,7 @@ class RearcDataPipelineStack(Stack):
         # Population data bucket
         self.population_bucket = s3.Bucket(
             self, "PopulationDataBucket",
-            bucket_name="rearc-quest-population-data",
+            bucket_name="data-quest-v2-population-data",
             versioned=True,
             removal_policy=RemovalPolicy.DESTROY,  # For demo purposes
             auto_delete_objects=True,  # For demo purposes
@@ -67,14 +67,14 @@ class RearcDataPipelineStack(Stack):
         # Dead letter queue
         self.dlq = sqs.Queue(
             self, "AnalyticsDLQ",
-            queue_name="rearc-quest-analytics-dlq",
+            queue_name="data-quest-v2-analytics-dlq",
             retention_period=Duration.days(14)
         )
 
         # Main analytics queue
         self.analytics_queue = sqs.Queue(
             self, "AnalyticsQueue",
-            queue_name="rearc-quest-analytics-queue",
+            queue_name="data-quest-v2-analytics-queue",
             visibility_timeout=Duration.minutes(6),  # 6x lambda timeout
             dead_letter_queue=sqs.DeadLetterQueue(
                 max_receive_count=3,
@@ -120,7 +120,7 @@ class RearcDataPipelineStack(Stack):
         # Data processor Lambda (Parts 1 & 2 combined)
         self.data_processor_lambda = lambda_.Function(
             self, "DataProcessorFunction",
-            function_name="rearc-quest-data-processor",
+            function_name="data-quest-v2-data-processor",
             runtime=lambda_.Runtime.PYTHON_3_9,
             handler="data_processor.lambda_handler",
             code=lambda_.Code.from_asset("../lambda_functions/build-minimal/lambda-minimal-package.zip"),
@@ -139,7 +139,7 @@ class RearcDataPipelineStack(Stack):
         # Consider using Lambda Layers or container images for production deployment
         self.analytics_processor_lambda = lambda_.Function(
             self, "AnalyticsProcessorFunction",
-            function_name="rearc-quest-analytics-processor",
+            function_name="data-quest-v2-analytics-processor",
             runtime=lambda_.Runtime.PYTHON_3_9,
             handler="analytics_processor.lambda_handler",
             code=lambda_.Code.from_asset("../lambda_functions"),
@@ -159,7 +159,7 @@ class RearcDataPipelineStack(Stack):
         # Daily schedule for data processor
         self.daily_schedule = events.Rule(
             self, "DailyDataProcessingSchedule",
-            rule_name="rearc-quest-daily-schedule",
+            rule_name="data-quest-v2-daily-schedule",
             description="Daily trigger for BLS and Population data processing",
             schedule=events.Schedule.cron(
                 minute="0",

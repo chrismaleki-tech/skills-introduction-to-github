@@ -15,8 +15,8 @@
                 "s3:PutBucketVersioning"
             ],
             "Resource": [
-                "arn:aws:s3:::rearc-quest-bls-data",
-                "arn:aws:s3:::rearc-quest-bls-data/*"
+                "arn:aws:s3:::data-quest-v2-bls-data",
+                "arn:aws:s3:::data-quest-v2-bls-data/*"
             ]
         },
         {

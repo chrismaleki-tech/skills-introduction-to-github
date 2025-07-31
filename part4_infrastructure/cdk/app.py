@@ -13,7 +13,7 @@ This application deploys the complete Rearc Data Quest pipeline infrastructure:
 
 import os
 import aws_cdk as cdk
-from pipeline_stack import RearcDataPipelineStack
+from pipeline_stack import DataQuestPipelineStackV2
 
 app = cdk.App()
 
@@ -24,15 +24,15 @@ env = cdk.Environment(
 )
 
 # Deploy the main pipeline stack
-pipeline_stack = RearcDataPipelineStack(
+pipeline_stack = DataQuestPipelineStackV2(
     app, 
-    "RearcDataQuestPipeline",
+    "DataQuestPipelineV2",
     env=env,
-    description="Rearc Data Quest - Complete Data Pipeline Infrastructure"
+    description="Data Quest V2 - Complete Data Pipeline Infrastructure"
 )
 
 # Add tags to all resources
-cdk.Tags.of(app).add("Project", "Rearc-Data-Quest")
+cdk.Tags.of(app).add("Project", "Data-Quest-V2")
 cdk.Tags.of(app).add("Environment", "Production")
 cdk.Tags.of(app).add("Owner", "Data-Engineering-Team")
 

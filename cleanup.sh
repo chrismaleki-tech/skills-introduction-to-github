@@ -68,7 +68,7 @@ if [ -f "cdk.json" ]; then
     print_status "Found CDK project"
     
     # Check if stack exists
-    if aws cloudformation describe-stacks --stack-name RearcDataQuestPipeline &> /dev/null; then
+    if aws cloudformation describe-stacks --stack-name DataQuestPipelineV2 &> /dev/null; then
         print_status "Stack exists, proceeding with destruction..."
         
         if cdk destroy --force; then

@@ -165,8 +165,8 @@ echo
 echo -e "${BLUE}Running Integration Tests...${NC}"
 
 print_status "Testing S3 buckets..."
-aws s3 ls s3://rearc-quest-bls-data/ > /dev/null 2>&1 || print_warning "BLS bucket not found or empty"
-aws s3 ls s3://rearc-quest-population-data/ > /dev/null 2>&1 || print_warning "Population bucket not found or empty"
+aws s3 ls s3://data-quest-v2-bls-data/ > /dev/null 2>&1 || print_warning "BLS bucket not found or empty"
+aws s3 ls s3://data-quest-v2-population-data/ > /dev/null 2>&1 || print_warning "Population bucket not found or empty"
 
 print_status "Testing Lambda functions..."
 LAMBDA_FUNCTIONS=$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc`) || contains(FunctionName, `RearcDataQuest`)].FunctionName' --output text)
@@ -198,22 +198,22 @@ cat > deployment-report.md << EOF
 
 ## S3 Buckets
 \`\`\`
-$(aws s3 ls | grep rearc || echo "No rearc buckets found")
+$(aws s3 ls | grep data-quest-v2 || echo "No data-quest-v2 buckets found")
 \`\`\`
 
 ## Lambda Functions
 \`\`\`
-$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc`) || contains(FunctionName, `RearcDataQuest`)].{Name:FunctionName,Runtime:Runtime,Modified:LastModified}' --output table)
+$(aws lambda list-functions --query 'Functions[?contains(FunctionName, `data-quest-v2`)].{Name:FunctionName,Runtime:Runtime,Modified:LastModified}' --output table)
 \`\`\`
 
 ## SQS Queues
 \`\`\`
-$(aws sqs list-queues --query 'QueueUrls[?contains(@, `rearc`) || contains(@, `RearcDataQuest`)]' --output table)
+$(aws sqs list-queues --query 'QueueUrls[?contains(@, `data-quest-v2`)]' --output table)
 \`\`\`
 
 ## CDK Stack Status
 \`\`\`
-$(aws cloudformation describe-stacks --stack-name RearcDataQuestPipeline --query 'Stacks[0].{Status:StackStatus,Created:CreationTime}' --output table 2>/dev/null || echo "Stack not found")
+$(aws cloudformation describe-stacks --stack-name DataQuestPipelineV2 --query 'Stacks[0].{Status:StackStatus,Created:CreationTime}' --output table 2>/dev/null || echo "Stack not found")
 \`\`\`
 EOF
 

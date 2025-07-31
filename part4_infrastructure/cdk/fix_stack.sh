@@ -5,7 +5,7 @@
 
 set -e
 
-STACK_NAME=${1:-"RearcDataQuestPipeline"}
+STACK_NAME=${1:-"DataQuestPipelineV2"}
 AWS_REGION=${AWS_DEFAULT_REGION:-"us-east-1"}
 
 echo "🔧 CloudFormation Stack Recovery"
@@ -73,11 +73,11 @@ delete_lambda_functions() {
     
     # Delete the stuck Lambda functions
     aws lambda delete-function \
-        --function-name "rearc-quest-data-processor" \
+        --function-name "data-quest-v2-data-processor" \
         --region "$AWS_REGION" 2>/dev/null && echo "✅ Deleted data-processor function" || echo "⚠️  Could not delete data-processor (may not exist)"
     
     aws lambda delete-function \
-        --function-name "rearc-quest-analytics-processor" \
+        --function-name "data-quest-v2-analytics-processor" \
         --region "$AWS_REGION" 2>/dev/null && echo "✅ Deleted analytics-processor function" || echo "⚠️  Could not delete analytics-processor (may not exist)"
 }
 

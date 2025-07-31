@@ -61,8 +61,8 @@ notebook = {
             "outputs": [],
             "source": [
                 "# Configuration\n",
-                "BLS_BUCKET_NAME = 'rearc-quest-bls-data'\n",
-                "POPULATION_BUCKET_NAME = 'rearc-quest-population-data'\n",
+                        "BLS_BUCKET_NAME = 'data-quest-v2-bls-data'\n",
+        "POPULATION_BUCKET_NAME = 'data-quest-v2-population-data'\n",
                 "\n",
                 "# Initialize S3 client\n",
                 "s3_client = boto3.client('s3')\n",

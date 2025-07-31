@@ -51,7 +51,7 @@ fi
 print_status "AWS credentials configured"
 
 # Check if Lambda function exists
-FUNCTION_NAME="rearc-quest-data-processor"
+FUNCTION_NAME="data-quest-v2-data-processor"
 if ! aws lambda get-function --function-name "$FUNCTION_NAME" &> /dev/null; then
     print_error "Lambda function '$FUNCTION_NAME' not found"
     print_warning "Please deploy the CDK stack first or check the function name"

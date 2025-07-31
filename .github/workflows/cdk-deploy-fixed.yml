@@ -99,4 +99,4 @@ jobs:
         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
       run: |
         echo "Verifying stack deployment..."
-        aws cloudformation describe-stacks --stack-name RearcDataQuestPipeline --region $AWS_DEFAULT_REGION --query 'Stacks[0].StackStatus' --output text
+        aws cloudformation describe-stacks --stack-name DataQuestPipelineV2 --region $AWS_DEFAULT_REGION --query 'Stacks[0].StackStatus' --output text

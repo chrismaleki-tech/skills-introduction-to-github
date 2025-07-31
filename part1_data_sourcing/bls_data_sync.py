@@ -426,7 +426,7 @@ def load_environment_config():
     Load configuration from environment variables (GitHub repo secrets).
     """
     config = {
-        'bucket_name': os.environ.get('BLS_BUCKET_NAME', 'rearc-bls-pr-data'),
+        'bucket_name': os.environ.get('BLS_BUCKET_NAME', 'data-quest-v2-bls-data'),
         'base_url': os.environ.get('BLS_BASE_URL', 'https://download.bls.gov/pub/time.series/'),
         'target_series': os.environ.get('BLS_TARGET_SERIES', 'pr').split(','),
         'max_workers': int(os.environ.get('BLS_MAX_WORKERS', '3')),

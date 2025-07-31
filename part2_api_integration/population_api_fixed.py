@@ -403,7 +403,7 @@ def main():
         return
     
     # Configuration
-    BUCKET_NAME = os.environ.get('POPULATION_BUCKET_NAME', 'rearc-quest-population-data')
+    BUCKET_NAME = os.environ.get('POPULATION_BUCKET_NAME', 'data-quest-v2-population-data')
     
     # Initialize client
     client = PopulationAPIClient(BUCKET_NAME)
