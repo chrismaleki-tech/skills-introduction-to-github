@@ -426,14 +426,12 @@ def load_environment_config():
     Load configuration from environment variables (GitHub repo secrets).
     """
     config = {
-        'bucket_name': os.environ.get('BLS_BUCKET_NAME', 'rearc-quest-bls-data'),
-        'aws_region': os.environ.get('AWS_DEFAULT_REGION', 'us-east-2'),
-        'aws_access_key': os.environ.get('AWS_ACCESS_KEY_ID'),
-        'aws_secret_key': os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        'bucket_name': os.environ.get('BLS_BUCKET_NAME', 'rearc-bls-pr-data'),
+        'base_url': os.environ.get('BLS_BASE_URL', 'https://download.bls.gov/pub/time.series/'),
+        'target_series': os.environ.get('BLS_TARGET_SERIES', 'pr').split(','),
         'max_workers': int(os.environ.get('BLS_MAX_WORKERS', '3')),
         'max_depth': int(os.environ.get('BLS_MAX_DEPTH', '5')),
-        'base_url': os.environ.get('BLS_BASE_URL', 'https://download.bls.gov/pub/time.series/'),
-        'debug': os.environ.get('DEBUG', 'false').lower() == 'true'
+        'dry_run': os.environ.get('BLS_DRY_RUN', 'false').lower() == 'true'
     }
     
     return config
