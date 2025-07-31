@@ -266,8 +266,8 @@ jobs:
           if [ -n "$DATA_PROCESSOR" ]; then
             echo "Invoking Data Processor Lambda: ${DATA_PROCESSOR}"
             
-            # Create payload with test identifier
-            PAYLOAD=$(cat <<EOF
+            # Create payload file with test identifier
+            cat > /tmp/lambda-payload.json <<EOF
           {
             "source": "github-actions-e2e",
             "executionId": "${EXECUTION_ID}",
@@ -275,17 +275,17 @@ jobs:
             "triggerAnalytics": true
           }
           EOF
-          )
             
-            # Invoke Lambda function asynchronously
+            # Invoke Lambda function asynchronously using file-based payload
             aws lambda invoke \
               --function-name "$DATA_PROCESSOR" \
               --invocation-type Event \
-              --payload "$PAYLOAD" \
+              --payload file:///tmp/lambda-payload.json \
               /tmp/lambda-response.json
               
             echo "✅ Data processor triggered successfully"
-            echo "Payload sent: $PAYLOAD"
+            echo "Payload sent:"
+            cat /tmp/lambda-payload.json
           else
             echo "❌ Data processor Lambda function not found"
             exit 1

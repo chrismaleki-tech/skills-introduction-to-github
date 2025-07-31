@@ -303,9 +303,11 @@ jobs:
       - name: Test Lambda Functions
         run: |
           echo "Testing Lambda functions..."
+          # Create test payload file
+          echo '{"test": true}' > /tmp/test-payload.json
           for func in $(aws lambda list-functions --query 'Functions[?contains(FunctionName, `rearc`) || contains(FunctionName, `RearcDataQuest`)].FunctionName' --output text); do
             echo "Testing function: $func"
-            aws lambda invoke --function-name "$func" --payload '{"test": true}' /tmp/response.json || echo "Function invocation failed for $func"
+            aws lambda invoke --function-name "$func" --payload file:///tmp/test-payload.json /tmp/response.json || echo "Function invocation failed for $func"
           done
 
       - name: Generate Deployment Report
