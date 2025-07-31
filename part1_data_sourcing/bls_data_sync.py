@@ -341,7 +341,7 @@ class BLSDataSyncer:
         self.logger.info(f"File {file_info['name']} unchanged, skipping upload")
         return False
     
-    def sync_files(self) -> Tuple[int, int]:
+    def sync_files(self, preserve_directory_structure: bool = False) -> Tuple[int, int]:
         """
         Sync all BLS files to S3.
         
@@ -378,9 +378,18 @@ class BLSDataSyncer:
                 try:
                     self.logger.info(f"Processing file {i}/{len(files)}: {file_info['name']}")
                     
-                    # Create local file path maintaining directory structure
-                    local_filename = file_info['name'].replace('/', '_').replace('\\', '_')
-                    local_path = os.path.join(temp_dir, local_filename)
+                    # Create local file path - either preserve directory structure or flatten
+                    if preserve_directory_structure:
+                        # Preserve directory structure
+                        local_path = os.path.join(temp_dir, file_info['name'])
+                        # Ensure directory exists (only if file is in a subdirectory)
+                        dir_path = os.path.dirname(local_path)
+                        if dir_path != temp_dir:
+                            os.makedirs(dir_path, exist_ok=True)
+                    else:
+                        # Flatten all files to single directory (original behavior)
+                        local_filename = file_info['name'].replace('/', '_').replace('\\', '_')
+                        local_path = os.path.join(temp_dir, local_filename)
                     
                     # Download file to temp directory
                     if not self.download_file(file_info, local_path):
@@ -431,7 +440,12 @@ def load_environment_config():
         'target_series': os.environ.get('BLS_TARGET_SERIES', 'pr').split(','),
         'max_workers': int(os.environ.get('BLS_MAX_WORKERS', '3')),
         'max_depth': int(os.environ.get('BLS_MAX_DEPTH', '5')),
-        'dry_run': os.environ.get('BLS_DRY_RUN', 'false').lower() == 'true'
+        'dry_run': os.environ.get('BLS_DRY_RUN', 'false').lower() == 'true',
+        'debug': os.environ.get('BLS_DEBUG', 'false').lower() == 'true',
+        'aws_access_key': os.environ.get('AWS_ACCESS_KEY_ID'),
+        'aws_secret_key': os.environ.get('AWS_SECRET_ACCESS_KEY'),
+        'aws_region': os.environ.get('AWS_REGION', 'us-east-2'),
+        'preserve_directory_structure': os.environ.get('BLS_PRESERVE_DIR_STRUCTURE', 'false').lower() == 'true'
     }
     
     return config
@@ -444,22 +458,23 @@ def main():
     config = load_environment_config()
     
     # Set up logging level based on config
-    log_level = 'DEBUG' if config['debug'] else 'INFO'
+    log_level = 'DEBUG' if config.get('debug', False) else 'INFO'
     logger = setup_logging(__name__, log_level)
     
     logger.info("="*50)
     logger.info("BLS DATA SYNCHRONIZATION SCRIPT")
     logger.info("="*50)
     logger.info(f"Bucket: {config['bucket_name']}")
-    logger.info(f"AWS Region: {config['aws_region']}")
+    logger.info(f"AWS Region: {config.get('aws_region', 'us-east-2')}")
     logger.info(f"Base URL: {config['base_url']}")
     logger.info(f"Max Workers: {config['max_workers']}")
     logger.info(f"Max Depth: {config['max_depth']}")
-    logger.info(f"Debug Mode: {config['debug']}")
+    logger.info(f"Debug Mode: {config.get('debug', False)}")
+    logger.info(f"Preserve Directory Structure: {config.get('preserve_directory_structure', False)}")
     logger.info("="*50)
     
     # Validate required environment variables
-    if not config['aws_access_key'] or not config['aws_secret_key']:
+    if not config.get('aws_access_key') or not config.get('aws_secret_key'):
         logger.error("AWS credentials not found in environment variables")
         logger.error("Please ensure AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are set")
         sys.exit(1)
@@ -472,7 +487,9 @@ def main():
     
     # Run sync
     try:
-        successful, total = syncer.sync_files()
+        successful, total = syncer.sync_files(
+            preserve_directory_structure=config.get('preserve_directory_structure', False)
+        )
         
         print(f"\n🎯 FINAL SYNC SUMMARY:")
         print(f"📊 Total files discovered: {total}")
