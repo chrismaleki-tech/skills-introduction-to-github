@@ -42,7 +42,7 @@ def lambda_handler(event, context):
     # Get environment variables
     bls_bucket = os.environ['BLS_BUCKET_NAME']
     population_bucket = os.environ['POPULATION_BUCKET_NAME']
-    cursor/fix-bls-and-population-api-errors-5304
+    # cursor/fix-bls-and-population-api-errors-5304
     analytics_queue_url = os.environ['ANALYTICS_QUEUE_URL']
 
     
