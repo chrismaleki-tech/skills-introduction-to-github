@@ -50,7 +50,7 @@ def lambda_handler(event, context):
     max_execution_time = int(os.environ.get('LAMBDA_MAX_EXECUTION_TIME', '840'))  # 14 minutes (900s - 60s buffer)
     max_depth = int(os.environ.get('BLS_MAX_DEPTH', '3'))  # Limit recursion depth for Lambda
     max_workers = int(os.environ.get('BLS_MAX_WORKERS', '5'))  # Concurrent requests
-main
+
     
 results = {
         'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0, 'directories_explored': 0},
