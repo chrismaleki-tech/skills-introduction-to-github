@@ -59,9 +59,8 @@ results = {
         'execution_time_seconds': 0
     }
     
-    start_time = time.time()
-    
-    try:
+start_time = time.time()
+try:
         # Part 1: Enhanced BLS Data Synchronization with Recursive Crawling
         logger.info("Starting enhanced BLS data synchronization with recursive crawling")
         bls_syncer = EnhancedBLSDataSyncer(
