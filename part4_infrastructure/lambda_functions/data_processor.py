@@ -52,7 +52,7 @@ def lambda_handler(event, context):
     max_workers = int(os.environ.get('BLS_MAX_WORKERS', '5'))  # Concurrent requests
 main
     
-    results = {
+results = {
         'bls_sync': {'success': False, 'files_uploaded': 0, 'total_files': 0, 'directories_explored': 0},
         'population_fetch': {'success': False, 'files_created': []},
         'analytics_triggered': False,
