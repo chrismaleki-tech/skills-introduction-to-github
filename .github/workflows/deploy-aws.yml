@@ -248,7 +248,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download CDK Outputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: cdk-outputs
           path: ./artifacts
