@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { formatDealContext, writeBackGradeToCrm } from "./crm";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
@@ -18,7 +19,7 @@ import {
 export interface IngestCallInput {
   orgId: string;
   repId: string;
-  source: "UPLOAD" | "WEBHOOK" | "API" | "DIALER";
+  source: "UPLOAD" | "WEBHOOK" | "API" | "DIALER" | "CRM";
   direction?: string;
   callType?: string;
   durationSec: number;
@@ -28,6 +29,10 @@ export interface IngestCallInput {
   audio?: { buffer: Buffer; mimeType: string; path?: string };
   providedTranscript?: string; // text or JSON transcript, skips transcription
   repFlagged?: boolean;
+  // Optional CRM links — deal stage/account context grounds grading feedback.
+  accountId?: string;
+  contactId?: string;
+  dealId?: string;
 }
 
 export async function ingestCall(input: IngestCallInput) {
@@ -61,6 +66,9 @@ export async function ingestCall(input: IngestCallInput) {
       externalId: input.externalId,
       prospectName: input.prospectName ?? "",
       audioPath: input.audio?.path,
+      accountId: input.accountId,
+      contactId: input.contactId,
+      dealId: input.dealId,
       callDate: now,
       status: decision.grade ? "QUEUED" : decision.samplingStatus === "BELOW_MIN_DURATION" ? "SKIPPED" : "INGESTED",
       samplingStatus: decision.samplingStatus,
@@ -118,6 +126,8 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
       callType: call.callType,
     });
     await db.call.update({ where: { id: callId }, data: { status: "GRADED" } });
+    // Push the scorecard onto the linked deal/contact timeline when present.
+    await writeBackGradeToCrm(callId);
   } catch (err) {
     await db.call.update({
       where: { id: callId },
@@ -181,13 +191,28 @@ async function gradeSubject(args: {
   if (!methodologyId) throw new Error("No active methodology configured for this team.");
   const methodology = await db.methodology.findUniqueOrThrow({ where: { id: methodologyId } });
 
+  // Enrich call grades with CRM deal stage / account context when linked.
+  let scenarioContext = args.scenarioContext ?? "";
+  if (args.callId) {
+    const linked = await db.call.findUnique({
+      where: { id: args.callId },
+      include: {
+        deal: { include: { account: true, contact: true } },
+      },
+    });
+    if (linked?.deal) {
+      const dealCtx = formatDealContext(linked.deal);
+      scenarioContext = scenarioContext ? `${scenarioContext}\n${dealCtx}` : dealCtx;
+    }
+  }
+
   const result = await gradeTranscript({
     segments: args.segments,
     dimensions: parseDimensions(methodology.dimensionsJson),
     company: parseCompanyProfile(org.companyContext?.profileJson ?? "{}"),
     subjectType: args.subjectType,
     callType: args.callType,
-    scenarioContext: args.scenarioContext,
+    scenarioContext: scenarioContext || undefined,
   });
 
   const data = {

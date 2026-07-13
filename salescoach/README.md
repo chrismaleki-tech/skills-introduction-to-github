@@ -7,7 +7,7 @@ AI sales training platform: reps upload (or auto-ingest) real phone calls and pr
 ```bash
 npm install
 npm run db:push     # create SQLite dev database
-npm run db:seed     # demo tenant: 5 reps, ~7 weeks of graded calls, role-plays, assignments
+npm run db:seed     # demo tenant: 5 reps, pipeline deals, graded calls linked to CRM, role-plays, assignments
 npm run dev         # http://localhost:3000
 ```
 
@@ -35,14 +35,26 @@ No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mod
 
 **Phase 4 — roles and settings.** Rep/manager/trainer/admin roles with org-scoped access control, ingestion policy editor, webhook secret rotation, engine status panel.
 
+**Phase 5 — CRM connected to SalesCoach.** Built-in CRM with accounts, contacts, and a deal pipeline (lead → closed). Calls link to deals; deal stage / account context grounds grading feedback; scorecards write back as `COACHING` activities on the deal timeline. Bridge endpoints: `POST /api/crm/sync/call` (CRM → SalesCoach) and call CRM linking (`POST /api/calls/[id]/crm`). Dialer webhooks also accept optional `dealId` / `contactId` / `accountId`.
+
 ## Architecture notes
 
-- **Grading is a pure function** of (transcript + rubric + company context) — `src/lib/grading.ts` — so uploaded calls and role-plays are directly comparable, and the voice layer is swappable without touching anything downstream.
+- **Grading is a pure function** of (transcript + rubric + company context [+ optional CRM deal context]) — `src/lib/grading.ts` — so uploaded calls and role-plays are directly comparable, and the voice layer is swappable without touching anything downstream.
+- **CRM write-back** (`src/lib/crm.ts`) upserts a coaching activity keyed by `grade:<id>` whenever a linked call is graded or a manager overrides the score.
 - **Sampling** logic is pure and unit-testable in `src/lib/sampling.ts`; the pipeline orchestration lives in `src/lib/pipeline.ts`.
 - **Demo auth**: a cookie + user switcher stands in for a real auth provider. Production would swap `src/lib/session.ts` for NextAuth/WorkOS and add tenant-scoped middleware.
 - **SQLite in dev**; the Prisma schema is Postgres-portable (JSON payloads are stored as strings with typed parse helpers in `src/lib/types.ts`).
 - **Inline processing in dev**; production moves transcription/grading behind a queue (SQS/BullMQ) — the pipeline entry points are already the natural job boundaries.
 
+## CRM ↔ SalesCoach connection
+
+| Direction | How |
+|---|---|
+| CRM → coaching | From a deal, **Log call → SalesCoach** (or `POST /api/crm/sync/call` with webhook secret) ingests through the same pipeline as uploads |
+| Coaching → CRM | Graded linked calls upsert a `COACHING` activity on the deal/account timeline with score, band, and summary |
+| Context enrich | Linked deal stage, amount, product, account, and contact are injected into the grading prompt |
+| Manual link | Call review page → **CRM link** panel attaches an existing call to a deal |
+
 ## Not yet implemented (known gaps)
 
-Native dialer integrations (Aircall/RingCentral/etc. — the webhook is the integration surface for now), real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.
+Native dialer OAuth (Aircall/RingCentral/etc. — the webhook is the integration surface for now), Salesforce/HubSpot OAuth sync for external CRMs, real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.

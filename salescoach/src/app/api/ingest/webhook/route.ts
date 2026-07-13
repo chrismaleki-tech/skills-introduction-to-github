@@ -18,6 +18,10 @@ interface WebhookPayload {
   callDate?: string;
   // Plain text in "REP:" / "PROSPECT:" line format, or a JSON segments array.
   transcript?: string | unknown[];
+  // Optional CRM links so dialer webhooks can attach deal context up front.
+  dealId?: string;
+  contactId?: string;
+  accountId?: string;
 }
 
 export async function POST(req: Request) {
@@ -74,11 +78,15 @@ export async function POST(req: Request) {
       prospectName: body.prospectName,
       callDate,
       providedTranscript,
+      dealId: body.dealId,
+      contactId: body.contactId,
+      accountId: body.accountId,
     });
     return NextResponse.json({
       callId: call.id,
       status: call.status,
       samplingStatus: call.samplingStatus,
+      dealId: call.dealId,
       deduped,
     });
   } catch (err) {

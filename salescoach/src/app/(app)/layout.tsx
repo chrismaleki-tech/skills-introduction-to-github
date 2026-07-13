@@ -16,6 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const items: NavItem[] = [
     ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
     { href: "/me", label: "My Performance" },
+    { href: "/crm", label: "Pipeline" },
+    { href: "/crm/accounts", label: "Accounts" },
+    { href: "/crm/contacts", label: "Contacts" },
     { href: "/calls", label: "Calls" },
     { href: "/roleplay", label: "Role-Play" },
     { href: "/scenarios", label: "Scenarios" },

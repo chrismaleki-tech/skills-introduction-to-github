@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/lib/db";
+import { stageLabel } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseSegments } from "@/lib/types";
 import { GradeView } from "@/components/grade-view";
 import { TranscriptView } from "@/components/transcript-view";
 import { GradeNowButton } from "@/components/calls/grade-now-button";
 import { OverrideForm } from "@/components/calls/override-form";
+import { LinkCallToCrmForm } from "@/components/crm/link-call";
 import {
   Card,
   EmptyState,
@@ -27,9 +30,37 @@ export default async function CallReviewPage({
 
   const call = await db.call.findFirst({
     where: { id, orgId: user.orgId },
-    include: { rep: true, transcript: true, grade: true },
+    include: {
+      rep: true,
+      transcript: true,
+      grade: true,
+      deal: { select: { id: true, name: true, stage: true } },
+      account: { select: { id: true, name: true } },
+      contact: { select: { id: true, name: true } },
+    },
   });
   if (!call || (!manager && call.repId !== user.id)) notFound();
+
+  const [deals, contacts, accounts] = await Promise.all([
+    db.deal.findMany({
+      where: manager ? { orgId: user.orgId } : { orgId: user.orgId, ownerId: user.id },
+      select: { id: true, name: true, stage: true },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+    }),
+    db.contact.findMany({
+      where: { orgId: user.orgId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+      take: 100,
+    }),
+    db.account.findMany({
+      where: { orgId: user.orgId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+      take: 100,
+    }),
+  ]);
 
   const segments = call.transcript ? parseSegments(call.transcript.segmentsJson) : [];
   const canGradeNow = !call.grade && (call.status === "INGESTED" || call.status === "SKIPPED");
@@ -46,6 +77,24 @@ export default async function CallReviewPage({
           </div>
         }
       />
+
+      {call.deal && (
+        <div className="mb-6 rounded-xl border border-accent/25 bg-accent/5 px-4 py-3 text-sm flex flex-wrap items-center gap-2">
+          <span className="text-muted">CRM deal:</span>
+          <Link href={`/crm/deals/${call.deal.id}`} className="font-medium text-accent-hover hover:underline">
+            {call.deal.name}
+          </Link>
+          <span className="text-muted">· {stageLabel(call.deal.stage)}</span>
+          {call.account && (
+            <>
+              <span className="text-muted">·</span>
+              <Link href={`/crm/accounts/${call.account.id}`} className="text-accent-hover hover:underline">
+                {call.account.name}
+              </Link>
+            </>
+          )}
+        </div>
+      )}
 
       {call.status === "FAILED" && (
         <div className="mb-6 rounded-xl border border-rose-400/30 bg-rose-400/5 p-4 flex flex-wrap items-center justify-between gap-3">
@@ -66,7 +115,7 @@ export default async function CallReviewPage({
       )}
 
       <div className="grid gap-6 xl:grid-cols-2 items-start">
-        <div className="xl:sticky xl:top-8">
+        <div className="xl:sticky xl:top-8 space-y-6">
           {segments.length > 0 ? (
             <TranscriptView
               segments={segments}
@@ -81,6 +130,19 @@ export default async function CallReviewPage({
               />
             </Card>
           )}
+          <Card title="CRM link">
+            <LinkCallToCrmForm
+              callId={call.id}
+              deals={deals}
+              contacts={contacts}
+              accounts={accounts}
+              initial={{
+                dealId: call.dealId,
+                contactId: call.contactId,
+                accountId: call.accountId,
+              }}
+            />
+          </Card>
         </div>
 
         <div className="space-y-6">
