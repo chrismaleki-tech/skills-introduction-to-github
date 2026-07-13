@@ -85,3 +85,6 @@ yarn-error.log*
 .tmp/
 temp/
 tmp/
+
+# Built plugin artifact
+wordpress/*.zip
