@@ -1,0 +1,55 @@
+name: Update Data Golf CSVs
+
+on:
+  workflow_dispatch:
+    inputs:
+      datasets:
+        description: "Comma-separated datasets (players,rankings,schedule,field,predictions,skill_ratings)"
+        default: "players,rankings,schedule,field,predictions,skill_ratings"
+      tour:
+        description: "Tour"
+        type: choice
+        options: [pga, euro, kft, alt, liv]
+        default: pga
+  schedule:
+    # Daily at 10:00 UTC (after Data Golf's overnight model updates).
+    - cron: "0 10 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update-csv:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests pandas
+
+      - name: Fetch Data Golf data
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+        run: |
+          python datagolf/update_csv.py \
+            --datasets "${{ github.event.inputs.datasets || 'players,rankings,schedule,field,predictions,skill_ratings' }}" \
+            --tour "${{ github.event.inputs.tour || 'pga' }}" \
+            || echo "some datasets failed (expected off-season for field/predictions)"
+
+      - name: Commit updated CSVs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add datagolf/data/*.csv
+          if git diff --cached --quiet; then
+            echo "No CSV changes to commit."
+          else
+            git commit -m "chore: update Data Golf CSV snapshots [skip ci]"
+            git push
+          fi
