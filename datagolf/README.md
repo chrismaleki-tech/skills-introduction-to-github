@@ -49,6 +49,36 @@ and retried to stay under Data Golf's 45 requests/minute limit.
 Note: `field` and `predictions` only return data while an event is upcoming or
 in progress; off-season runs may report those two as failed, which is expected.
 
+## Full dump: pull everything (`pull_all.py`)
+
+`pull_all.py` hits every Data Golf endpoint the API key's plan can access and
+writes one CSV per feed to `datagolf/data/` (nested JSON flattened, top-level
+context fields like `event_name`/`last_updated` carried onto each row).
+
+```bash
+python datagolf/pull_all.py                 # all current + list feeds -> datagolf/data/
+python datagolf/pull_all.py --tour euro     # a different tour
+python datagolf/pull_all.py --with-history 3  # + round-level data for 3 recent events (needs historical tier)
+```
+
+Feeds written (19 with a standard Scratch Plus key):
+
+- **General**: `dg_players`, `dg_schedule`, `dg_field_updates`
+- **Predictions/stats**: `dg_rankings`, `dg_pre_tournament`, `dg_skill_ratings`,
+  `dg_approach_skill`, `dg_player_decompositions`, `dg_fantasy_projections`,
+  `dg_in_play`, `dg_live_tournament_stats`, `dg_live_strokes_gained`,
+  `dg_live_hole_stats`
+- **Betting odds**: `dg_outrights_win`, `dg_matchups_all_pairings`
+  (`dg_matchups` only when a tournament matchup market is live)
+- **Historical indexes**: `dg_hist_raw_event_list`, `dg_hist_results_event_list`,
+  `dg_hist_odds_event_list`, `dg_hist_dfs_event_list`
+
+The live feeds (`in_play`, `live_*`) only return rows during an active
+tournament. Per-event historical *detail* (round scoring, historical odds, DFS
+points) requires the historical-data subscription tier; with a base key those
+detail pulls return HTTP 403 and are skipped, but the historical event *lists*
+above are still available.
+
 ## Load step: CSV -> WordPress (statcaddygolf.com)
 
 `load_wordpress.py` merges the CSVs into one record per golfer (keyed on `dg_id`)
