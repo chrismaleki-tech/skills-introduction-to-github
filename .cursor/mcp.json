@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sportsdata": {
+      "command": "uvx",
+      "args": ["sportsdata-mcp", "serve"],
+      "env": {
+        "SPORTSDATA_MCP_GROUPS": "datagolf.general,datagolf.predictions,datagolf.betting,datagolf.historical"
+      }
+    }
+  }
+}
