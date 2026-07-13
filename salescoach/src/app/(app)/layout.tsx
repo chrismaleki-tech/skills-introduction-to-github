@@ -19,6 +19,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/crm", label: "Pipeline" },
     { href: "/crm/accounts", label: "Accounts" },
     { href: "/crm/contacts", label: "Contacts" },
+    { href: "/conversations", label: "Conversations" },
+    { href: "/channels", label: "Channels" },
     { href: "/calls", label: "Calls" },
     { href: "/roleplay", label: "Role-Play" },
     { href: "/scenarios", label: "Scenarios" },

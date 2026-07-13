@@ -14,7 +14,8 @@ import {
   fmtDateTime,
 } from "@/components/ui";
 import { DealStageSelect } from "@/components/crm/forms";
-import { LogCallFromDealButton } from "@/components/crm/link-call";
+import { ConversationPanels } from "@/components/crm/conversations";
+import { EmailComposer, PhoneDialer } from "@/components/crm/outreach";
 
 export default async function DealDetailPage({
   params,
@@ -44,16 +45,35 @@ export default async function DealDetailPage({
         orderBy: { occurredAt: "desc" },
         take: 40,
       },
+      conversations: {
+        include: {
+          contact: { select: { id: true, name: true } },
+          deal: { select: { id: true, name: true } },
+          messages: {
+            orderBy: { occurredAt: "asc" },
+            include: {
+              sender: { select: { id: true, name: true } },
+              call: { select: { id: true, status: true, grade: { select: { overallScore: true } } } },
+            },
+          },
+        },
+        orderBy: { lastMessageAt: "desc" },
+      },
     },
   });
   if (!deal || (!manager && deal.ownerId !== user.id)) notFound();
+
+  const connections = await db.channelConnection.findMany({
+    where: { userId: user.id, status: "CONNECTED" },
+  });
+  const emailConnected = connections.some((c) => c.channel === "EMAIL");
+  const phoneConnected = connections.some((c) => c.channel === "PHONE");
 
   return (
     <div>
       <PageHeader
         title={deal.name}
         subtitle={`${stageLabel(deal.stage)} · ${fmtMoney(deal.amount)} · ${deal.probability}% · ${deal.product || "No product"}`}
-        actions={<LogCallFromDealButton dealId={deal.id} callType={deal.stage === "demo" ? "demo" : "discovery"} />}
       />
 
       <div className="grid gap-6 lg:grid-cols-3 mb-8">
@@ -88,6 +108,9 @@ export default async function DealDetailPage({
                   <>
                     {deal.contact.name}
                     {deal.contact.title ? <span className="text-muted"> · {deal.contact.title}</span> : null}
+                    <div className="text-xs text-muted mt-0.5">
+                      {[deal.contact.email, deal.contact.phone].filter(Boolean).join(" · ") || "No email/phone"}
+                    </div>
                   </>
                 ) : (
                   "—"
@@ -108,31 +131,47 @@ export default async function DealDetailPage({
           )}
         </Card>
 
-        <Card title="SalesCoach connection">
-          <p className="text-sm text-muted mb-3">
-            Calls linked to this deal are graded by SalesCoach. Scorecards write back here as coaching
-            activities, and deal stage context grounds the feedback.
-          </p>
-          <div className="text-sm space-y-1">
-            <div>
-              Linked calls: <span className="font-medium tabular-nums">{deal.calls.length}</span>
-            </div>
-            <div>
-              Coaching notes:{" "}
-              <span className="font-medium tabular-nums">
-                {deal.activities.filter((a) => a.type === "COACHING").length}
-              </span>
-            </div>
+        <Card title="Reach prospect">
+          <div className="space-y-4">
+            <EmailComposer
+              dealId={deal.id}
+              contactId={deal.contactId}
+              accountId={deal.accountId}
+              defaultTo={deal.contact?.email || ""}
+              contactName={deal.contact?.name}
+              emailConnected={emailConnected}
+            />
+            <PhoneDialer
+              dealId={deal.id}
+              contactId={deal.contactId}
+              accountId={deal.accountId}
+              defaultTo={deal.contact?.phone || ""}
+              contactName={deal.contact?.name}
+              phoneConnected={phoneConnected}
+              callType={deal.stage === "demo" ? "demo" : "discovery"}
+            />
+            <p className="text-xs text-muted border-t border-line pt-3">
+              Manage connected inboxes and dialers in{" "}
+              <Link href="/channels" className="text-accent-hover hover:underline">
+                Channels
+              </Link>
+              .
+            </p>
           </div>
         </Card>
       </div>
 
+      <div className="mb-8">
+        <h2 className="text-sm font-medium text-muted uppercase tracking-wider mb-3">Conversations</h2>
+        <ConversationPanels conversations={deal.conversations} />
+      </div>
+
       <div className="grid gap-6 xl:grid-cols-2 items-start">
-        <Card title="Linked calls">
+        <Card title="Linked SalesCoach calls">
           {deal.calls.length === 0 ? (
             <EmptyState
               title="No linked calls yet"
-              hint="Use “Log call → SalesCoach” or link an existing call from the call review page."
+              hint="Use Call prospect (grades automatically) or link an existing call from call review."
             />
           ) : (
             <ul className="divide-y divide-line -mx-1">

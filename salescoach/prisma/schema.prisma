@@ -33,6 +33,9 @@ model Org {
   contacts       Contact[]
   deals          Deal[]
   activities     Activity[]
+  connections    ChannelConnection[]
+  conversations  Conversation[]
+  messages       Message[]
 
   createdAt DateTime @default(now())
 }
@@ -55,6 +58,9 @@ model User {
   ownedAccounts  Account[]         @relation("AccountOwner")
   ownedContacts  Contact[]         @relation("ContactOwner")
   activities     Activity[]        @relation("ActivityOwner")
+  connections    ChannelConnection[]
+  conversations  Conversation[]    @relation("ConversationOwner")
+  messages       Message[]         @relation("MessageSender")
 
   createdAt DateTime @default(now())
 }
@@ -124,6 +130,7 @@ model Call {
   transcript Transcript?
   grade      Grade?
   activities Activity[]
+  messages   Message[]
 
   callDate  DateTime @default(now())
   createdAt DateTime @default(now())
@@ -155,6 +162,7 @@ model Account {
   deals      Deal[]
   calls      Call[]
   activities Activity[]
+  conversations Conversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -180,6 +188,7 @@ model Contact {
   deals      Deal[]
   calls      Call[]
   activities Activity[]
+  conversations Conversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -212,6 +221,7 @@ model Deal {
 
   calls      Call[]
   activities Activity[]
+  conversations Conversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -250,6 +260,100 @@ model Activity {
   @@unique([orgId, externalRef])
   @@index([orgId, dealId, occurredAt])
   @@index([orgId, accountId, occurredAt])
+}
+
+// ---------- Channels: employee email + phone connected for CRM outreach ----------
+// Demo mode stores a connected address/number without real OAuth; production would
+// swap provider tokens for Gmail/Outlook/Twilio/Aircall.
+
+model ChannelConnection {
+  id     String @id @default(cuid())
+  orgId  String
+  org    Org    @relation(fields: [orgId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // EMAIL | PHONE
+  channel  String
+  // gmail | outlook | work_smtp | demo_email | twilio | aircall | ringcentral | demo_phone
+  provider String
+  // Email address or E.164 phone number shown as the "from"
+  address  String
+  // CONNECTED | DISCONNECTED | ERROR
+  status   String @default("CONNECTED")
+  // Opaque token blob for real providers (JSON string). Demo stores "{}".
+  credentialsJson String @default("{}")
+  lastError       String @default("")
+
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, channel])
+  @@index([orgId, userId])
+}
+
+// A thread of emails or a phone conversation attached to CRM records.
+model Conversation {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  ownerId   String
+  owner     User    @relation("ConversationOwner", fields: [ownerId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id])
+
+  // EMAIL | PHONE
+  channel String
+  subject String @default("")
+  // OPEN | CLOSED
+  status  String @default("OPEN")
+  // Prospect-facing address/number for this thread
+  prospectAddress String @default("")
+
+  messages Message[]
+
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([orgId, dealId, lastMessageAt])
+  @@index([orgId, contactId, lastMessageAt])
+  @@index([orgId, ownerId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  orgId          String
+  org            Org          @relation(fields: [orgId], references: [id])
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String?
+  sender         User?        @relation("MessageSender", fields: [senderId], references: [id])
+  // Optional link when a PHONE message was graded as a SalesCoach call
+  callId         String?
+  call           Call?        @relation(fields: [callId], references: [id])
+
+  // OUTBOUND | INBOUND
+  direction String
+  // For email: subject line of this message; for phone: "Outbound call" etc.
+  subject   String @default("")
+  body      String @default("")
+  // queued | sent | delivered | failed | received | completed
+  status    String @default("sent")
+  // From/to for audit (employee connected address ↔ prospect)
+  fromAddress String @default("")
+  toAddress   String @default("")
+  durationSec Int?
+  externalId  String?
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([conversationId, occurredAt])
+  @@index([orgId, occurredAt])
 }
 
 model Transcript {

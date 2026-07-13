@@ -520,6 +520,7 @@ async function main() {
       name: "Marta Iglesias",
       title: "CFO",
       email: "marta@cascadedist.demo",
+      phone: "+1-503-555-0199",
     },
   });
   const tom = await db.contact.create({
@@ -530,6 +531,7 @@ async function main() {
       name: "Tom Herrera",
       title: "Operations Manager",
       email: "tom@blueridgesupply.demo",
+      phone: "+1-828-555-0118",
     },
   });
   const priya = await db.contact.create({
@@ -540,6 +542,7 @@ async function main() {
       name: "Priya Nair",
       title: "Director of Supply Chain",
       email: "priya@summitlogistics.demo",
+      phone: "+1-206-555-0177",
     },
   });
   const ellis = await db.contact.create({
@@ -550,6 +553,7 @@ async function main() {
       name: "Ellis Cho",
       title: "Warehouse Lead",
       email: "ellis@northwindfoods.demo",
+      phone: "+1-312-555-0133",
     },
   });
 
@@ -690,6 +694,88 @@ async function main() {
     }
   }
 
+  // ---------- Channels: connect employee email + phone, seed conversations ----------
+  const { connectChannel, sendCrmEmail, placeCrmCall } = await import("../src/lib/channels");
+  const phoneByRep = ["+1-555-0140", "+1-555-0141", "+1-555-0142", "+1-555-0143", "+1-555-0144"];
+  for (let i = 0; i < reps.length; i++) {
+    await connectChannel({
+      orgId: org.id,
+      userId: reps[i].id,
+      channel: "EMAIL",
+      provider: "demo_email",
+      address: reps[i].email,
+    });
+    await connectChannel({
+      orgId: org.id,
+      userId: reps[i].id,
+      channel: "PHONE",
+      provider: "demo_phone",
+      address: phoneByRep[i],
+    });
+  }
+  await connectChannel({
+    orgId: org.id,
+    userId: manager.id,
+    channel: "EMAIL",
+    provider: "demo_email",
+    address: manager.email,
+  });
+  await connectChannel({
+    orgId: org.id,
+    userId: manager.id,
+    channel: "PHONE",
+    provider: "demo_phone",
+    address: "+1-555-0100",
+  });
+
+  await sendCrmEmail({
+    orgId: org.id,
+    userId: reps[0].id,
+    to: dana.email,
+    subject: "Cascade rollout plan + Thursday with Marta",
+    body: `Hi Dana,\n\nGreat speaking earlier. As discussed, I'm attaching a one-page agenda for Thursday with you and Marta, plus the fixed-fee 6-week rollout outline.\n\nCan you confirm Thursday afternoon still works?\n\nBest,\nAlex`,
+    dealId: dealCascadeCore.id,
+    contactId: dana.id,
+    accountId: cascade.id,
+  });
+
+  await sendCrmEmail({
+    orgId: org.id,
+    userId: reps[1].id,
+    to: tom.email,
+    subject: "One-pager for your VP on Meridian Core",
+    body: `Hi Tom,\n\nPer our chat — here's a short one-pager you can forward internally covering multi-warehouse sync and the phased rollout. Happy to join a call with your VP whenever useful.\n\nJordan`,
+    dealId: dealBlueRidge.id,
+    contactId: tom.id,
+    accountId: blueRidge.id,
+  });
+
+  await placeCrmCall({
+    orgId: org.id,
+    userId: reps[0].id,
+    to: dana.phone,
+    notes: "Confirm Thursday with CFO Marta and send payback model.",
+    durationSec: 320,
+    callType: "discovery",
+    dealId: dealCascadeCore.id,
+    contactId: dana.id,
+    accountId: cascade.id,
+    gradeWithSalesCoach: true,
+  });
+
+  await placeCrmCall({
+    orgId: org.id,
+    userId: reps[3].id,
+    to: priya.phone,
+    notes: "Schedule Forecast demo with seasonal demand scenarios.",
+    durationSec: 280,
+    callType: "demo",
+    dealId: dealSummit.id,
+    contactId: priya.id,
+    accountId: summit.id,
+    gradeWithSalesCoach: true,
+  });
+
   const counts = {
     calls: await db.call.count(),
     graded: await db.grade.count(),
@@ -698,6 +784,9 @@ async function main() {
     contacts: await db.contact.count(),
     deals: await db.deal.count(),
     activities: await db.activity.count(),
+    connections: await db.channelConnection.count(),
+    conversations: await db.conversation.count(),
+    messages: await db.message.count(),
   };
   console.log("Seeded:", counts);
 }
