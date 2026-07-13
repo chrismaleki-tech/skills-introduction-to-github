@@ -1,0 +1,761 @@
+pulled_at,calendar_year,date,dk_ownerships,dk_salaries,event_id,event_name,fd_ownerships,fd_salaries,tour
+2026-07-13T05:31:47+00:00,2026,2026-07-12,no,yes,518,ISCO Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-07-12,yes,yes,541,Genesis Scottish Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-07-05,no,yes,2026124,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-07-05,yes,yes,30,John Deere Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-06-28,yes,yes,34,Travelers Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-06-28,no,yes,2026123,DS Automobiles 83° Open d’Italia,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-06-21,yes,yes,26,U.S. Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-06-14,yes,yes,32,RBC Canadian Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-06-07,yes,yes,23,the Memorial Tournament presented by Workday,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-06-07,no,yes,2026121,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-05-31,yes,yes,21,Charles Schwab Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-05-31,no,yes,2026120,Austrian Alpine Open presented by Kitzbühel Tirol,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-05-24,no,yes,2026119,Soudal Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-05-24,yes,yes,19,THE CJ CUP Byron Nelson,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-05-17,yes,yes,33,PGA Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-05-10,no,yes,553,ONEflight Myrtle Beach Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-05-10,yes,yes,480,Truist Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-05-10,no,yes,2026117,Estrella Damm Catalunya Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-05-03,yes,yes,556,Cadillac Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-05-03,no,yes,2026116,Turkish Airlines Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-04-26,no,yes,2026115,Volvo China Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-04-19,yes,yes,12,RBC Heritage,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-04-12,yes,yes,14,Masters Tournament,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-04-05,yes,yes,41,Valero Texas Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-03-29,no,yes,2026113,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-03-29,yes,yes,20,Texas Children's Houston Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-03-22,no,yes,2026112,Hainan Classic presented by MAEXTRO,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-03-22,yes,yes,475,Valspar Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-03-15,yes,yes,11,THE PLAYERS Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-03-08,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-03-08,no,yes,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2026,2026-03-08,no,yes,2026111,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-03-01,no,yes,2026110,Investec South African Open Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-03-01,yes,yes,10,Cognizant Classic in The Palm Beaches,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-02-22,no,yes,2026109,Magical Kenya Open presented by absa,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-02-22,yes,yes,7,The Genesis Invitational,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-02-15,yes,yes,5,AT&T Pebble Beach Pro-Am,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-02-08,no,yes,2026145,Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-02-08,yes,yes,3,WM Phoenix Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-02-01,no,yes,2026107,Bapco Energies Bahrain Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-02-01,yes,yes,4,Farmers Insurance Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-01-25,no,yes,2026106,Hero Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-01-25,yes,yes,2,The American Express,no,yes,pga
+2026-07-13T05:31:47+00:00,2026,2026-01-18,no,yes,2026105,Dubai Invitational,no,no,euro
+2026-07-13T05:31:47+00:00,2026,2026-01-18,yes,yes,6,Sony Open in Hawaii,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-12-21,no,yes,2026104,AfrAsia Bank Mauritius Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-12-14,no,yes,2026103,Alfred Dunhill Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-12-07,no,yes,2026102,Nedbank Golf Challenge in honour of Gary Player,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-12-07,yes,yes,478,Hero World Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-11-30,no,yes,2026100,BMW Australian PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-11-23,yes,yes,493,The RSM Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-11-16,yes,yes,528,Butterfield Bermuda Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-11-16,no,yes,2025137,DP World Tour Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-11-09,yes,yes,457,World Wide Technology Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-11-09,no,yes,2025136,Abu Dhabi HSBC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-10-26,no,yes,2025135,Genesis Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-10-26,yes,yes,554,Bank of Utah Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-10-19,no,yes,2025141,DP World India Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-10-12,no,yes,2025134,Open de España presented by Madrid,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-10-12,yes,yes,527,Baycurrent Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-10-05,yes,yes,54,Sanderson Farms Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-10-05,no,yes,2025133,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-09-21,no,yes,2025131,FedEx Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-09-14,yes,yes,464,Procore Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-09-14,no,yes,2025130,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-09-07,no,yes,2025129,Amgen Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-08-31,no,yes,2025128,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-08-24,no,yes,2025127,Betfred British Masters hosted by Sir Nick Faldo,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-08-24,yes,yes,60,TOUR Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-08-17,no,yes,2025126,Danish Golf Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-08-17,yes,yes,28,BMW Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-08-10,yes,yes,27,FedEx St. Jude Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-08-10,no,yes,2025125,Nexo Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-08-03,yes,yes,13,Wyndham Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-07-27,yes,yes,525,3M Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-07-20,yes,yes,100,The Open Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-07-13,no,yes,518,ISCO Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2025,2025-07-13,yes,yes,541,Genesis Scottish Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-07-06,yes,yes,30,John Deere Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-07-06,no,yes,2025120,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-06-29,yes,yes,524,Rocket Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-06-29,no,yes,2025119,Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-06-22,yes,yes,34,Travelers Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-06-15,yes,yes,26,U.S. Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-06-08,yes,yes,32,RBC Canadian Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-06-08,no,yes,2025118,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-06-01,yes,yes,23,the Memorial Tournament presented by Workday,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-06-01,no,yes,2025143,Austrian Alpine Open presented by SalzburgerLand,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-05-25,yes,yes,21,Charles Schwab Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-05-25,no,yes,2025117,Soudal Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-05-18,yes,yes,33,PGA Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-05-11,no,yes,553,ONEflight Myrtle Beach Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2025,2025-05-11,no,yes,2025140,Turkish Airlines Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-05-11,yes,yes,480,Truist Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-05-04,yes,yes,19,THE CJ CUP Byron Nelson,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-04-27,no,yes,2025139,Hainan Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-04-20,no,yes,2025115,Volvo China Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-04-20,yes,yes,12,RBC Heritage,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-04-20,no,yes,522,Corales Puntacana Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2025,2025-04-13,yes,yes,14,Masters Tournament,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-04-06,yes,yes,41,Valero Texas Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-03-30,no,yes,2025113,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-03-30,yes,yes,20,Texas Children's Houston Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-03-23,no,yes,2025112,Porsche Singapore Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-03-23,yes,yes,475,Valspar Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-03-16,yes,yes,11,THE PLAYERS Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-03-09,no,yes,2025111,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-03-09,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-03-09,no,yes,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2025,2025-03-02,no,yes,2025110,Investec South African Open Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-03-02,yes,yes,10,Cognizant Classic in The Palm Beaches,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-02-23,no,yes,2025109,Magical Kenya Open,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-02-23,yes,yes,540,Mexico Open at VidantaWorld,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-02-16,yes,yes,7,The Genesis Invitational,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-02-09,yes,yes,3,WM Phoenix Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-02-09,no,yes,2025142,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-02-02,yes,yes,5,AT&T Pebble Beach Pro-Am,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-02-02,no,yes,2025108,Bapco Energies Bahrain Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-01-26,no,yes,2025107,Ras Al Khaimah Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-01-25,yes,yes,4,Farmers Insurance Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-01-19,yes,yes,2,The American Express,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-01-19,no,yes,2025106,Hero Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2025,2025-01-12,yes,yes,6,Sony Open in Hawaii,no,yes,pga
+2026-07-13T05:31:47+00:00,2025,2025-01-05,yes,yes,16,The Sentry,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-12-22,no,yes,2025104,AfrAsia Bank Mauritius Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-12-15,no,yes,2025103,Alfred Dunhill Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-12-08,no,yes,2025102,Nedbank Golf Challenge,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-12-08,yes,yes,478,Hero World Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-11-24,no,yes,2025100,BMW Australian PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-11-24,yes,yes,493,The RSM Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-11-17,no,yes,2024142,DP World Tour Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-11-17,yes,yes,528,Butterfield Bermuda Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-11-10,no,yes,2024141,Abu Dhabi HSBC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-11-10,yes,yes,457,World Wide Technology Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-10-27,yes,yes,527,ZOZO CHAMPIONSHIP,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-10-27,no,yes,2024118,Genesis Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-10-20,no,yes,2024139,Estrella Damm N.A. Andalucía  Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-10-20,yes,yes,47,Shriners Children's Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-10-13,yes,yes,554,Black Desert Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-10-13,no,yes,2024138,FedEx Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-10-06,no,yes,2024137,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-10-06,yes,yes,54,Sanderson Farms Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-09-29,no,yes,2024136,acciona Open de España presented by Madrid,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-09-22,no,yes,2024135,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-09-15,no,yes,2024134,Amgen Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-09-15,yes,yes,464,Procore Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-09-08,no,yes,2024133,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-09-01,yes,yes,60,TOUR Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-09-01,no,yes,2024132,Betfred British Masters hosted by Sir Nick Faldo,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-08-25,yes,yes,28,BMW Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-08-25,no,yes,2024145,Danish Golf Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-08-18,yes,yes,27,FedEx St. Jude Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-08-18,no,yes,2024144,D+D REAL Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-08-11,yes,yes,13,Wyndham Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-08-04,yes,yes,519,Olympic Men's Golf Competition,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-07-28,yes,yes,525,3M Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-07-21,yes,yes,100,The Open Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-07-14,yes,yes,541,Genesis Scottish Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-07-14,no,yes,518,ISCO Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2024,2024-07-07,yes,yes,30,John Deere Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-07-07,no,yes,2024126,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-06-30,yes,yes,524,Rocket Mortgage Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-06-30,no,yes,2024125,Italian Open presented by Regione Emilia-Romagna,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-06-23,no,yes,2024124,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-06-23,yes,yes,34,Travelers Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-06-16,yes,yes,26,U.S. Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-06-09,yes,yes,23,the Memorial Tournament presented by Workday,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-06-02,yes,yes,32,RBC Canadian Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-06-02,no,yes,2024121,European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-05-26,no,yes,2024120,Soudal Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-05-26,yes,yes,21,Charles Schwab Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-05-19,yes,yes,33,PGA Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-05-12,yes,yes,480,Wells Fargo Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-05-12,no,yes,553,Myrtle Beach Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2024,2024-05-05,no,yes,2024116,Volvo China Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-05-05,yes,yes,19,THE CJ CUP Byron Nelson,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-04-28,no,yes,2024117,ISPS HANDA - CHAMPIONSHIP,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-04-21,yes,yes,12,RBC Heritage,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-04-21,no,yes,522,Corales Puntacana Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2024,2024-04-14,yes,yes,14,Masters Tournament,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-04-07,yes,yes,41,Valero Texas Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-31,yes,yes,20,Texas Children's Houston Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-31,no,yes,2024114,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-03-24,no,yes,2024113,Porsche Singapore Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-03-24,yes,yes,475,Valspar Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-17,yes,yes,11,THE PLAYERS Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-10,no,yes,2024112,Jonsson Workwear Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-03-10,no,yes,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-10,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-03,yes,yes,10,Cognizant Classic in The Palm Beaches,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-03-03,no,yes,2024111,SDC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-02-25,no,yes,2024110,Magical Kenya Open,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-02-25,yes,yes,540,Mexico Open at Vidanta,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-02-18,yes,yes,7,The Genesis Invitational,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-02-11,no,yes,2024147,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-02-11,yes,yes,3,WM Phoenix Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-02-04,no,yes,2024109,Bahrain Championship presented by Bapco Energies,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-02-04,yes,yes,5,AT&T Pebble Beach Pro-Am,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-01-28,no,yes,2024108,Ras Al Khaimah Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-01-27,yes,yes,4,Farmers Insurance Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-01-21,no,yes,2024107,Hero Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-01-21,yes,yes,2,The American Express,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-01-14,no,yes,2024106,Dubai Invitational,no,no,euro
+2026-07-13T05:31:47+00:00,2024,2024-01-14,yes,yes,6,Sony Open in Hawaii,no,yes,pga
+2026-07-13T05:31:47+00:00,2024,2024-01-07,yes,yes,16,The Sentry,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-12-03,no,yes,2024103,Investec South African Open Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-12-03,yes,yes,550,Hero World Challenge #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-11-26,no,yes,2024101,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-11-19,no,yes,2023146,DP World Tour Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-11-19,yes,yes,549,The RSM Classic #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-11-12,yes,yes,548,Butterfield Bermuda Championship #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-11-12,no,yes,2023145,Nedbank Golf Challenge,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-11-05,yes,yes,547,World Wide Technology Championship #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-10-29,no,yes,2023150,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-10-22,yes,yes,546,ZOZO CHAMPIONSHIP #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-10-22,no,yes,2023149,Estrella Damm N.A. Andalucía  Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-10-15,yes,yes,545,Shriners Children's Open #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-10-15,no,yes,2023143,acciona Open de España presented by Madrid,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-10-08,yes,yes,544,Sanderson Farms Championship #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-10-08,no,yes,2023142,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-09-24,no,yes,2023140,Cazoo Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-09-17,yes,yes,543,Fortinet Championship #2,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-09-17,no,yes,2023139,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-09-10,no,yes,2023138,Horizon Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-09-03,no,yes,2023137,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-08-27,yes,yes,60,TOUR Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-08-27,no,yes,2023136,D+D Real Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-08-20,yes,yes,28,BMW Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-08-20,no,yes,2023135,ISPS Handa World Invitational presented by AVIV Clinics,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-08-13,yes,yes,27,FedEx St. Jude Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-08-06,yes,yes,13,Wyndham Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-30,yes,yes,525,3M Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-23,yes,yes,100,The Open Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-16,yes,yes,541,Genesis Scottish Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-16,no,yes,518,Barbasol Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-09,no,yes,2023130,Made in HimmerLand,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-07-09,yes,yes,30,John Deere Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-02,yes,yes,524,Rocket Mortgage Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-07-02,no,yes,2023129,Betfred British Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-06-25,no,yes,2023128,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-06-25,yes,yes,34,Travelers Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-06-18,yes,yes,26,U.S. Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-06-11,yes,yes,32,RBC Canadian Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-06-04,no,yes,2023125,Porsche European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-06-04,yes,yes,23,the Memorial Tournament presented by Workday,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-05-28,no,yes,2023124,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-05-28,yes,yes,21,Charles Schwab Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-05-21,yes,yes,33,PGA Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-05-14,no,yes,2023122,Soudal Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-05-14,yes,yes,19,AT&T Byron Nelson,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-05-07,yes,yes,480,Wells Fargo Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-05-07,no,yes,2023117,DS Automobiles Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-04-30,no,yes,2023121,Korea Championship Presented by Genesis,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-04-30,yes,yes,540,Mexico Open at Vidanta,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-04-23,no,yes,2023120,ISPS HANDA - CHAMPIONSHIP,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-04-16,yes,yes,12,RBC Heritage,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-04-09,yes,yes,14,Masters Tournament,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-04-02,yes,yes,41,Valero Texas Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-03-26,no,yes,2023119,Jonsson Workwear Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-03-26,yes,yes,522,Corales Puntacana Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2023,2023-03-19,yes,yes,475,Valspar Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-03-19,no,yes,2023118,SDC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-03-12,yes,yes,11,THE PLAYERS Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-03-12,no,yes,2023114,Magical Kenya Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-03-05,no,yes,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2023,2023-03-05,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-02-26,yes,yes,10,The Honda Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-02-26,no,yes,2023112,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-02-19,yes,yes,7,The Genesis Invitational,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-02-19,no,yes,2023111,Thailand Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-02-12,yes,yes,3,WM Phoenix Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-02-12,no,yes,2023110,Singapore Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-02-05,yes,yes,5,AT&T Pebble Beach Pro-Am,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-02-05,no,yes,2023109,Ras Al Khaimah Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-01-29,no,yes,2023108,Hero Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-01-28,yes,yes,4,Farmers Insurance Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-01-22,no,yes,2023107,Abu Dhabi HSBC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2023,2023-01-22,yes,yes,2,The American Express,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-01-15,yes,yes,6,Sony Open in Hawaii,no,yes,pga
+2026-07-13T05:31:47+00:00,2023,2023-01-08,yes,yes,16,Sentry Tournament of Champions,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-12-18,no,yes,2023105,AfrAsia Bank Mauritius Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-12-11,no,yes,2023104,Alfred Dunhill Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-12-04,no,yes,2023103,Investec South African Open Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-12-04,yes,yes,478,Hero World Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-11-27,no,yes,2023101,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-11-20,yes,yes,493,The RSM Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-11-20,no,yes,2022143,DP World Tour Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-11-13,yes,yes,20,Cadence Bank Houston Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-11-13,no,yes,2022145,Nedbank Golf Challenge,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-11-06,yes,yes,457,World Wide Technology Championship at Mayakoba,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-10-30,no,yes,2022156,Portugal Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-10-30,yes,yes,528,Butterfield Bermuda Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-10-23,yes,yes,521,THE CJ CUP in South Carolina,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-10-23,no,yes,2022140,Mallorca Golf Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-10-16,yes,yes,527,ZOZO CHAMPIONSHIP,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-10-16,no,yes,2022139,Estrella Damm N.A. Andalucía  Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-10-09,no,yes,2022138,acciona Open de España presented by Madrid,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-10-09,yes,yes,47,Shriners Children's Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-10-02,no,yes,2022137,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-10-02,yes,yes,54,Sanderson Farms Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-09-25,no,yes,2022136,Cazoo Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-09-18,no,yes,2022135,DS Automobiles Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-09-18,yes,yes,464,Fortinet Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-09-11,no,yes,2022134,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-09-04,no,yes,2022133,Made in HimmerLand,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-08-28,no,yes,2022132,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-08-28,yes,yes,60,TOUR Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-08-21,no,yes,2022131,D+D Real Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-08-21,yes,yes,28,BMW Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-08-14,yes,yes,27,FedEx St. Jude Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-08-14,no,yes,2022130,ISPS Handa World Invitational presented by AVIV Clinics,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-08-07,no,yes,2022129,Cazoo Open supported by Gareth Bale,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-08-07,yes,yes,13,Wyndham Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-07-31,no,yes,2022128,Hero Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-07-31,yes,yes,524,Rocket Mortgage Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-07-24,yes,yes,525,3M Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-07-24,no,yes,2022127,Cazoo Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-07-17,yes,yes,100,The Open Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-07-10,yes,yes,541,Genesis Scottish Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-07-10,no,yes,518,Barbasol Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-07-03,no,yes,2022122,Horizon Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-07-03,yes,yes,30,John Deere Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-06-26,yes,yes,34,Travelers Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-06-26,no,yes,2022121,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-06-19,yes,yes,26,U.S. Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-06-12,yes,yes,32,RBC Canadian Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-06-05,no,yes,2022118,Porsche European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-06-05,yes,yes,23,the Memorial Tournament presented by Workday,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-05-29,yes,yes,21,Charles Schwab Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-05-29,no,yes,2022117,Dutch Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-05-22,yes,yes,33,PGA Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-05-15,no,yes,2022115,Soudal Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-05-15,yes,yes,19,AT&T Byron Nelson,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-05-08,no,yes,2022114,Betfred British Masters hosted by Danny Willett,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-05-08,yes,yes,480,Wells Fargo Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-05-01,yes,yes,540,Mexico Open at Vidanta,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-05-01,no,yes,2022151,Catalunya Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-04-24,no,yes,2022149,ISPS Handa Championship in Spain,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-04-17,yes,yes,12,RBC Heritage,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-04-10,yes,yes,14,The Masters,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-04-03,yes,yes,41,Valero Texas Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-03-27,no,yes,2022106,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-03-27,yes,yes,522,Corales Puntacana Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-03-20,yes,yes,475,Valspar Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-03-20,no,yes,2022147,Steyn City Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-03-13,no,yes,2022146,MyGolfLife Open hosted by Pecanwood,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-03-13,yes,yes,11,THE PLAYERS Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-03-06,no,yes,2022108,Magical Kenya Open,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-03-06,no,yes,483,Puerto Rico Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-03-06,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-02-27,yes,yes,10,The Honda Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-02-20,yes,yes,7,The Genesis Invitational,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-02-13,no,yes,2022148,Ras al Khaimah Classic ,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-02-13,yes,yes,3,WM Phoenix Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-02-06,no,yes,2022105,Ras al Khaimah Championship presented by Phoenix Capital,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-02-06,yes,yes,5,AT&T Pebble Beach Pro-Am,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-01-30,no,yes,2022104,Slync.io Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-01-29,yes,yes,4,Farmers Insurance Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-01-23,yes,yes,2,The American Express,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-01-23,no,yes,2022103,Abu Dhabi HSBC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2022,2022-01-16,yes,yes,6,Sony Open in Hawaii,no,yes,pga
+2026-07-13T05:31:47+00:00,2022,2022-01-09,yes,yes,16,Sentry Tournament of Champions,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-12-05,no,yes,478,Hero World Challenge,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-11-28,no,yes,2022100,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-11-21,yes,yes,493,The RSM Classic,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-11-21,no,yes,2021143,"DP WORLD TOUR CHAMPIONSHIP, DUBAI",no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-11-14,no,yes,2021157,AVIV Dubai Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-11-14,yes,yes,20,Hewlett Packard Enterprise Houston Open,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-11-07,no,yes,2021156,Portugal Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-11-07,yes,yes,457,World Wide Technology Championship at Mayakoba,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-10-31,yes,yes,528,Butterfield Bermuda Championship,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-10-24,no,yes,2021155,Mallorca Golf Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-10-24,yes,yes,527,ZOZO CHAMPIONSHIP,no,yes,pga
+2026-07-13T05:31:47+00:00,2021,2021-10-17,yes,yes,521,THE CJ CUP @ SUMMIT,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-10-17,no,no,2021137,Estrella Damm N.A. Andalucía Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-10-10,no,no,2021136,ACCIONA Open de España,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-10-10,yes,yes,47,Shriners Children's Open,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-10-03,no,no,2021135,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-10-03,yes,yes,54,Sanderson Farms Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-09-19,no,no,2021133,Dutch Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-09-19,yes,yes,464,Fortinet Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-09-12,no,no,2021132,BMW PGA CHAMPIONSHIP,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-09-05,no,no,2021131,DS Automobiles Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-09-05,yes,yes,60,TOUR Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-08-29,yes,yes,28,BMW Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-08-29,no,no,2021130,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-08-22,yes,yes,27,THE NORTHERN TRUST,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-08-22,no,no,2021129,D+D Real Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-08-15,yes,yes,13,Wyndham Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-08-15,no,no,2021128,Cazoo Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-08-08,no,no,2021126,Hero Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-08-08,yes,yes,476,World Golf Championships-FedEx St. Jude Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-08-01,yes,yes,519,Olympic Men's Golf Competition,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-08-01,no,no,2021124,ISPS HANDA World Invitational presented by Modest! Golf Management,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-07-25,yes,yes,525,3M Open,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-07-25,no,no,2021123,Cazoo Open supported by Gareth Bale,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-07-18,yes,yes,100,The Open Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-07-18,yes,yes,518,Barbasol Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-07-11,no,no,2021121,abrdn Scottish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-07-11,yes,yes,30,John Deere Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-07-04,no,no,2021120,Dubai Duty Free Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-07-04,yes,yes,524,Rocket Mortgage Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-06-27,no,no,2021119,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-06-27,yes,yes,34,Travelers Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-06-20,yes,yes,535,U.S. Open #2,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-06-13,yes,yes,538,Palmetto Championship at Congaree,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-06-13,no,no,2021117,Scandinavian Mixed Hosted by Henrik & Annika,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-06-06,no,no,2021116,Porsche European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-06-06,yes,yes,23,the Memorial Tournament presented by Nationwide,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-05-30,no,no,2021115,Made in HimmerLand presented by FREJA,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-05-30,yes,yes,21,Charles Schwab Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-05-23,yes,yes,33,PGA Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-05-16,yes,yes,19,AT&T Byron Nelson,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-05-15,no,no,2021113,Betfred British Masters hosted by Danny Willett,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-05-09,yes,yes,480,Wells Fargo Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-05-09,no,no,2021153,Canary Islands Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-05-02,yes,yes,475,Valspar Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-05-02,no,no,2021109,Tenerife Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-04-25,no,no,2021110,Gran Canaria Lopesan Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-04-18,yes,yes,12,RBC Heritage,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-04-18,no,no,2021152,Austrian Golf Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-04-11,yes,yes,536,The Masters #2,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-04-04,yes,yes,41,Valero Texas Open,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-03-28,yes,yes,534,Corales Puntacana Resort & Club Championship #2,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-03-26,no,no,2021148,Kenya Savannah Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-03-21,no,no,2021106,Magical Kenya Open,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-03-21,yes,yes,10,The Honda Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-03-14,no,no,2021105,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-03-14,yes,yes,11,THE PLAYERS Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-03-07,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-02-28,yes,yes,473,World Golf Championships-Workday Championship at The Concession,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-02-28,yes,yes,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-02-21,yes,yes,7,The Genesis Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-02-14,yes,yes,5,AT&T Pebble Beach Pro-Am,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-02-07,no,no,2021103,Saudi International powered by SoftBank Investment Advisers,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-02-07,yes,yes,3,Waste Management Phoenix Open,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-01-31,yes,yes,4,Farmers Insurance Open,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-01-31,no,no,2021102,Omega Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-01-24,yes,yes,2,The American Express,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-01-24,no,no,2021101,Abu Dhabi HSBC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2021,2021-01-17,yes,yes,6,Sony Open in Hawaii,no,no,pga
+2026-07-13T05:31:47+00:00,2021,2021-01-10,yes,yes,16,Sentry Tournament of Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-12-13,no,no,2020098,"DP World Tour Championship, Dubai",no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-12-06,yes,yes,457,Mayakoba Golf Classic presented by UNIFIN,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-12-06,no,no,2020105,South African Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-12-05,no,no,2020106,Golf in Dubai Championship presented by DP World,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-11-29,no,no,2020104,Alfred Dunhill Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-11-22,yes,yes,493,The RSM Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-11-22,no,no,2020103,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-11-15,yes,yes,14,The Masters,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-11-08,no,no,2020101,Aphrodite Hills Cyprus Showdown,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-11-08,yes,yes,20,Vivint Houston Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-11-01,no,no,2020100,Cyprus Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-11-01,yes,yes,528,Bermuda Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-10-25,no,no,2020086,Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-10-25,yes,yes,527,ZOZO CHAMPIONSHIP @ SHERWOOD,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-10-18,no,no,2020102,Scottish Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-10-18,yes,yes,521,THE CJ CUP @ SHADOW CREEK,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-10-11,no,no,2020078,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-10-11,yes,yes,47,Shriners Hospitals for Children Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-10-04,no,no,2020060,Aberdeen Standard Investments Scottish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-10-04,yes,yes,54,Sanderson Farms Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-09-27,no,no,2020046,Dubai Duty Free Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-09-27,yes,yes,522,Corales Puntacana Resort & Club Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-09-20,no,no,2020750,Open de Portugal at Royal Óbidos,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-09-20,yes,yes,26,U.S. Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-09-13,no,no,2020090,Portugal Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-09-13,yes,yes,464,Safeway Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-09-07,yes,yes,60,TOUR Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-09-06,no,no,2020038,Estrella Damm N.A. Andalucia Masters ,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-08-30,no,no,2020011,ISPS HANDA UK Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-08-30,yes,yes,28,BMW Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-08-23,yes,yes,27,THE NORTHERN TRUST,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-08-23,no,no,2020009,ISPS HANDA Wales Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-08-16,no,no,2020007,Celtic Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-08-16,yes,yes,13,Wyndham Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-08-09,no,no,2020005,English Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-08-09,yes,yes,33,PGA Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-08-02,no,no,2020004,Hero Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-08-02,yes,yes,476,World Golf Championships-FedEx St. Jude Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-07-26,yes,yes,525,3M Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-07-25,no,no,2020066,Betfred British Masters hosted by Lee Westwood,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-07-19,yes,yes,23,the Memorial Tournament presented by Nationwide,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-07-18,no,no,2020732,Euram Bank Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-07-12,yes,yes,533,Workday Charity Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-07-12,no,no,2020731,Austrian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-07-05,yes,yes,524,Rocket Mortgage Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-06-28,yes,yes,34,Travelers Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-06-21,yes,yes,12,RBC Heritage,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-06-14,yes,yes,21,Charles Schwab Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-03-08,yes,yes,9,Arnold Palmer Invitational presented by Mastercard,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-03-08,no,no,2020022,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-03-01,no,no,2020020,Oman Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-03-01,yes,yes,10,The Honda Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-02-23,yes,yes,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-02-23,yes,yes,473,World Golf Championships-Mexico Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-02-16,yes,yes,7,The Genesis Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-02-09,yes,yes,5,AT&T Pebble Beach Pro-Am,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-02-09,no,no,2020014,ISPS Handa Vic Open,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-02-02,yes,yes,3,Waste Management Phoenix Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-02-02,no,no,2020012,Saudi International powered by SoftBank Investment Advisors,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-01-26,yes,yes,4,Farmers Insurance Open,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-01-26,no,no,2020010,Omega Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-01-19,yes,yes,2,The American Express,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-01-19,no,no,2020008,Abu Dhabi HSBC Championship presented by EGA,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-01-12,yes,yes,6,Sony Open in Hawaii,no,no,pga
+2026-07-13T05:31:47+00:00,2020,2020-01-12,no,no,2020006,South African Open hosted by the City of Johannesburg,no,no,euro
+2026-07-13T05:31:47+00:00,2020,2020-01-05,yes,yes,16,Sentry Tournament of Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-12-22,no,no,2020003,Australian PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-12-08,no,no,2020002,AFRASIA BANK Mauritius Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-12-07,no,no,478,Hero World Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-12-01,no,no,2020001,Alfred Dunhill Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-11-24,no,no,2019095,"DP World Tour Championship, Dubai",no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-11-24,no,no,493,The RSM Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-11-17,no,no,2019094,Nedbank Golf Challenge hosted by Gary Player,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-11-17,no,no,457,Mayakoba Golf Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-11-10,no,no,2019093,Turkish Airlines Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-11-03,no,no,489,World Golf Championships-HSBC Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-11-03,no,no,528,Bermuda Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-10-27,no,no,527,ZOZO CHAMPIONSHIP,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-10-27,no,no,2019090,Portugal Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-10-20,no,no,2019088,Amundi Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-10-20,no,no,521,THE CJ CUP @ NINE BRIDGES,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-10-13,no,no,20,Houston Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-10-13,no,no,2019086,Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-10-06,no,no,2019084,Mutuactivos Open de España,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-10-06,no,no,47,Shriners Hospitals for Children Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-09-29,no,no,464,Safeway Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-09-29,no,no,2019082,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-09-22,no,no,2019080,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-09-22,no,no,54,Sanderson Farms Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-09-15,no,no,490,A Military Tribute at The Greenbrier,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-09-15,no,no,2019078,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-09-08,no,no,2019076,Porsche European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-09-01,no,no,2019074,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-08-25,no,no,2019072,Scandinavian Invitation,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-08-25,no,no,60,TOUR Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-08-18,no,no,2019070,D+D Real Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-08-18,no,no,28,BMW Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-08-11,no,no,27,THE NORTHERN TRUST,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-08-04,no,no,13,Wyndham Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-07-28,no,no,476,World Golf Championships-FedEx St. Jude Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-07-21,no,no,518,Barbasol Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-07-21,no,no,100,The Open Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-07-14,no,no,30,John Deere Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-07-14,no,no,2019060,Aberdeen Standard Investments Scottish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-07-07,no,no,525,3M Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-07-07,no,no,2019058,Dubai Duty Free Irish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-06-30,no,no,524,Rocket Mortgage Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-06-30,no,no,2019056,Estrella Damm N.A. Andalucía Masters hosted by the Sergio Garcia Foundation,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-06-23,no,no,2019054,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-06-23,no,no,34,Travelers Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-06-16,no,no,26,U.S. Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-06-09,no,no,32,RBC Canadian Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-06-02,no,no,2019048,Belgian Knockout,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-06-02,no,no,23,the Memorial Tournament presented by Nationwide,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-05-26,no,no,2019046,Made in Denmark presented by FREJA,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-05-26,no,no,21,Charles Schwab Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-05-19,no,no,33,PGA Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-05-12,no,no,2019042,Betfred British Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-05-12,no,no,19,AT&T Byron Nelson,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-05-05,no,no,2019040,Volvo China Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-05-05,no,no,480,Wells Fargo Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-04-28,no,no,2019038,Trophee Hassan II,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-04-21,no,no,12,RBC Heritage,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-04-14,no,no,14,The Masters,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-04-07,no,no,41,Valero Texas Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-03-31,no,no,522,Corales Puntacana Resort & Club Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-03-31,no,no,2019031,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-03-24,no,no,2019028,Maybank Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-03-24,no,no,475,Valspar Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-03-17,no,no,11,THE PLAYERS Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-03-17,no,no,2019026,Magical Kenya Open presented by Absa,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-03-10,no,no,9,Arnold Palmer Invitational presented by Mastercard,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-03-10,no,no,2019024,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-03-03,no,no,2019022,Oman Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-03-03,no,no,10,The Honda Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-02-24,no,no,473,World Golf Championships-Mexico Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-02-24,no,no,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-02-17,no,no,7,Genesis Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-02-17,no,no,2019018,ISPS Handa World Super 6 Perth,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-02-10,no,no,2019016,ISPS Handa Vic Open,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-02-10,no,no,5,AT&T Pebble Beach Pro-Am,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-02-03,no,no,3,Waste Management Phoenix Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-02-03,no,no,2019014,Saudi International powered by SBIA,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-01-27,no,no,4,Farmers Insurance Open,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-01-27,no,no,2019012,Omega Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-01-20,no,no,2,Desert Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-01-19,no,no,2019010,Abu Dhabi HSBC Championship presented by EGA,no,no,euro
+2026-07-13T05:31:47+00:00,2019,2019-01-13,no,no,6,Sony Open in Hawaii,no,no,pga
+2026-07-13T05:31:47+00:00,2019,2019-01-06,no,no,16,Sentry Tournament of Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-12-16,no,no,2019006,Alfred Dunhill Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-12-09,no,no,2019004,South African Open hosted by the City of Johannesburg,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-12-02,no,no,2019002,Australian PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-12-02,no,no,478,Hero World Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-12-02,no,no,2019003,Afrasia Bank Mauritius Open at Anahita,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-11-25,no,no,2019000,Honma Hong Kong Open presented by Amundi,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-11-18,no,no,2018090,"DP World Tour Championship, Dubai",no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-11-18,no,no,493,The RSM Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-11-11,no,no,457,Mayakoba Golf Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-11-11,no,no,2018089,Nedbank Golf Challenge hosted by Gary Player,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-11-04,no,no,47,Shriners Hospitals for Children Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-11-04,no,no,2018088,Turkish Airlines Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-10-28,no,no,489,World Golf Championships-HSBC Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-10-28,no,no,54,Sanderson Farms Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-10-21,no,no,2018084,Andalucia Valderrama Masters hosted by the Sergio Garcia Foundation,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-10-21,no,no,521,THE CJ CUP @ NINE BRIDGES,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-10-14,no,no,2018082,Sky Sports British Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-10-14,no,no,494,CIMB Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-10-07,no,no,464,Safeway Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-10-07,no,no,2018080,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-09-23,no,no,60,TOUR Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-09-23,no,no,2018078,Portugal Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-09-16,no,no,2018076,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-09-09,no,no,2018074,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-09-09,no,no,28,BMW Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-09-03,no,no,505,Dell Technologies Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-09-02,no,no,2018072,Made In Denmark,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-08-26,no,no,27,THE NORTHERN TRUST,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-08-26,no,no,2018070,D+D Real Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-08-19,no,no,13,Wyndham Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-08-19,no,no,2018068,Nordea Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-08-12,no,no,33,PGA Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-08-05,no,no,2018065,Fiji International presented by Fiji Airways,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-08-05,no,no,476,World Golf Championships-Bridgestone Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-07-29,no,no,32,RBC Canadian Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-07-29,no,no,2018062,Porsche European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-07-22,no,no,518,Barbasol Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-07-22,no,no,100,The Open Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-07-15,no,no,30,John Deere Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-07-15,no,no,2018058,Aberdeen Standard Investments Scottish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-07-08,no,no,490,A Military Tribute at The Greenbrier,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-07-08,no,no,2018056,Dubai Duty Free Irish Open hosted by the Rory Foundation,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-07-01,no,no,2018054,HNA Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-07-01,no,no,471,Quicken Loans National,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-06-24,no,no,34,Travelers Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-06-24,no,no,2018052,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-06-17,no,no,26,U.S. Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-06-10,no,no,2018048,Shot Clock Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-06-10,no,no,25,FedEx St. Jude Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-06-03,no,no,23,the Memorial Tournament presented by Nationwide,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-06-03,no,no,2018046,Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-05-27,no,no,21,Fort Worth Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-05-27,no,no,2018044,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-05-20,no,no,2018042,Belgian Knockout,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-05-20,no,no,19,AT&T Byron Nelson,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-05-13,no,no,2018040,Rocco Forte Sicilian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-05-13,no,no,11,THE PLAYERS Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-05-06,no,no,480,Wells Fargo Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-04-29,no,no,2018036,Volvo China Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-04-22,no,no,41,Valero Texas Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-04-22,no,no,2018034,Trophee Hassan II,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-04-15,no,no,2018032,Open de España,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-04-15,no,no,12,RBC Heritage,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-04-08,no,no,14,Masters Tournament,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-04-01,no,no,20,Houston Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-03-25,no,no,522,Corales Puntacana Resort & Club Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-03-18,no,no,9,Arnold Palmer Invitational presented by Mastercard,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-03-11,no,no,475,Valspar Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-03-11,no,no,2018022,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-03-04,no,no,2018021,Tshwane Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-03-04,no,no,473,World Golf Championships-Mexico Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-02-25,no,no,10,The Honda Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-02-25,no,no,2018018,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-02-18,no,no,7,Genesis Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-02-18,no,no,2018016,NBO Oman Open,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-02-11,no,no,5,AT&T Pebble Beach Pro-Am,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-02-04,no,no,3,Waste Management Phoenix Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-02-04,no,no,2018012,Maybank Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-01-28,no,no,4,Farmers Insurance Open,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-01-28,no,no,2018010,Omega Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-01-21,no,no,2018008,Abu Dhabi HSBC Championship presented by EGA,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-01-21,no,no,2,CareerBuilder Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-01-14,no,no,6,Sony Open in Hawaii,no,no,pga
+2026-07-13T05:31:47+00:00,2018,2018-01-14,no,no,2018004,BMW SA Open hosted by the City of Ekurhuleni,no,no,euro
+2026-07-13T05:31:47+00:00,2018,2018-01-07,no,no,16,Sentry Tournament of Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-12-10,no,no,2017098,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-12-03,no,no,2017097,AfrAsia Bank Mauritius Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-12-03,no,no,478,Hero World Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-12-03,no,no,2017096,Australian PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-11-26,no,no,2017095,UBS Hong Kong Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-11-19,no,no,2017094,"DP World Tour Championship, Dubai",no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-11-19,no,no,493,The RSM Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-11-12,no,no,2017092,Nedbank Golf Challenge hosted by Gary Player,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-11-12,no,no,457,OHL Classic at Mayakoba,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-11-05,no,no,2017090,Turkish Airlines Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-11-05,no,no,47,Shriners Hospitals for Children Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-10-29,no,no,489,World Golf Championships-HSBC Champions,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-10-29,no,no,54,Sanderson Farms Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-10-22,no,no,2017086,Andalucia Valderrama Masters hosted by the Sergio Garcia Foundation,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-10-22,no,no,521,THE CJ CUP @ NINE BRIDGES,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-10-15,no,no,2017084,Italian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-10-15,no,no,494,CIMB Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-10-08,no,no,2017082,Alfred Dunhill Links Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-10-08,no,no,464,Safeway Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-10-01,no,no,2017080,British Masters supported by Sky Sports,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-09-24,no,no,60,TOUR Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-09-24,no,no,2017078,Portugal Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-09-17,no,no,28,BMW Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-09-17,no,no,2017076,KLM Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-09-10,no,no,2017074,Omega European Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-09-04,no,no,505,Dell Technologies Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-09-03,no,no,2017072,D+D REAL Czech Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-08-27,no,no,27,THE NORTHERN TRUST,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-08-27,no,no,2017070,Made In Denmark,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-08-20,no,no,13,Wyndham Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-08-20,no,no,2017068,Fiji International,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-08-13,no,no,33,PGA Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-08-06,no,no,476,World Golf Championships-Bridgestone Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-30,no,no,2017060,Porsche European Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-07-30,no,no,32,RBC Canadian Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-23,no,no,100,The Open Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-23,no,no,518,Barbasol Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-16,no,no,2017056,Aberdeen Asset Management Scottish Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-07-16,no,no,30,John Deere Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-09,no,no,490,The Greenbrier Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-09,no,no,2017054,Dubai Duty Free Irish Open hosted by the Rory Foundation,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-07-02,no,no,471,Quicken Loans National,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-07-02,no,no,2017052,HNA Open de France,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-06-25,no,no,2017050,BMW International Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-06-25,no,no,34,Travelers Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-06-18,no,no,26,U.S. Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-06-11,no,no,25,FedEx St. Jude Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-06-11,no,no,2017046,LYONESS OPEN powered by ORGANIC+,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-06-04,no,no,23,the Memorial Tournament presented by Nationwide,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-06-04,no,no,2017044,Nordea Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-05-28,no,no,21,DEAN & DELUCA Invitational,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-05-28,no,no,2017042,BMW PGA Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-05-21,no,no,2017040,"Rocco Forte Open - Verdura, Sicily",no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-05-21,no,no,19,AT&T Byron Nelson,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-05-14,no,no,2017038,Open de Portugal at Morgado Golf Resort,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-05-14,no,no,11,THE PLAYERS Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-05-07,no,no,480,Wells Fargo Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-04-30,no,no,2017034,Volvo China Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-04-23,no,no,2017032,Shenzhen International,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-04-23,no,no,41,Valero Texas Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-04-16,no,no,2017030,Trophee Hassan II,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-04-16,no,no,12,RBC Heritage,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-04-09,no,no,14,Masters Tournament,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-04-02,no,no,20,Shell Houston Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-03-26,no,no,483,Puerto Rico Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-03-19,no,no,9,Arnold Palmer Invitational presented by Mastercard,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-03-12,no,no,475,Valspar Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-03-12,no,no,2017020,Hero Indian Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-03-05,no,no,2017018,Tshwane Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-03-05,no,no,473,World Golf Championships-Mexico Championship,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-02-26,no,no,2017014,Joburg Open,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-02-26,no,no,10,The Honda Classic,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-02-19,no,no,7,Genesis Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-02-12,no,no,2017010,Maybank Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-02-12,no,no,5,AT&T Pebble Beach Pro-Am,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-02-05,no,no,2017008,Omega Dubai Desert Classic,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-02-05,no,no,3,Waste Management Phoenix Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-01-29,no,no,4,Farmers Insurance Open,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-01-29,no,no,2017006,Commercial Bank Qatar Masters,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-01-22,no,no,2,CareerBuilder Challenge,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-01-22,no,no,2017004,Abu Dhabi HSBC Championship,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-01-15,no,no,6,Sony Open in Hawaii,no,no,pga
+2026-07-13T05:31:47+00:00,2017,2017-01-15,no,no,2017002,BMW SA Open hosted by City of Ekurhuleni,no,no,euro
+2026-07-13T05:31:47+00:00,2017,2017-01-08,no,no,16,SBS Tournament of Champions,no,no,pga

@@ -1,0 +1,25 @@
+pulled_at,course_num,group,start_hole,teetime,p1.dg_id,p1.name,p1.odds,p2.dg_id,p2.name,p2.odds,p3.dg_id,p3.name,p3.odds,event_name,last_update,round
+2026-07-13T05:31:47+00:00,945,1,1,2026-07-12 10:25,11397,"Jamieson, Scott",3.13,21756,"Cole, Eric",1.71,-1,Tie,10.64,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,2,1,2026-07-12 10:33,6430,"Scott, Adam",2.39,19421,"Du Plessis, Hennie",2.75,19872,"Riley, Davis",4.6,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,3,1,2026-07-12 10:44,20448,"Katsuragawa, Yuto",5.2,23014,"Theegala, Sahith",2.61,26745,"Chacarra, Eugenio",2.35,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,4,1,2026-07-12 10:55,12988,"Elvira Mijares, Ignacio",3.6,14792,"Saddier, Adrien",3.37,23475,"Novak, Andrew",2.35,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,5,1,2026-07-12 11:06,7677,"Norris, Shaun",4.85,21891,"Kitayama, Kurt",2.28,29197,"Brennan, Michael",2.82,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,6,1,2026-07-12 11:17,8825,"Harman, Brian",3.18,17576,"Conners, Corey",2.8,23838,"Hojgaard, Rasmus",3.04,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,7,1,2026-07-12 11:33,14795,"Canter, Laurie",3.09,16896,"Kruyswijk, Jacques",4.19,23465,"Greyserman, Max",2.29,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,8,1,2026-07-12 11:44,18841,"Hovland, Viktor",2.13,22833,"Echavarria, Nico",3.68,27819,"Castillo, Ricky",3.88,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,9,1,2026-07-12 11:55,12423,"Kirk, Chris",2.84,14704,"Putnam, Andrew",2.67,17786,"Davis, Cam",3.66,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,10,1,2026-07-12 12:06,13126,"Taylor, Nick",3.61,19195,"Rahm, Jon",1.94,22231,"Von Dellingshausen, Nicolai",4.81,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,11,1,2026-07-12 12:17,13374,"Van Driel, Darius",3.41,15326,"Sullivan, Andy",2.82,17357,"Migliozzi, Guido",2.84,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,12,1,2026-07-12 12:28,11889,"Fox, Ryan",2.98,14139,"Thomas, Justin",2.49,25131,"Hill, Calum",3.8,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,13,1,2026-07-12 12:44,20084,"Lindberg, Mikael",2.86,22322,"McKibbin, Tom",2.59,26653,"Eckroat, Austin",3.8,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,14,1,2026-07-12 12:55,10091,"McIlroy, Rory",2.08,17536,"Spaun, J.J.",3.4,26850,"Svensson, Jesper",4.43,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,15,1,2026-07-12 13:06,20085,"Lindell, Oliver",3.25,23602,"Hojgaard, Nicolai",2.32,26947,"Jarvis, Casey",3.83,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,16,1,2026-07-12 13:17,7655,"Molinari, Francesco",3.7,18586,"Smith, Jordan",2.72,20722,"Schmid, Matti",2.76,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,17,1,2026-07-12 13:28,10158,"Luiten, Joost",5.16,20730,"Perez, Victor",2.47,29767,"Gerard, Ryan",2.49,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,18,1,2026-07-12 13:39,14609,"Kim, Si Woo",2.92,14796,"Hatton, Tyrrell",2.63,14838,"Reed, Patrick",3.61,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,19,1,2026-07-12 13:55,12294,"Fleetwood, Tommy",2.03,22259,"Del Rey, Alejandro",3.93,29925,"Yellamaraju, Sudarshan",3.96,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,20,1,2026-07-12 14:06,17813,"Armitage, Marcus",3.54,24304,"Vilips, Karl",3.24,28159,"Meissner, Mac",2.45,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,21,1,2026-07-12 14:17,12920,"Willett, Danny",4.2,21074,"Nakajima, Keita",2.93,23841,"Neergaard-Petersen, Rasmus",2.38,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,22,1,2026-07-12 14:28,18424,"Roy, Kevin",4.35,23604,"Clark, Wyndham",2.15,32457,"Keefer, Johnny",3.27,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,23,1,2026-07-12 14:39,24766,"Kim, Tom",3.25,26649,"Thorbjornsen, Michael",3.82,27774,"Gotterup, Chris",2.32,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
+2026-07-13T05:31:47+00:00,945,24,1,2026-07-12 14:50,16841,"Lee, Min Woo",3.12,17646,"Fitzpatrick, Matt",2.82,23323,"MacIntyre, Robert",3.07,Genesis Scottish Open,2026-07-12 10:02:52 UTC,4
