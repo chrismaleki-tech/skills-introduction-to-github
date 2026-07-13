@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { formatDealContext, writeBackGradeToCrm } from "./crm";
+import { formatErpDealContext } from "./erp";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
@@ -191,18 +192,37 @@ async function gradeSubject(args: {
   if (!methodologyId) throw new Error("No active methodology configured for this team.");
   const methodology = await db.methodology.findUniqueOrThrow({ where: { id: methodologyId } });
 
-  // Enrich call grades with CRM deal stage / account context when linked.
+  // Enrich call grades with CRM deal stage / account context when linked,
+  // plus live ERP quote/order/invoice state on that deal.
   let scenarioContext = args.scenarioContext ?? "";
   if (args.callId) {
     const linked = await db.call.findUnique({
       where: { id: args.callId },
       include: {
-        deal: { include: { account: true, contact: true } },
+        deal: {
+          include: {
+            account: true,
+            contact: true,
+            quotes: { select: { number: true, status: true, total: true }, orderBy: { updatedAt: "desc" }, take: 5 },
+            salesOrders: { select: { number: true, status: true, total: true }, orderBy: { updatedAt: "desc" }, take: 5 },
+            invoices: {
+              select: { number: true, status: true, total: true, amountPaid: true },
+              orderBy: { updatedAt: "desc" },
+              take: 5,
+            },
+          },
+        },
       },
     });
     if (linked?.deal) {
       const dealCtx = formatDealContext(linked.deal);
-      scenarioContext = scenarioContext ? `${scenarioContext}\n${dealCtx}` : dealCtx;
+      const erpCtx = formatErpDealContext({
+        quotes: linked.deal.quotes,
+        orders: linked.deal.salesOrders,
+        invoices: linked.deal.invoices,
+      });
+      const combined = [dealCtx, erpCtx].filter(Boolean).join("\n");
+      scenarioContext = scenarioContext ? `${scenarioContext}\n${combined}` : combined;
     }
   }
 

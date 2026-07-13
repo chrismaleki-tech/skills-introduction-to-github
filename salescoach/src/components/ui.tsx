@@ -89,6 +89,20 @@ export function StatusPill({ status }: { status: string }) {
     COMPLETED: "text-amber-400 bg-amber-400/10 border-amber-400/30",
     PENDING: "text-amber-400 bg-amber-400/10 border-amber-400/30",
     IN_PROGRESS: "text-sky-400 bg-sky-400/10 border-sky-400/30",
+    draft: "text-slate-400 bg-slate-400/10 border-slate-400/30",
+    sent: "text-sky-400 bg-sky-400/10 border-sky-400/30",
+    accepted: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
+    rejected: "text-rose-400 bg-rose-400/10 border-rose-400/30",
+    expired: "text-slate-500 bg-slate-500/10 border-slate-500/30",
+    pending: "text-amber-400 bg-amber-400/10 border-amber-400/30",
+    confirmed: "text-sky-400 bg-sky-400/10 border-sky-400/30",
+    fulfilled: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
+    cancelled: "text-slate-500 bg-slate-500/10 border-slate-500/30",
+    partial: "text-amber-400 bg-amber-400/10 border-amber-400/30",
+    paid: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
+    void: "text-rose-400 bg-rose-400/10 border-rose-400/30",
+    submitted: "text-sky-400 bg-sky-400/10 border-sky-400/30",
+    received: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
   };
   return (
     <span

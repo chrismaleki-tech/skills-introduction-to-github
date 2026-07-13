@@ -16,6 +16,7 @@ import {
 import { DealStageSelect } from "@/components/crm/forms";
 import { ConversationPanels } from "@/components/crm/conversations";
 import { EmailComposer, PhoneDialer } from "@/components/crm/outreach";
+import { NewQuoteForm } from "@/components/erp/forms";
 
 export default async function DealDetailPage({
   params,
@@ -59,6 +60,9 @@ export default async function DealDetailPage({
         },
         orderBy: { lastMessageAt: "desc" },
       },
+      quotes: { orderBy: { updatedAt: "desc" }, take: 8 },
+      salesOrders: { orderBy: { updatedAt: "desc" }, take: 8 },
+      invoices: { orderBy: { updatedAt: "desc" }, take: 8 },
     },
   });
   if (!deal || (!manager && deal.ownerId !== user.id)) notFound();
@@ -68,6 +72,19 @@ export default async function DealDetailPage({
   });
   const emailConnected = connections.some((c) => c.channel === "EMAIL");
   const phoneConnected = connections.some((c) => c.channel === "PHONE");
+
+  const [products, accounts] = await Promise.all([
+    db.product.findMany({
+      where: { orgId: user.orgId, active: true },
+      select: { id: true, name: true, sku: true, listPrice: true, unit: true },
+      orderBy: { name: "asc" },
+    }),
+    db.account.findMany({
+      where: { orgId: user.orgId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div>
@@ -158,6 +175,71 @@ export default async function DealDetailPage({
               .
             </p>
           </div>
+        </Card>
+      </div>
+
+      <div className="mb-8">
+        <h2 className="text-sm font-medium text-muted uppercase tracking-wider mb-3">ERP documents</h2>
+        <div className="grid gap-6 xl:grid-cols-3 mb-4">
+          <Card title="Quotes">
+            {deal.quotes.length === 0 ? (
+              <p className="text-sm text-muted">No quotes yet.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {deal.quotes.map((q) => (
+                  <li key={q.id} className="flex items-center justify-between gap-2">
+                    <Link href={`/erp/quotes/${q.id}`} className="text-accent-hover hover:underline truncate">
+                      {q.number}
+                    </Link>
+                    <StatusPill status={q.status} />
+                    <span className="tabular-nums text-muted">{fmtMoney(q.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card title="Orders">
+            {deal.salesOrders.length === 0 ? (
+              <p className="text-sm text-muted">No orders yet.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {deal.salesOrders.map((o) => (
+                  <li key={o.id} className="flex items-center justify-between gap-2">
+                    <Link href={`/erp/orders/${o.id}`} className="text-accent-hover hover:underline truncate">
+                      {o.number}
+                    </Link>
+                    <StatusPill status={o.status} />
+                    <span className="tabular-nums text-muted">{fmtMoney(o.total)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card title="Invoices">
+            {deal.invoices.length === 0 ? (
+              <p className="text-sm text-muted">No invoices yet.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {deal.invoices.map((inv) => (
+                  <li key={inv.id} className="flex items-center justify-between gap-2">
+                    <Link href={`/erp/invoices/${inv.id}`} className="text-accent-hover hover:underline truncate">
+                      {inv.number}
+                    </Link>
+                    <StatusPill status={inv.status} />
+                    <span className="tabular-nums text-muted">{fmtMoney(inv.total - inv.amountPaid)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+        <Card title="Create quote for this deal">
+          <NewQuoteForm
+            products={products}
+            deals={[{ id: deal.id, name: deal.name, accountId: deal.accountId, contactId: deal.contactId }]}
+            accounts={accounts}
+            defaultDealId={deal.id}
+          />
         </Card>
       </div>
 

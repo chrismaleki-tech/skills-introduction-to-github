@@ -36,6 +36,13 @@ model Org {
   connections    ChannelConnection[]
   conversations  Conversation[]
   messages       Message[]
+  products       Product[]
+  vendors        Vendor[]
+  quotes         Quote[]
+  salesOrders    SalesOrder[]
+  invoices       Invoice[]
+  payments       Payment[]
+  purchaseOrders PurchaseOrder[]
 
   createdAt DateTime @default(now())
 }
@@ -61,6 +68,11 @@ model User {
   connections    ChannelConnection[]
   conversations  Conversation[]    @relation("ConversationOwner")
   messages       Message[]         @relation("MessageSender")
+  quotes         Quote[]           @relation("QuoteOwner")
+  salesOrders    SalesOrder[]      @relation("OrderOwner")
+  invoices       Invoice[]         @relation("InvoiceOwner")
+  payments       Payment[]         @relation("PaymentRecorder")
+  purchaseOrders PurchaseOrder[]   @relation("PoOwner")
 
   createdAt DateTime @default(now())
 }
@@ -163,6 +175,9 @@ model Account {
   calls      Call[]
   activities Activity[]
   conversations Conversation[]
+  quotes        Quote[]
+  salesOrders   SalesOrder[]
+  invoices      Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -189,6 +204,9 @@ model Contact {
   calls      Call[]
   activities Activity[]
   conversations Conversation[]
+  quotes        Quote[]
+  salesOrders   SalesOrder[]
+  invoices      Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -222,6 +240,9 @@ model Deal {
   calls      Call[]
   activities Activity[]
   conversations Conversation[]
+  quotes        Quote[]
+  salesOrders   SalesOrder[]
+  invoices      Invoice[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -245,14 +266,14 @@ model Activity {
   callId    String?
   call      Call?    @relation(fields: [callId], references: [id])
 
-  // NOTE | CALL | EMAIL | MEETING | TASK | COACHING
+  // NOTE | CALL | EMAIL | MEETING | TASK | COACHING | QUOTE | ORDER | INVOICE | PAYMENT | PO
   type        String
   subject     String
   body        String  @default("")
   // For COACHING activities written back from SalesCoach grades
   score       Int?
   band        String?
-  externalRef String? // stable id for upsert (e.g. grade:<gradeId>)
+  externalRef String? // stable id for upsert (e.g. grade:<gradeId>, quote:<id>:sent)
 
   occurredAt DateTime @default(now())
   createdAt  DateTime @default(now())
@@ -260,6 +281,288 @@ model Activity {
   @@unique([orgId, externalRef])
   @@index([orgId, dealId, occurredAt])
   @@index([orgId, accountId, occurredAt])
+}
+
+// ---------- ERP (catalog / quotes / orders / invoices / inventory / purchasing) ----------
+// Replaces external ERP for sales ops: product catalog with stock, quote→order→invoice
+// flow tied to CRM deals, and light purchasing for replenishment. Document events write
+// back to the deal timeline so coaching stays grounded in commercial reality.
+
+model Product {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  sku         String
+  name        String
+  description String @default("")
+  category    String @default("Software") // Software | Service | Hardware | Other
+  // Whole dollars for demo simplicity (matches Deal.amount)
+  listPrice   Int    @default(0)
+  cost        Int    @default(0)
+  unit        String @default("seat") // seat | license | warehouse | hour | each
+  active      Boolean @default(true)
+  trackInventory Boolean @default(false)
+  qtyOnHand      Int     @default(0)
+  qtyReserved    Int     @default(0)
+  reorderPoint   Int     @default(0)
+
+  quoteLines QuoteLine[]
+  orderLines OrderLine[]
+  invoiceLines InvoiceLine[]
+  poLines    PurchaseOrderLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, sku])
+  @@index([orgId, active])
+  @@index([orgId, name])
+}
+
+model Vendor {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  name    String
+  email   String @default("")
+  phone   String @default("")
+  website String @default("")
+  notes   String @default("")
+
+  purchaseOrders PurchaseOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, name])
+}
+
+model Quote {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  number    String
+  dealId    String?
+  deal      Deal?   @relation(fields: [dealId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  ownerId   String?
+  owner     User?   @relation("QuoteOwner", fields: [ownerId], references: [id])
+
+  // draft | sent | accepted | rejected | expired
+  status    String @default("draft")
+  title     String @default("")
+  notes     String @default("")
+  subtotal  Int    @default(0)
+  taxRate   Int    @default(0) // percent whole number, e.g. 8 = 8%
+  taxAmount Int    @default(0)
+  total     Int    @default(0)
+  validUntil DateTime?
+  sentAt     DateTime?
+  acceptedAt DateTime?
+
+  lines  QuoteLine[]
+  orders SalesOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, number])
+  @@index([orgId, status])
+  @@index([orgId, dealId])
+}
+
+model QuoteLine {
+  id        String  @id @default(cuid())
+  quoteId   String
+  quote     Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  description String
+  quantity    Int @default(1)
+  unitPrice   Int @default(0)
+  lineTotal   Int @default(0)
+  sortOrder   Int @default(0)
+
+  @@index([quoteId])
+}
+
+model SalesOrder {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  number    String
+  quoteId   String?
+  quote     Quote?  @relation(fields: [quoteId], references: [id])
+  dealId    String?
+  deal      Deal?   @relation(fields: [dealId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  ownerId   String?
+  owner     User?   @relation("OrderOwner", fields: [ownerId], references: [id])
+
+  // pending | confirmed | fulfilled | cancelled
+  status    String @default("pending")
+  notes     String @default("")
+  subtotal  Int    @default(0)
+  taxRate   Int    @default(0)
+  taxAmount Int    @default(0)
+  total     Int    @default(0)
+  orderedAt DateTime @default(now())
+  fulfilledAt DateTime?
+
+  lines    OrderLine[]
+  invoices Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, number])
+  @@index([orgId, status])
+  @@index([orgId, dealId])
+}
+
+model OrderLine {
+  id        String     @id @default(cuid())
+  orderId   String
+  order     SalesOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?   @relation(fields: [productId], references: [id])
+
+  description String
+  quantity    Int @default(1)
+  unitPrice   Int @default(0)
+  lineTotal   Int @default(0)
+  sortOrder   Int @default(0)
+
+  @@index([orderId])
+}
+
+model Invoice {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  number    String
+  orderId   String?
+  order     SalesOrder? @relation(fields: [orderId], references: [id])
+  dealId    String?
+  deal      Deal?   @relation(fields: [dealId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  ownerId   String?
+  owner     User?   @relation("InvoiceOwner", fields: [ownerId], references: [id])
+
+  // draft | sent | partial | paid | void
+  status      String @default("draft")
+  notes       String @default("")
+  subtotal    Int    @default(0)
+  taxRate     Int    @default(0)
+  taxAmount   Int    @default(0)
+  total       Int    @default(0)
+  amountPaid  Int    @default(0)
+  issuedAt    DateTime @default(now())
+  dueAt       DateTime?
+  paidAt      DateTime?
+
+  lines    InvoiceLine[]
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, number])
+  @@index([orgId, status])
+  @@index([orgId, dealId])
+}
+
+model InvoiceLine {
+  id        String  @id @default(cuid())
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  description String
+  quantity    Int @default(1)
+  unitPrice   Int @default(0)
+  lineTotal   Int @default(0)
+  sortOrder   Int @default(0)
+
+  @@index([invoiceId])
+}
+
+model Payment {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  recordedById String?
+  recordedBy   User? @relation("PaymentRecorder", fields: [recordedById], references: [id])
+
+  amount      Int
+  method      String @default("ach") // ach | card | check | wire | other
+  reference   String @default("")
+  notes       String @default("")
+  receivedAt  DateTime @default(now())
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId, receivedAt])
+  @@index([invoiceId])
+}
+
+model PurchaseOrder {
+  id       String  @id @default(cuid())
+  orgId    String
+  org      Org     @relation(fields: [orgId], references: [id])
+  number   String
+  vendorId String
+  vendor   Vendor  @relation(fields: [vendorId], references: [id])
+  ownerId  String?
+  owner    User?   @relation("PoOwner", fields: [ownerId], references: [id])
+
+  // draft | submitted | received | cancelled
+  status    String @default("draft")
+  notes     String @default("")
+  subtotal  Int    @default(0)
+  total     Int    @default(0)
+  orderedAt DateTime @default(now())
+  receivedAt DateTime?
+
+  lines PurchaseOrderLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, number])
+  @@index([orgId, status])
+  @@index([orgId, vendorId])
+}
+
+model PurchaseOrderLine {
+  id              String        @id @default(cuid())
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId       String?
+  product         Product?      @relation(fields: [productId], references: [id])
+
+  description String
+  quantity    Int @default(1)
+  unitCost    Int @default(0)
+  lineTotal   Int @default(0)
+  sortOrder   Int @default(0)
+
+  @@index([purchaseOrderId])
 }
 
 // ---------- Channels: employee email + phone connected for CRM outreach ----------

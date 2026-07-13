@@ -776,6 +776,237 @@ async function main() {
     gradeWithSalesCoach: true,
   });
 
+  // ---------- ERP: catalog, quotes, orders, invoices, inventory, purchasing ----------
+  const {
+    createQuote,
+    sendQuote,
+    acceptQuote,
+    confirmOrder,
+    fulfillOrder,
+    createInvoiceFromOrder,
+    sendInvoice,
+    recordPayment,
+    createPurchaseOrder,
+    submitPurchaseOrder,
+    receivePurchaseOrder,
+  } = await import("../src/lib/erp");
+
+  const coreSeat = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "CORE-SEAT",
+      name: "Meridian Core",
+      description: "Real-time multi-warehouse inventory platform — per seat annual.",
+      category: "Software",
+      listPrice: 1200,
+      cost: 180,
+      unit: "seat",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const coreWh = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "CORE-WH",
+      name: "Meridian Core · Warehouse pack",
+      description: "Additional connected warehouse beyond the first two.",
+      category: "Software",
+      listPrice: 6000,
+      cost: 900,
+      unit: "warehouse",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const forecast = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "FCST-ADDON",
+      name: "Meridian Forecast",
+      description: "Demand forecasting add-on using live inventory signals.",
+      category: "Software",
+      listPrice: 9000,
+      cost: 1200,
+      unit: "license",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const impl = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "IMPL-FIXED",
+      name: "Phased implementation (fixed fee)",
+      description: "6-week first-warehouse rollout, fixed fee with miss-date credit.",
+      category: "Service",
+      listPrice: 18000,
+      cost: 8000,
+      unit: "each",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const scanner = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "HW-SCAN-1",
+      name: "Meridian barcode scanner kit",
+      description: "Ruggedized scanner + cradle for floor counts.",
+      category: "Hardware",
+      listPrice: 420,
+      cost: 190,
+      unit: "each",
+      trackInventory: true,
+      qtyOnHand: 24,
+      qtyReserved: 0,
+      reorderPoint: 8,
+      active: true,
+    },
+  });
+
+  const vendor = await db.vendor.create({
+    data: {
+      orgId: org.id,
+      name: "Pacific Scan Supply",
+      email: "orders@pacificscan.demo",
+      phone: "+1-415-555-0188",
+      notes: "Primary hardware distributor for scanner kits.",
+    },
+  });
+
+  // Cascade proposal quote (open) — grounds coaching on the Cascade deal.
+  const cascadeQuote = await createQuote({
+    orgId: org.id,
+    ownerId: reps[0].id,
+    dealId: dealCascadeCore.id,
+    accountId: cascade.id,
+    contactId: dana.id,
+    title: "Cascade · Core + implementation",
+    notes: "Fixed-fee rollout for Fresno first, Reno second. Net 30.",
+    taxRate: 0,
+    validUntil: new Date(now.getTime() + 21 * 86400000),
+    lines: [
+      { productId: coreSeat.id, description: coreSeat.name, quantity: 20, unitPrice: coreSeat.listPrice },
+      { productId: coreWh.id, description: coreWh.name, quantity: 1, unitPrice: coreWh.listPrice },
+      { productId: impl.id, description: impl.name, quantity: 1, unitPrice: impl.listPrice },
+      { productId: scanner.id, description: scanner.name, quantity: 6, unitPrice: scanner.listPrice },
+    ],
+  });
+  await sendQuote(cascadeQuote.id, org.id, reps[0].id);
+
+  // Summit Forecast quote still in draft.
+  await createQuote({
+    orgId: org.id,
+    ownerId: reps[3].id,
+    dealId: dealSummit.id,
+    accountId: summit.id,
+    contactId: priya.id,
+    title: "Summit · Forecast add-on",
+    notes: "Seasonal demand scenarios included in demo.",
+    lines: [
+      { productId: forecast.id, description: forecast.name, quantity: 1, unitPrice: forecast.listPrice },
+      { productId: coreSeat.id, description: "Forecast seats (bundled)", quantity: 10, unitPrice: 400 },
+    ],
+  });
+
+  // Harbor Parts closed-won path: accepted quote → confirmed order → invoice → payment.
+  const harborAccount = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[2].id,
+      name: "Harbor Parts",
+      domain: "harborparts.demo",
+      industry: "Industrial parts",
+      size: "90-150",
+    },
+  });
+  const harborDeal = await db.deal.findFirst({
+    where: { orgId: org.id, name: "Closed · Harbor Parts" },
+  });
+  if (harborDeal) {
+    await db.deal.update({
+      where: { id: harborDeal.id },
+      data: { accountId: harborAccount.id },
+    });
+    const harborQuote = await createQuote({
+      orgId: org.id,
+      ownerId: reps[2].id,
+      dealId: harborDeal.id,
+      accountId: harborAccount.id,
+      title: "Harbor Parts · Core rollout",
+      lines: [
+        { productId: coreSeat.id, description: coreSeat.name, quantity: 15, unitPrice: coreSeat.listPrice },
+        { productId: impl.id, description: impl.name, quantity: 1, unitPrice: impl.listPrice },
+      ],
+    });
+    await sendQuote(harborQuote.id, org.id, reps[2].id);
+    const { order } = await acceptQuote(harborQuote.id, org.id, reps[2].id);
+    await confirmOrder(order.id, org.id, reps[2].id);
+    await fulfillOrder(order.id, org.id, reps[2].id);
+    const invoice = await createInvoiceFromOrder(order.id, org.id, reps[2].id);
+    await sendInvoice(invoice.id, org.id, reps[2].id);
+    await recordPayment({
+      orgId: org.id,
+      userId: reps[2].id,
+      invoiceId: invoice.id,
+      amount: Math.round(invoice.total * 0.5),
+      method: "ach",
+      reference: "ACH-HARBOR-1",
+      notes: "Initial 50% on signature",
+      receivedAt: new Date(now.getTime() - 10 * 86400000),
+    });
+    await recordPayment({
+      orgId: org.id,
+      userId: manager.id,
+      invoiceId: invoice.id,
+      amount: Math.ceil(invoice.total * 0.5),
+      method: "wire",
+      reference: "WIRE-HARBOR-2",
+      receivedAt: new Date(now.getTime() - 2 * 86400000),
+    });
+  }
+
+  // BlueRidge mid-funnel: accepted quote / pending order (not yet confirmed).
+  const brQuote = await createQuote({
+    orgId: org.id,
+    ownerId: reps[1].id,
+    dealId: dealBlueRidge.id,
+    accountId: blueRidge.id,
+    contactId: tom.id,
+    title: "BlueRidge · Core evaluation package",
+    lines: [
+      { productId: coreSeat.id, description: coreSeat.name, quantity: 12, unitPrice: coreSeat.listPrice },
+      { productId: scanner.id, description: scanner.name, quantity: 4, unitPrice: scanner.listPrice },
+    ],
+  });
+  await sendQuote(brQuote.id, org.id, reps[1].id);
+  await acceptQuote(brQuote.id, org.id, reps[1].id);
+
+  // Replenishment PO for scanners (partially received path).
+  const po = await createPurchaseOrder({
+    orgId: org.id,
+    ownerId: manager.id,
+    vendorId: vendor.id,
+    notes: "Restock scanners ahead of Cascade rollout",
+    lines: [
+      { productId: scanner.id, description: scanner.name, quantity: 20, unitCost: scanner.cost },
+    ],
+  });
+  await submitPurchaseOrder(po.id, org.id, manager.id);
+  // Leave one submitted PO open; create a second already received.
+  const po2 = await createPurchaseOrder({
+    orgId: org.id,
+    ownerId: manager.id,
+    vendorId: vendor.id,
+    notes: "Prior scanner restock",
+    lines: [
+      { productId: scanner.id, description: scanner.name, quantity: 12, unitCost: scanner.cost },
+    ],
+  });
+  await submitPurchaseOrder(po2.id, org.id, manager.id);
+  await receivePurchaseOrder(po2.id, org.id, manager.id);
+
   const counts = {
     calls: await db.call.count(),
     graded: await db.grade.count(),
@@ -787,6 +1018,13 @@ async function main() {
     connections: await db.channelConnection.count(),
     conversations: await db.conversation.count(),
     messages: await db.message.count(),
+    products: await db.product.count(),
+    quotes: await db.quote.count(),
+    orders: await db.salesOrder.count(),
+    invoices: await db.invoice.count(),
+    payments: await db.payment.count(),
+    vendors: await db.vendor.count(),
+    purchaseOrders: await db.purchaseOrder.count(),
   };
   console.log("Seeded:", counts);
 }
