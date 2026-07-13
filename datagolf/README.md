@@ -49,6 +49,31 @@ and retried to stay under Data Golf's 45 requests/minute limit.
 Note: `field` and `predictions` only return data while an event is upcoming or
 in progress; off-season runs may report those two as failed, which is expected.
 
+## Load step: CSV -> WordPress (statcaddygolf.com)
+
+`load_wordpress.py` merges the CSVs into one record per golfer (keyed on `dg_id`)
+and upserts them into the `dg_player` custom post type on the WordPress site via
+the REST API. Re-runs update existing golfers instead of creating duplicates
+(the post slug is `dg-<dg_id>`).
+
+Prerequisite: install and activate the **StatCaddy Golf Data** plugin
+(`wordpress/statcaddy-golf-data/`) so the `dg_player` post type and its meta
+fields exist and are REST-writable. See `wordpress/README.md`.
+
+```bash
+# Preview merged records without writing to WordPress
+python datagolf/load_wordpress.py --data-dir datagolf/data --dry-run
+
+# Upsert into WordPress (needs WP_URL / WP_USERNAME / WP_APP_PASSWORD)
+python datagolf/load_wordpress.py
+```
+
+Environment variables:
+
+- `WP_URL` — e.g. `https://statcaddygolf.com`
+- `WP_USERNAME` — WordPress username
+- `WP_APP_PASSWORD` — an Application Password (Users -> Profile -> Application Passwords)
+
 ## Scheduling
 
 `.github/workflows/update-datagolf-csv.yml` runs the script daily and commits
