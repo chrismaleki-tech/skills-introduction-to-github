@@ -15,6 +15,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const manager = isManagerRole(user.role);
   const items: NavItem[] = [
+    { href: "/ask", label: "Ask" },
     ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
     { href: "/me", label: "My Performance" },
     { href: "/crm", label: "Pipeline" },
@@ -61,7 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <UserSwitcher users={users} currentId={user.id} />
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl">{children}</main>
+      <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl w-full">{children}</main>
       <AssistantChat />
     </div>
   );

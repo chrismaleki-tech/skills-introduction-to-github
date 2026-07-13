@@ -33,3 +33,18 @@ body {
 ::selection {
   background: rgba(99, 102, 241, 0.35);
 }
+
+@keyframes sc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sc-fade-in {
+  animation: sc-fade-in 0.45s ease both;
+}

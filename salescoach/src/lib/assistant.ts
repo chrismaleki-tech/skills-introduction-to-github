@@ -19,12 +19,42 @@ export type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export type AssistantLink = { href: string; label: string };
 
+export type AssistantSource = "crm" | "erp" | "trainer";
+
 export type AssistantResult = {
   reply: string;
   links?: AssistantLink[];
   data?: unknown;
+  sources?: AssistantSource[];
   mode: "demo" | "llm";
 };
+
+const TOOL_SOURCES: Record<string, AssistantSource[]> = {
+  pipeline_summary: ["crm"],
+  search_deals: ["crm"],
+  get_deal: ["crm", "erp", "trainer"],
+  search_accounts_contacts: ["crm"],
+  finance_snapshot: ["erp"],
+  list_quotes: ["erp"],
+  quote_action: ["erp"],
+  create_quote_for_deal: ["crm", "erp"],
+  list_orders: ["erp"],
+  order_action: ["erp"],
+  invoice_action: ["erp"],
+  list_invoices: ["erp"],
+  list_products: ["erp"],
+  coaching_summary: ["trainer"],
+  list_assignments: ["trainer"],
+  help: ["crm", "erp", "trainer"],
+};
+
+function sourcesForTools(names: string[]): AssistantSource[] {
+  const set = new Set<AssistantSource>();
+  for (const name of names) {
+    for (const s of TOOL_SOURCES[name] ?? []) set.add(s);
+  }
+  return (["crm", "erp", "trainer"] as const).filter((s) => set.has(s));
+}
 
 type ToolCtx = {
   orgId: string;
@@ -813,101 +843,126 @@ async function runTool(name: string, args: Record<string, unknown>, ctx: ToolCtx
 }
 
 /** Deterministic NL router for demo mode (no API key). */
-export function routeDemoIntent(message: string): { name: string; args: Record<string, unknown> }[] {
+export function routeDemoIntent(
+  message: string,
+  domain: "all" | AssistantSource = "all",
+): { name: string; args: Record<string, unknown> }[] {
   const m = message.trim();
   const lower = m.toLowerCase();
 
   if (/^(help|what can you do|commands)\b/.test(lower) || lower === "?") {
     return [{ name: "help", args: {} }];
   }
-  if (/\b(pipeline|open deals|deal board)\b/.test(lower) && !/\b(cascade|blueridge|summit|harbor|northwind)\b/.test(lower)) {
+
+  // Domain shortcuts when the user scopes the workspace to one system.
+  if (domain === "crm" && /^(summary|overview|status|how are we)\b/.test(lower)) {
     return [{ name: "pipeline_summary", args: {} }];
   }
-  if (/\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
+  if (domain === "erp" && /^(summary|overview|status|how are we)\b/.test(lower)) {
     return [{ name: "finance_snapshot", args: {} }];
   }
-  if (/\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
-    return [{ name: "list_products", args: { inventory_only: true } }];
-  }
-  if (/\b(catalog|products?|skus?)\b/.test(lower) && !/\bquote\b/.test(lower)) {
-    return [{ name: "list_products", args: {} }];
-  }
-  if (/\b(who needs coaching|needs coaching|coaching queue)\b/.test(lower)) {
-    return [{ name: "coaching_summary", args: { needs_coaching_only: true } }];
-  }
-  if (/\b(assignments?)\b/.test(lower)) {
-    return [{ name: "list_assignments", args: {} }];
-  }
-  if (/\b(how is|how's|performance of|scores? for)\b/.test(lower)) {
-    const repMatch = m.match(/\b(Alex|Casey|Jordan|Morgan|Riley|Sarah)\b/i);
-    return [{ name: "coaching_summary", args: { rep: repMatch?.[1] ?? "" } }];
-  }
-  if (/\b(coaching|team avg|graded calls|scorecard)\b/.test(lower)) {
+  if (domain === "trainer" && /^(summary|overview|status|how are we)\b/.test(lower)) {
     return [{ name: "coaching_summary", args: {} }];
   }
 
-  // Quote actions
-  if (/\b(accept|approve)\b.*\bquote\b|\bquote\b.*\b(accept|approve)\b/.test(lower)) {
+  if (
+    domain !== "erp" &&
+    domain !== "trainer" &&
+    /\b(pipeline|open deals|deal board)\b/.test(lower) &&
+    !/\b(cascade|blueridge|summit|harbor|northwind)\b/.test(lower)
+  ) {
+    return [{ name: "pipeline_summary", args: {} }];
+  }
+  if (domain !== "crm" && domain !== "trainer" && /\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
+    return [{ name: "finance_snapshot", args: {} }];
+  }
+  if (domain !== "crm" && domain !== "trainer" && /\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
+    return [{ name: "list_products", args: { inventory_only: true } }];
+  }
+  if (domain !== "crm" && domain !== "trainer" && /\b(catalog|products?|skus?)\b/.test(lower) && !/\bquote\b/.test(lower)) {
+    return [{ name: "list_products", args: {} }];
+  }
+  if (domain !== "crm" && domain !== "erp" && /\b(who needs coaching|needs coaching|coaching queue)\b/.test(lower)) {
+    return [{ name: "coaching_summary", args: { needs_coaching_only: true } }];
+  }
+  if (domain !== "crm" && domain !== "erp" && /\b(assignments?)\b/.test(lower)) {
+    return [{ name: "list_assignments", args: {} }];
+  }
+  if (domain !== "crm" && domain !== "erp" && /\b(how is|how's|performance of|scores? for)\b/.test(lower)) {
+    const repMatch = m.match(/\b(Alex|Casey|Jordan|Morgan|Riley|Sarah)\b/i);
+    return [{ name: "coaching_summary", args: { rep: repMatch?.[1] ?? "" } }];
+  }
+  if (domain !== "crm" && domain !== "erp" && /\b(coaching|team avg|graded calls|scorecard|role-?play|trainer)\b/.test(lower)) {
+    return [{ name: "coaching_summary", args: {} }];
+  }
+
+  // Quote actions (ERP)
+  if (domain !== "crm" && domain !== "trainer" && /\b(accept|approve)\b.*\bquote\b|\bquote\b.*\b(accept|approve)\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
     const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
     return [{ name: "quote_action", args: { action: "accept", query: num || deal || m } }];
   }
-  if (/\bsend\b.*\bquote\b|\bquote\b.*\bsend\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\bsend\b.*\bquote\b|\bquote\b.*\bsend\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
     const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
     return [{ name: "quote_action", args: { action: "send", query: num || deal || m } }];
   }
-  if (/\breject\b.*\bquote\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\breject\b.*\bquote\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
     return [{ name: "quote_action", args: { action: "reject", query: num || m } }];
   }
-  if (/\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
     const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)[^,]*/i)?.[0] || "";
     const product = m.match(/\b(Meridian Core|Meridian Forecast|Core|Forecast|scanner)\b/i)?.[0];
     const qty = Number(m.match(/\b(\d+)\s*(x|×|seats?|units?)?\b/i)?.[1] || 1);
     return [{ name: "create_quote_for_deal", args: { deal, product, quantity: qty } }];
   }
-  if (/\bquotes?\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\bquotes?\b/.test(lower)) {
     const status = lower.includes("open") || lower.includes("sent") ? (lower.includes("draft") ? "draft" : "sent") : "";
     const query = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind|Q-\d+)\b/i)?.[0] || "";
     return [{ name: "list_quotes", args: { status: status === "sent" || status === "draft" ? status : "", query } }];
   }
 
   // Order actions
-  if (/\bconfirm\b.*\border\b|\border\b.*\bconfirm\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\bconfirm\b.*\border\b|\border\b.*\bconfirm\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
     const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
     return [{ name: "order_action", args: { action: "confirm", query: num || deal || m } }];
   }
-  if (/\bfulfill\b.*\border\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\bfulfill\b.*\border\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
     return [{ name: "order_action", args: { action: "fulfill", query: num || m } }];
   }
-  if (/\binvoice\b.*\border\b|\bcreate invoice\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\binvoice\b.*\border\b|\bcreate invoice\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
     const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
     return [{ name: "order_action", args: { action: "invoice", query: num || deal || m } }];
   }
-  if (/\borders?\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\borders?\b/.test(lower)) {
     return [{ name: "list_orders", args: { query: m.match(/\b(Cascade|BlueRidge|Summit|Harbor|SO-\d+)\b/i)?.[0] || "" } }];
   }
 
   // Invoice actions
-  if (/\b(pay|payment|record payment)\b/.test(lower) && /\b(invoice|inv-)/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\b(pay|payment|record payment)\b/.test(lower) && /\b(invoice|inv-)/.test(lower)) {
     const num = m.match(/\bINV-?\d{3,}\b/i)?.[0];
     const amount = Number(m.match(/\$?\s*([\d,]+)/)?.[1]?.replace(/,/g, "") || 0);
     return [{ name: "invoice_action", args: { action: "pay", query: num || m, amount } }];
   }
-  if (/\bsend\b.*\binvoice\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\bsend\b.*\binvoice\b/.test(lower)) {
     const num = m.match(/\bINV-?\d{3,}\b/i)?.[0];
     return [{ name: "invoice_action", args: { action: "send", query: num || m } }];
   }
-  if (/\binvoices?\b/.test(lower)) {
+  if (domain !== "crm" && domain !== "trainer" && /\binvoices?\b/.test(lower)) {
     const query = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind|INV-\d+)\b/i)?.[0] || "";
     return [{ name: "list_invoices", args: { query } }];
   }
 
-  if (/\b(deal|account|contact)\b/.test(lower) || /\b(cascade|blueridge|summit|harbor|northwind|dana|priya|tom)\b/.test(lower)) {
+  if (
+    domain !== "erp" &&
+    domain !== "trainer" &&
+    (/\b(deal|account|contact)\b/.test(lower) ||
+      /\b(cascade|blueridge|summit|harbor|northwind|dana|priya|tom)\b/.test(lower))
+  ) {
     if (/\b(contact|email|phone|dana|marta|priya|tom|ellis)\b/.test(lower) && !/\bdeal\b/.test(lower) && !/\bquote\b/.test(lower)) {
       const query = m.match(/\b(Dana|Marta|Priya|Tom|Ellis|Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0] || m;
       return [{ name: "search_accounts_contacts", args: { query } }];
@@ -925,6 +980,10 @@ export function routeDemoIntent(message: string): { name: string; args: Record<s
     return [{ name: "search_deals", args: { query: m } }];
   }
 
+  // Scoped fallbacks when domain is set but phrasing was vague
+  if (domain === "crm") return [{ name: "pipeline_summary", args: {} }];
+  if (domain === "erp") return [{ name: "finance_snapshot", args: {} }];
+  if (domain === "trainer") return [{ name: "coaching_summary", args: {} }];
   return [{ name: "help", args: {} }];
 }
 
@@ -968,6 +1027,7 @@ export async function runAssistantChat(input: {
   userId: string;
   role: string;
   isManager: boolean;
+  domain?: "all" | AssistantSource;
 }): Promise<AssistantResult> {
   const ctx: ToolCtx = {
     orgId: input.orgId,
@@ -975,16 +1035,23 @@ export async function runAssistantChat(input: {
     role: input.role,
     isManager: input.isManager,
   };
+  const domain = input.domain ?? "all";
   const message = input.message.trim();
   if (!message) {
-    return { reply: "Ask me anything about pipeline, quotes, orders, invoices, or coaching.", mode: "demo" };
+    return {
+      reply: "Ask me anything about pipeline, quotes, orders, invoices, or coaching.",
+      mode: "demo",
+      sources: [],
+    };
   }
 
   if (!aiAvailable()) {
-    const calls = routeDemoIntent(message);
+    const calls = routeDemoIntent(message, domain);
     const parts: string[] = [];
     const links: AssistantLink[] = [];
+    const toolNames: string[] = [];
     for (const call of calls) {
+      toolNames.push(call.name);
       const result = await runTool(call.name, call.args, ctx);
       parts.push(result.text);
       links.push(...(result.links ?? []));
@@ -993,13 +1060,23 @@ export async function runAssistantChat(input: {
     return {
       reply: parts.join("\n\n") || "I wasn't sure — try “help”.",
       links: uniq.slice(0, 6),
+      sources: sourcesForTools(toolNames),
       mode: "demo",
     };
   }
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const domainHint =
+    domain === "crm"
+      ? "Prefer CRM tools (pipeline, deals, accounts, contacts)."
+      : domain === "erp"
+        ? "Prefer ERP tools (quotes, orders, invoices, catalog, inventory, finance)."
+        : domain === "trainer"
+          ? "Prefer coaching/trainer tools (scores, assignments, role-play performance)."
+          : "Query across CRM, ERP, and sales trainer as needed.";
   const system = `You are SalesCoach Assistant for Meridian Software.
-You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, finance), and coaching (scores, assignments, role-play).
+You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, finance), and sales trainer / coaching (scores, assignments, role-play).
+${domainHint}
 Use tools for live data and actions. Be concise. After tool results, summarize clearly with numbers and next steps.
 Current user role: ${input.role}.`;
 
@@ -1013,6 +1090,7 @@ Current user role: ${input.role}.`;
   ];
 
   const links: AssistantLink[] = [];
+  const toolNames: string[] = [];
   let guard = 0;
   while (guard++ < 4) {
     const res = await client.chat.completions.create({
@@ -1035,6 +1113,7 @@ Current user role: ${input.role}.`;
         } catch {
           args = {};
         }
+        toolNames.push(tc.function.name);
         const result = await runTool(tc.function.name, args, ctx);
         links.push(...(result.links ?? []));
         messages.push({
@@ -1048,8 +1127,13 @@ Current user role: ${input.role}.`;
 
     const reply = choice.content?.trim() || "Done.";
     const uniq = links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i);
-    return { reply, links: uniq.slice(0, 6), mode: "llm" };
+    return { reply, links: uniq.slice(0, 6), sources: sourcesForTools(toolNames), mode: "llm" };
   }
 
-  return { reply: "I hit a tool loop limit — try a more specific question.", links, mode: "llm" };
+  return {
+    reply: "I hit a tool loop limit — try a more specific question.",
+    links,
+    sources: sourcesForTools(toolNames),
+    mode: "llm",
+  };
 }

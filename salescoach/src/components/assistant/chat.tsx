@@ -124,6 +124,13 @@ export function AssistantChat() {
               <div className="text-[11px] text-muted mt-0.5">
                 Natural language across CRM · ERP · coaching
               </div>
+              <Link
+                href="/ask"
+                onClick={() => setOpen(false)}
+                className="mt-1.5 inline-block text-[11px] text-accent-hover hover:underline"
+              >
+                Open full Ask view →
+              </Link>
             </div>
             <button
               type="button"
