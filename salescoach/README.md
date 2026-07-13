@@ -13,6 +13,8 @@ npm run dev         # http://localhost:3000
 
 No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mode with a deterministic heuristic grader and a scripted role-play prospect, so every flow is usable immediately. Use the user switcher (bottom of the sidebar) to experience each role — manager, trainer, admin, and reps.
 
+**Natural-language demo:** open [http://localhost:3000/ask](http://localhost:3000/ask), pick a system tab (or leave **All systems**), and try the example prompts.
+
 ### Optional environment (`.env`)
 
 | Variable | Enables |
@@ -53,14 +55,14 @@ No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mod
 
 Deal pages show live ERP documents and a one-click quote builder. Grading prompts include open quote/order/invoice state so coaching stays grounded in commercial reality (`src/lib/erp.ts` + pipeline enrichment).
 
-**Phase 8 — Natural-language platform assistant.** Floating **Ask SalesCoach** chat on every page. Talk to CRM, ERP, and coaching in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “Accept the Cascade quote”, “Who needs coaching?”, “Finance snapshot”. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
+**Phase 8 — Natural-language Ask view.** Full-page **Ask** workspace at `/ask` (also linked from the floating chat). Scope queries to **All systems**, **CRM**, **ERP**, or **Sales trainer**, then ask in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “List open quotes”, “Who needs coaching?”, “Finance snapshot”. Answers include source badges and deep links into the matching module. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
 
 ## Architecture notes
 
 - **Grading is a pure function** of (transcript + rubric + company context [+ optional CRM/ERP deal context]) — `src/lib/grading.ts` — so uploaded calls and role-plays are directly comparable, and the voice layer is swappable without touching anything downstream.
 - **CRM write-back** (`src/lib/crm.ts`) upserts a coaching activity keyed by `grade:<id>` whenever a linked call is graded or a manager overrides the score.
 - **ERP write-back** (`src/lib/erp.ts`) upserts `QUOTE` / `ORDER` / `INVOICE` / `PAYMENT` / `PO` activities with stable `externalRef` keys; quote accept → order → invoice is the canonical commercial path.
-- **Platform assistant** (`src/lib/assistant.ts`) exposes the same domain operations as tools; the floating chat is a thin client over `POST /api/assistant/chat`.
+- **Ask / platform assistant** (`src/lib/assistant.ts`, `/ask`, floating chat) exposes the same domain operations as tools over `POST /api/assistant/chat`, with optional CRM/ERP/trainer domain scoping.
 - **Channels** (`src/lib/channels.ts`) own connect/send/dial; demo providers persist conversations locally; real OAuth tokens would replace `credentialsJson`.
 - **Sampling** logic is pure and unit-testable in `src/lib/sampling.ts`; the pipeline orchestration lives in `src/lib/pipeline.ts`.
 - **Demo auth**: a cookie + user switcher stands in for a real auth provider. Production would swap `src/lib/session.ts` for NextAuth/WorkOS and add tenant-scoped middleware.
