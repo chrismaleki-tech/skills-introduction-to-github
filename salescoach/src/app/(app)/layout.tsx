@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
+import { AssistantChat } from "@/components/assistant/chat";
 import { aiAvailable } from "@/lib/ai";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -53,7 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <div className="p-3 border-t border-line space-y-2">
           {!aiAvailable() && (
             <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 px-2.5 py-2 text-[11px] text-amber-300/90">
-              Demo mode: no OPENAI_API_KEY set. Grading and role-play use deterministic engines.
+              Demo mode: no OPENAI_API_KEY set. Grading, role-play, and the assistant use deterministic engines.
             </div>
           )}
           <div className="text-[11px] text-muted px-1">Viewing as ({user.role.toLowerCase()})</div>
@@ -61,6 +62,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl">{children}</main>
+      <AssistantChat />
     </div>
   );
 }
