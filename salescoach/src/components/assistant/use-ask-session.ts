@@ -51,11 +51,14 @@ function uid() {
 }
 
 function defaultState(): SessionState {
-  return { domain: "all", messages: [], updatedAt: Date.now() };
+  return { domain: "all", messages: [], updatedAt: 0 };
 }
 
+/** Stable SSR snapshot — must be referentially equal across calls. */
+const SERVER_SNAPSHOT: SessionState = { domain: "all", messages: [], updatedAt: 0 };
+
 function readState(): SessionState {
-  if (typeof window === "undefined") return defaultState();
+  if (typeof window === "undefined") return SERVER_SNAPSHOT;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
@@ -78,7 +81,7 @@ function writeState(state: SessionState) {
   window.dispatchEvent(new CustomEvent(CHANNEL, { detail: next }));
 }
 
-let memory = defaultState();
+let memory: SessionState = defaultState();
 const listeners = new Set<() => void>();
 
 function emit() {
@@ -90,7 +93,7 @@ function getSnapshot() {
 }
 
 function getServerSnapshot() {
-  return defaultState();
+  return SERVER_SNAPSHOT;
 }
 
 function subscribe(listener: () => void) {
