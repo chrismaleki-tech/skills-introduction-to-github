@@ -43,10 +43,18 @@ const TOOL_SOURCES: Record<string, AssistantSource[]> = {
   invoice_action: ["erp"],
   list_invoices: ["erp"],
   list_products: ["erp"],
+  list_purchase_orders: ["erp"],
   coaching_summary: ["trainer"],
   list_assignments: ["trainer"],
+  list_calls: ["trainer", "crm"],
+  get_call_grade: ["trainer", "crm"],
+  list_roleplays: ["trainer"],
   help: ["crm", "erp", "trainer"],
 };
+
+const ACCOUNT_TOKENS = "Cascade|BlueRidge|Blue Ridge|Summit|Harbor|Northwind|Harbor Parts";
+const REP_TOKENS = "Alex|Casey|Jordan|Morgan|Riley|Sarah";
+const CONTACT_TOKENS = "Dana|Marta|Priya|Tom|Ellis";
 
 function sourcesForTools(names: string[]): AssistantSource[] {
   const set = new Set<AssistantSource>();
@@ -369,10 +377,15 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     async run(args, ctx) {
       const status = q(args.status).toLowerCase();
       const query = q(args.query);
+      const openStatuses = ["draft", "sent"];
       const quotes = await db.quote.findMany({
         where: {
           orgId: ctx.orgId,
-          ...(status ? { status } : {}),
+          ...(status === "open"
+            ? { status: { in: openStatuses } }
+            : status
+              ? { status }
+              : {}),
           ...(query
             ? {
                 OR: [
@@ -756,6 +769,200 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "list_calls",
+    description: "List recent sales calls, optionally filtered by rep, deal/account, or graded-only.",
+    parameters: {
+      type: "object",
+      properties: {
+        rep: { type: "string" },
+        query: { type: "string", description: "Deal, account, or prospect name" },
+        graded_only: { type: "boolean" },
+      },
+    },
+    async run(args, ctx) {
+      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const query = q(args.query);
+      const deal = query ? await resolveDeal(ctx.orgId, query) : null;
+      const calls = await db.call.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(rep ? { repId: rep.id } : {}),
+          ...(args.graded_only ? { status: "GRADED" } : {}),
+          ...(deal
+            ? { dealId: deal.id }
+            : query
+              ? {
+                  OR: [
+                    { prospectName: { contains: query } },
+                    { deal: { name: { contains: query } } },
+                    { account: { name: { contains: query } } },
+                    { rep: { name: { contains: query } } },
+                  ],
+                }
+              : {}),
+        },
+        include: {
+          rep: { select: { name: true } },
+          deal: { select: { name: true } },
+          account: { select: { name: true } },
+          grade: true,
+        },
+        orderBy: { callDate: "desc" },
+        take: 10,
+      });
+      if (!calls.length) return { text: "No matching calls found." };
+      return {
+        text: calls
+          .map((c) => {
+            const score = c.grade
+              ? `${c.grade.managerOverrideScore ?? c.grade.overallScore}/100 (${BAND_LABELS[c.grade.band as keyof typeof BAND_LABELS] ?? c.grade.band})`
+              : c.status;
+            return `• ${c.rep.name} · ${c.callType} · ${c.deal?.name || c.account?.name || c.prospectName || "call"} · ${score}`;
+          })
+          .join("\n"),
+        links: [
+          { href: "/calls", label: "All calls" },
+          ...calls.slice(0, 3).map((c) => ({
+            href: `/calls/${c.id}`,
+            label: c.deal?.name || c.prospectName || "Call",
+          })),
+        ],
+      };
+    },
+  },
+  {
+    name: "get_call_grade",
+    description: "Get the latest graded call for a rep and/or deal, with scorecard summary.",
+    parameters: {
+      type: "object",
+      properties: {
+        rep: { type: "string" },
+        query: { type: "string", description: "Deal or account name" },
+      },
+    },
+    async run(args, ctx) {
+      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const query = q(args.query);
+      const deal = query ? await resolveDeal(ctx.orgId, query) : null;
+      const call = await db.call.findFirst({
+        where: {
+          orgId: ctx.orgId,
+          status: "GRADED",
+          ...(rep ? { repId: rep.id } : {}),
+          ...(deal
+            ? { dealId: deal.id }
+            : query
+              ? {
+                  OR: [
+                    { deal: { name: { contains: query } } },
+                    { account: { name: { contains: query } } },
+                    { prospectName: { contains: query } },
+                  ],
+                }
+              : {}),
+        },
+        include: {
+          rep: { select: { name: true } },
+          deal: { select: { id: true, name: true } },
+          account: { select: { name: true } },
+          grade: true,
+        },
+        orderBy: { callDate: "desc" },
+      });
+      if (!call?.grade) {
+        return {
+          text: `No graded call found${rep ? ` for ${rep.name}` : ""}${query ? ` matching "${query}"` : ""}.`,
+          links: [{ href: "/calls", label: "Calls" }],
+        };
+      }
+      const score = call.grade.managerOverrideScore ?? call.grade.overallScore;
+      const band = BAND_LABELS[call.grade.band as keyof typeof BAND_LABELS] ?? call.grade.band;
+      const lines = [
+        `${call.rep.name} · ${call.callType} · ${call.deal?.name || call.account?.name || call.prospectName || "call"}`,
+        `Score: ${score}/100 (${band})${call.grade.managerOverrideScore != null ? " · manager override" : ""}`,
+        call.grade.summary ? `Summary: ${call.grade.summary}` : "",
+      ].filter(Boolean);
+      const links: AssistantLink[] = [{ href: `/calls/${call.id}`, label: "Open scorecard" }];
+      if (call.deal) links.push({ href: `/crm/deals/${call.deal.id}`, label: call.deal.name });
+      return { text: lines.join("\n"), links };
+    },
+  },
+  {
+    name: "list_roleplays",
+    description: "List recent role-play practice sessions and scores.",
+    parameters: {
+      type: "object",
+      properties: { rep: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const sessions = await db.roleplaySession.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(rep ? { repId: rep.id } : {}),
+        },
+        include: {
+          rep: { select: { name: true } },
+          scenario: { select: { title: true, difficulty: true } },
+          grade: true,
+        },
+        orderBy: { startedAt: "desc" },
+        take: 10,
+      });
+      if (!sessions.length) return { text: "No role-play sessions found." };
+      return {
+        text: sessions
+          .map((s) => {
+            const score = s.grade
+              ? `${s.grade.managerOverrideScore ?? s.grade.overallScore}/100`
+              : s.status;
+            return `• ${s.rep.name} · ${s.scenario.title} (${s.scenario.difficulty}) · ${score}`;
+          })
+          .join("\n"),
+        links: [
+          { href: "/roleplay", label: "Role-play" },
+          ...sessions.slice(0, 2).map((s) => ({ href: `/roleplay/${s.id}`, label: s.scenario.title })),
+        ],
+      };
+    },
+  },
+  {
+    name: "list_purchase_orders",
+    description: "List purchase orders and vendor restocks.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" }, status: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const status = q(args.status).toLowerCase();
+      const pos = await db.purchaseOrder.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(status ? { status } : {}),
+          ...(query
+            ? {
+                OR: [
+                  { number: { contains: query } },
+                  { vendor: { name: { contains: query } } },
+                ],
+              }
+            : {}),
+        },
+        include: { vendor: true },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      });
+      if (!pos.length) return { text: "No purchase orders found." };
+      return {
+        text: pos
+          .map((p) => `• ${p.number} · ${p.status} · ${fmtMoney(p.total)} · ${p.vendor?.name ?? "—"}`)
+          .join("\n"),
+        links: [{ href: "/erp/purchasing", label: "Purchasing" }],
+      };
+    },
+  },
+  {
     name: "search_accounts_contacts",
     description: "Search CRM accounts and contacts.",
     parameters: {
@@ -810,12 +1017,15 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           "• “Show me the Cascade deal”",
           "• “List open quotes” / “Accept the Cascade quote”",
           "• “Confirm order SO-1002” / “Invoice Harbor's order”",
-          "• “Finance snapshot” / “What's low in inventory?”",
+          "• “Finance snapshot” / “What's low in inventory?” / “Show purchase orders”",
           "• “Who needs coaching?” / “How is Alex doing?”",
+          "• “What was Alex's last Cascade call score?”",
+          "• “Show recent role-plays” / “Show assignments”",
           "• “Create a quote for BlueRidge with Meridian Core”",
-          "• “Find contact Dana” / “Show assignments”",
+          "• “Find contact Dana”",
         ].join("\n"),
         links: [
+          { href: "/ask", label: "Ask view" },
           { href: "/crm", label: "Pipeline" },
           { href: "/erp", label: "ERP" },
           { href: "/dashboard", label: "Dashboard" },
@@ -849,135 +1059,207 @@ export function routeDemoIntent(
 ): { name: string; args: Record<string, unknown> }[] {
   const m = message.trim();
   const lower = m.toLowerCase();
+  const accountRe = new RegExp(`\\b(${ACCOUNT_TOKENS})\\b`, "i");
+  const repRe = new RegExp(`\\b(${REP_TOKENS})\\b`, "i");
+  const contactRe = new RegExp(`\\b(${CONTACT_TOKENS})\\b`, "i");
+  const namedAccount = m.match(accountRe)?.[1];
+  const namedRep = m.match(repRe)?.[1];
+  const namedContact = m.match(contactRe)?.[1];
+  const allowCrm = domain === "all" || domain === "crm";
+  const allowErp = domain === "all" || domain === "erp";
+  const allowTrainer = domain === "all" || domain === "trainer";
+  // Named deal lookups are cross-cutting — useful from any tab.
+  const looksLikeDealLookup =
+    Boolean(namedAccount) &&
+    (/\b(deal|show|get|open|status|tell me about|what's|whats)\b/.test(lower) ||
+      /\bdeal\b/.test(lower));
 
   if (/^(help|what can you do|commands)\b/.test(lower) || lower === "?") {
     return [{ name: "help", args: {} }];
   }
 
   // Domain shortcuts when the user scopes the workspace to one system.
-  if (domain === "crm" && /^(summary|overview|status|how are we)\b/.test(lower)) {
+  if (domain === "crm" && /^(summary|overview|status|how are we)\b/.test(lower) && !namedAccount) {
     return [{ name: "pipeline_summary", args: {} }];
   }
-  if (domain === "erp" && /^(summary|overview|status|how are we)\b/.test(lower)) {
+  if (domain === "erp" && /^(summary|overview|status|how are we)\b/.test(lower) && !namedAccount) {
     return [{ name: "finance_snapshot", args: {} }];
   }
   if (domain === "trainer" && /^(summary|overview|status|how are we)\b/.test(lower)) {
     return [{ name: "coaching_summary", args: {} }];
   }
 
+  // Call / scorecard intents (trainer + CRM overlap)
   if (
-    domain !== "erp" &&
-    domain !== "trainer" &&
-    /\b(pipeline|open deals|deal board)\b/.test(lower) &&
-    !/\b(cascade|blueridge|summit|harbor|northwind)\b/.test(lower)
+    (allowTrainer || allowCrm) &&
+    /\b(call score|last call|graded call|scorecard|call grade)\b/.test(lower)
   ) {
+    return [
+      {
+        name: "get_call_grade",
+        args: { rep: namedRep || "", query: namedAccount || "" },
+      },
+    ];
+  }
+  if (
+    (allowTrainer || allowCrm) &&
+    /\b(calls?|call history)\b/.test(lower) &&
+    !/\brole-?play\b/.test(lower)
+  ) {
+    if (/\b(score|grade|last)\b/.test(lower) || (namedRep && namedAccount)) {
+      return [
+        {
+          name: "get_call_grade",
+          args: { rep: namedRep || "", query: namedAccount || namedRep || "" },
+        },
+      ];
+    }
+    return [
+      {
+        name: "list_calls",
+        args: {
+          rep: namedRep || "",
+          query: namedAccount || "",
+          graded_only: /\bgraded\b/.test(lower),
+        },
+      },
+    ];
+  }
+  if (allowTrainer && /\b(role-?plays?|practice sessions?)\b/.test(lower)) {
+    return [{ name: "list_roleplays", args: { rep: namedRep || "" } }];
+  }
+
+  if (allowCrm && /\b(pipeline|open deals|deal board)\b/.test(lower) && !namedAccount) {
     return [{ name: "pipeline_summary", args: {} }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
+  if (allowErp && /\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
     return [{ name: "finance_snapshot", args: {} }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
+  if (allowErp && /\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
     return [{ name: "list_products", args: { inventory_only: true } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\b(catalog|products?|skus?)\b/.test(lower) && !/\bquote\b/.test(lower)) {
+  if (allowErp && /\b(catalog|products?|skus?)\b/.test(lower) && !/\bquote\b/.test(lower)) {
     return [{ name: "list_products", args: {} }];
   }
-  if (domain !== "crm" && domain !== "erp" && /\b(who needs coaching|needs coaching|coaching queue)\b/.test(lower)) {
+  if (allowTrainer && /\b(who needs coaching|needs coaching|coaching queue)\b/.test(lower)) {
     return [{ name: "coaching_summary", args: { needs_coaching_only: true } }];
   }
-  if (domain !== "crm" && domain !== "erp" && /\b(assignments?)\b/.test(lower)) {
-    return [{ name: "list_assignments", args: {} }];
+  if (allowTrainer && /\b(assignments?)\b/.test(lower)) {
+    return [{ name: "list_assignments", args: { rep: namedRep || "" } }];
   }
-  if (domain !== "crm" && domain !== "erp" && /\b(how is|how's|performance of|scores? for)\b/.test(lower)) {
-    const repMatch = m.match(/\b(Alex|Casey|Jordan|Morgan|Riley|Sarah)\b/i);
-    return [{ name: "coaching_summary", args: { rep: repMatch?.[1] ?? "" } }];
+  if (allowTrainer && /\b(how is|how's|performance of|scores? for)\b/.test(lower)) {
+    return [{ name: "coaching_summary", args: { rep: namedRep ?? "" } }];
   }
-  if (domain !== "crm" && domain !== "erp" && /\b(coaching|team avg|graded calls|scorecard|role-?play|trainer)\b/.test(lower)) {
-    return [{ name: "coaching_summary", args: {} }];
+  if (
+    allowTrainer &&
+    /\b(coaching|team avg|graded calls|scorecard|trainer)\b/.test(lower) &&
+    !/\bcall\b/.test(lower)
+  ) {
+    return [{ name: "coaching_summary", args: { rep: namedRep || "" } }];
   }
 
   // Quote actions (ERP)
-  if (domain !== "crm" && domain !== "trainer" && /\b(accept|approve)\b.*\bquote\b|\bquote\b.*\b(accept|approve)\b/.test(lower)) {
+  if (allowErp && /\b(accept|approve)\b.*\bquote\b|\bquote\b.*\b(accept|approve)\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "quote_action", args: { action: "accept", query: num || deal || m } }];
+    return [{ name: "quote_action", args: { action: "accept", query: num || namedAccount || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\bsend\b.*\bquote\b|\bquote\b.*\bsend\b/.test(lower)) {
+  if (allowErp && /\bsend\b.*\bquote\b|\bquote\b.*\bsend\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "quote_action", args: { action: "send", query: num || deal || m } }];
+    return [{ name: "quote_action", args: { action: "send", query: num || namedAccount || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\breject\b.*\bquote\b/.test(lower)) {
+  if (allowErp && /\breject\b.*\bquote\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
     return [{ name: "quote_action", args: { action: "reject", query: num || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)[^,]*/i)?.[0] || "";
+  if (allowErp && /\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
     const product = m.match(/\b(Meridian Core|Meridian Forecast|Core|Forecast|scanner)\b/i)?.[0];
     const qty = Number(m.match(/\b(\d+)\s*(x|×|seats?|units?)?\b/i)?.[1] || 1);
-    return [{ name: "create_quote_for_deal", args: { deal, product, quantity: qty } }];
+    return [
+      {
+        name: "create_quote_for_deal",
+        args: { deal: namedAccount || "", product, quantity: qty },
+      },
+    ];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\bquotes?\b/.test(lower)) {
-    const status = lower.includes("open") || lower.includes("sent") ? (lower.includes("draft") ? "draft" : "sent") : "";
-    const query = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind|Q-\d+)\b/i)?.[0] || "";
-    return [{ name: "list_quotes", args: { status: status === "sent" || status === "draft" ? status : "", query } }];
+  if (allowErp && /\bquotes?\b/.test(lower)) {
+    let status = "";
+    if (/\bopen\b/.test(lower)) status = "open";
+    else if (/\bdraft\b/.test(lower)) status = "draft";
+    else if (/\bsent\b/.test(lower)) status = "sent";
+    const query = m.match(/\b(Q-\d+)\b/i)?.[0] || namedAccount || "";
+    return [{ name: "list_quotes", args: { status, query } }];
+  }
+
+  // Purchase orders before sales orders (avoid "order" substring match)
+  if (allowErp && /\bpurchase\s*orders?\b|\bPO-?\d{3,}\b|\bvendors?\b/.test(lower)) {
+    return [
+      {
+        name: "list_purchase_orders",
+        args: { query: m.match(/\bPO-?\d{3,}\b/i)?.[0] || "" },
+      },
+    ];
   }
 
   // Order actions
-  if (domain !== "crm" && domain !== "trainer" && /\bconfirm\b.*\border\b|\border\b.*\bconfirm\b/.test(lower)) {
+  if (allowErp && /\bconfirm\b.*\border\b|\border\b.*\bconfirm\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "order_action", args: { action: "confirm", query: num || deal || m } }];
+    return [{ name: "order_action", args: { action: "confirm", query: num || namedAccount || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\bfulfill\b.*\border\b/.test(lower)) {
+  if (allowErp && /\bfulfill\b.*\border\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
     return [{ name: "order_action", args: { action: "fulfill", query: num || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\binvoice\b.*\border\b|\bcreate invoice\b/.test(lower)) {
+  if (allowErp && /\binvoice\b.*\border\b|\bcreate invoice\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "order_action", args: { action: "invoice", query: num || deal || m } }];
+    return [{ name: "order_action", args: { action: "invoice", query: num || namedAccount || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\borders?\b/.test(lower)) {
-    return [{ name: "list_orders", args: { query: m.match(/\b(Cascade|BlueRidge|Summit|Harbor|SO-\d+)\b/i)?.[0] || "" } }];
+  if (allowErp && /\b(sales\s+)?orders?\b/.test(lower) && !/\bpurchase\b/.test(lower)) {
+    return [
+      {
+        name: "list_orders",
+        args: { query: m.match(/\bSO-\d+\b/i)?.[0] || namedAccount || "" },
+      },
+    ];
   }
 
   // Invoice actions
-  if (domain !== "crm" && domain !== "trainer" && /\b(pay|payment|record payment)\b/.test(lower) && /\b(invoice|inv-)/.test(lower)) {
+  if (allowErp && /\b(pay|payment|record payment)\b/.test(lower) && /\b(invoice|inv-)/.test(lower)) {
     const num = m.match(/\bINV-?\d{3,}\b/i)?.[0];
     const amount = Number(m.match(/\$?\s*([\d,]+)/)?.[1]?.replace(/,/g, "") || 0);
     return [{ name: "invoice_action", args: { action: "pay", query: num || m, amount } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\bsend\b.*\binvoice\b/.test(lower)) {
+  if (allowErp && /\bsend\b.*\binvoice\b/.test(lower)) {
     const num = m.match(/\bINV-?\d{3,}\b/i)?.[0];
     return [{ name: "invoice_action", args: { action: "send", query: num || m } }];
   }
-  if (domain !== "crm" && domain !== "trainer" && /\binvoices?\b/.test(lower)) {
-    const query = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind|INV-\d+)\b/i)?.[0] || "";
+  if (allowErp && /\binvoices?\b/.test(lower)) {
+    const query = m.match(/\bINV-\d+\b/i)?.[0] || namedAccount || "";
     return [{ name: "list_invoices", args: { query } }];
   }
 
-  if (
-    domain !== "erp" &&
-    domain !== "trainer" &&
-    (/\b(deal|account|contact)\b/.test(lower) ||
-      /\b(cascade|blueridge|summit|harbor|northwind|dana|priya|tom)\b/.test(lower))
-  ) {
-    if (/\b(contact|email|phone|dana|marta|priya|tom|ellis)\b/.test(lower) && !/\bdeal\b/.test(lower) && !/\bquote\b/.test(lower)) {
-      const query = m.match(/\b(Dana|Marta|Priya|Tom|Ellis|Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0] || m;
+  // Deal / account / contact — allowed from CRM, or any tab when clearly an entity lookup
+  if (allowCrm || looksLikeDealLookup || (domain === "all" && (namedAccount || namedContact))) {
+    if (
+      (namedContact || /\b(contact|email|phone)\b/.test(lower)) &&
+      !/\bdeal\b/.test(lower) &&
+      !/\bquote\b/.test(lower) &&
+      !/\bcall\b/.test(lower)
+    ) {
+      const query = namedContact || namedAccount || m;
       return [{ name: "search_accounts_contacts", args: { query } }];
     }
-    if (/\b(show|get|open|what's|whats|status|tell me about)\b/.test(lower) || /\bdeal\b/.test(lower)) {
-      const named = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
+    if (looksLikeDealLookup || /\bdeal\b/.test(lower) || (namedAccount && /\b(show|get|open|status|tell me about|what's|whats)\b/.test(lower))) {
       const query =
-        named ||
+        namedAccount ||
         m
           .replace(/^(show|get|open|what's|whats|status|tell me about)\s+/i, "")
           .replace(/\bdeal\b/gi, "")
           .trim();
       return [{ name: "get_deal", args: { query } }];
     }
-    return [{ name: "search_deals", args: { query: m } }];
+    if (allowCrm && (/\b(deal|account|contact)\b/.test(lower) || namedAccount)) {
+      return [{ name: "search_deals", args: { query: namedAccount || m } }];
+    }
   }
 
   // Scoped fallbacks when domain is set but phrasing was vague

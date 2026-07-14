@@ -1,41 +1,34 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
-
-type LinkItem = { href: string; label: string };
-type Source = "crm" | "erp" | "trainer";
-type Domain = "all" | Source;
+import {
+  DomainTabs,
+  ReplyBody,
+  ReplyLinks,
+  SourceBadges,
+  SOURCE_LABEL,
+  type AssistantDomain,
+  type AssistantLinkItem,
+  type AssistantSource,
+} from "./reply";
 
 type Msg = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  links?: LinkItem[];
-  sources?: Source[];
+  links?: AssistantLinkItem[];
+  sources?: AssistantSource[];
   mode?: "demo" | "llm";
 };
 
-const SOURCE_LABEL: Record<Source, string> = {
-  crm: "CRM",
-  erp: "ERP",
-  trainer: "Sales trainer",
-};
-
-const SOURCE_TONE: Record<Source, string> = {
-  crm: "border-sky-400/30 bg-sky-400/10 text-sky-200",
-  erp: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
-  trainer: "border-amber-400/30 bg-amber-400/10 text-amber-200",
-};
-
-const EXAMPLES: Record<Domain, { label: string; query: string }[]> = {
+const EXAMPLES: Record<AssistantDomain, { label: string; query: string }[]> = {
   all: [
     { label: "Pipeline health", query: "What's our pipeline look like?" },
     { label: "Cascade deal", query: "Show me the Cascade deal" },
     { label: "Open quotes", query: "List open quotes" },
     { label: "Finance", query: "Finance snapshot" },
     { label: "Coaching queue", query: "Who needs coaching?" },
-    { label: "Low stock", query: "What's low in inventory?" },
+    { label: "Call score", query: "What was Alex's last Cascade call score?" },
   ],
   crm: [
     { label: "Pipeline", query: "What's our pipeline look like?" },
@@ -47,17 +40,17 @@ const EXAMPLES: Record<Domain, { label: string; query: string }[]> = {
     { label: "Finance", query: "Finance snapshot" },
     { label: "Quotes", query: "List open quotes" },
     { label: "Orders", query: "Show sales orders" },
-    { label: "Inventory", query: "What's low in inventory?" },
+    { label: "Purchase orders", query: "Show purchase orders" },
   ],
   trainer: [
     { label: "Needs coaching", query: "Who needs coaching?" },
     { label: "Alex", query: "How is Alex doing?" },
-    { label: "Team scores", query: "Team coaching summary" },
-    { label: "Assignments", query: "Show assignments" },
+    { label: "Call score", query: "What was Alex's last Cascade call score?" },
+    { label: "Role-plays", query: "Show recent role-plays" },
   ],
 };
 
-const DOMAIN_COPY: Record<Domain, { title: string; blurb: string }> = {
+const DOMAIN_COPY: Record<AssistantDomain, { title: string; blurb: string }> = {
   all: {
     title: "Ask anything",
     blurb: "One place to query CRM, ERP, and the sales trainer in plain language.",
@@ -68,11 +61,11 @@ const DOMAIN_COPY: Record<Domain, { title: string; blurb: string }> = {
   },
   erp: {
     title: "Ask ERP",
-    blurb: "Quotes, orders, invoices, catalog, inventory, and finance.",
+    blurb: "Quotes, orders, invoices, purchasing, catalog, and finance.",
   },
   trainer: {
     title: "Ask sales trainer",
-    blurb: "Coaching scores, assignments, and who needs help next.",
+    blurb: "Call scores, role-plays, assignments, and who needs help next.",
   },
 };
 
@@ -80,24 +73,8 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function SourceBadges({ sources }: { sources?: Source[] }) {
-  if (!sources?.length) return null;
-  return (
-    <div className="mt-2.5 flex flex-wrap gap-1.5">
-      {sources.map((s) => (
-        <span
-          key={s}
-          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium tracking-wide ${SOURCE_TONE[s]}`}
-        >
-          {SOURCE_LABEL[s]}
-        </span>
-      ))}
-    </div>
-  );
-}
-
 export function QueryWorkspace() {
-  const [domain, setDomain] = useState<Domain>("all");
+  const [domain, setDomain] = useState<AssistantDomain>("all");
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -206,39 +183,7 @@ export function QueryWorkspace() {
           </div>
 
           <div className="mx-auto mt-6 w-full max-w-3xl">
-            <div
-              className="flex flex-wrap items-center gap-1 border-b border-line pb-3"
-              role="tablist"
-              aria-label="System scope"
-            >
-              {(
-                [
-                  ["all", "All systems"],
-                  ["crm", "CRM"],
-                  ["erp", "ERP"],
-                  ["trainer", "Sales trainer"],
-                ] as const
-              ).map(([key, label]) => {
-                const active = domain === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={active}
-                    onClick={() => setDomain(key)}
-                    className={`relative px-3 py-1.5 text-sm transition-colors ${
-                      active ? "text-foreground" : "text-muted hover:text-foreground"
-                    }`}
-                  >
-                    {label}
-                    {active && (
-                      <span className="absolute inset-x-2 -bottom-[13px] h-0.5 rounded-full bg-accent" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <DomainTabs value={domain} onChange={setDomain} />
 
             <form
               className="mt-5 group"
@@ -260,8 +205,8 @@ export function QueryWorkspace() {
                       : domain === "erp"
                         ? "e.g. List open quotes…"
                         : domain === "trainer"
-                          ? "e.g. Who needs coaching?…"
-                          : "Ask about pipeline, quotes, inventory, or coaching…"
+                          ? "e.g. What was Alex's last Cascade call score?…"
+                          : "Ask about pipeline, quotes, call scores, or coaching…"
                   }
                   className="w-full resize-none bg-transparent px-5 pt-4 pb-14 text-[15px] leading-relaxed outline-none placeholder:text-muted/70"
                 />
@@ -310,27 +255,15 @@ export function QueryWorkspace() {
                   className={`flex ${m.role === "user" ? "justify-end" : "justify-start"} sc-fade-in`}
                 >
                   <div
-                    className={`max-w-[92%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed whitespace-pre-wrap ${
+                    className={`max-w-[92%] rounded-2xl px-4 py-3 text-[15px] leading-relaxed ${
                       m.role === "user"
                         ? "bg-accent text-white rounded-br-md"
                         : "bg-surface border border-line text-foreground rounded-bl-md"
                     }`}
                   >
-                    {m.content}
+                    <ReplyBody content={m.content} invert={m.role === "user"} />
                     <SourceBadges sources={m.sources} />
-                    {m.links && m.links.length > 0 && (
-                      <div className="mt-3 flex flex-wrap gap-1.5">
-                        {m.links.map((l) => (
-                          <Link
-                            key={l.href + l.label}
-                            href={l.href}
-                            className="inline-flex rounded-md border border-accent/30 bg-accent/10 px-2.5 py-1 text-[11px] text-accent-hover hover:bg-accent/20 transition-colors"
-                          >
-                            {l.label} →
-                          </Link>
-                        ))}
-                      </div>
-                    )}
+                    <ReplyLinks links={m.links} />
                     {m.mode === "demo" && m.role === "assistant" && (
                       <div className="mt-2 text-[10px] text-muted/80">Demo router · live seeded data</div>
                     )}
