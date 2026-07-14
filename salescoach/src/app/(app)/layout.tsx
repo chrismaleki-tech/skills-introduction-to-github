@@ -4,6 +4,7 @@ import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
 import { AssistantChat } from "@/components/assistant/chat";
 import { aiAvailable } from "@/lib/ai";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -42,14 +43,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r border-line bg-surface flex flex-col">
+      <aside className="hidden md:flex w-60 shrink-0 border-r border-line bg-surface flex-col">
         <div className="px-4 py-5 border-b border-line">
           <div className="font-semibold tracking-tight text-lg">
             <span className="text-accent-hover">Sales</span>Coach AI
           </div>
           <div className="text-xs text-muted mt-0.5">{user.org.name}</div>
         </div>
-        <div className="p-3 flex-1">
+        <div className="p-3 flex-1 overflow-y-auto">
           <NavLinks items={items} />
         </div>
         <div className="p-3 border-t border-line space-y-2">
@@ -62,7 +63,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <UserSwitcher users={users} currentId={user.id} />
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl w-full">{children}</main>
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <MobileNav
+          items={items}
+          orgName={user.org.name}
+          users={users}
+          currentId={user.id}
+          role={user.role}
+          demoMode={!aiAvailable()}
+        />
+        <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 max-w-6xl w-full mx-auto">{children}</main>
+      </div>
       <AssistantChat />
     </div>
   );

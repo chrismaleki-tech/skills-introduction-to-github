@@ -1,25 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   DomainTabs,
+  MessageActions,
   ReplyBody,
   ReplyLinks,
+  ResultCard,
   SourceBadges,
   SOURCE_LABEL,
   type AssistantDomain,
-  type AssistantLinkItem,
-  type AssistantSource,
 } from "./reply";
-
-type Msg = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  links?: AssistantLinkItem[];
-  sources?: AssistantSource[];
-  mode?: "demo" | "llm";
-};
+import { streamAssistantChat, useAskSession } from "./use-ask-session";
 
 const EXAMPLES: Record<AssistantDomain, { label: string; query: string }[]> = {
   all: [
@@ -33,20 +25,20 @@ const EXAMPLES: Record<AssistantDomain, { label: string; query: string }[]> = {
   crm: [
     { label: "Pipeline", query: "What's our pipeline look like?" },
     { label: "Cascade", query: "Show me the Cascade deal" },
-    { label: "BlueRidge", query: "Status of the BlueRidge deal" },
-    { label: "Find Dana", query: "Find contact Dana" },
+    { label: "Move stage", query: "Move Cascade to negotiation" },
+    { label: "Timeline", query: "Show Cascade activity timeline" },
   ],
   erp: [
     { label: "Finance", query: "Finance snapshot" },
     { label: "Quotes", query: "List open quotes" },
-    { label: "Orders", query: "Show sales orders" },
+    { label: "Quote detail", query: "Show details for Q-1001" },
     { label: "Purchase orders", query: "Show purchase orders" },
   ],
   trainer: [
     { label: "Needs coaching", query: "Who needs coaching?" },
-    { label: "Alex", query: "How is Alex doing?" },
+    { label: "My performance", query: "How am I doing?" },
     { label: "Call score", query: "What was Alex's last Cascade call score?" },
-    { label: "Role-plays", query: "Show recent role-plays" },
+    { label: "Scenarios", query: "List scenarios" },
   ],
 };
 
@@ -57,7 +49,7 @@ const DOMAIN_COPY: Record<AssistantDomain, { title: string; blurb: string }> = {
   },
   crm: {
     title: "Ask CRM",
-    blurb: "Pipeline, deals, accounts, and contacts — without leaving the sentence.",
+    blurb: "Pipeline, deals, stage moves, timelines, and conversations.",
   },
   erp: {
     title: "Ask ERP",
@@ -65,22 +57,17 @@ const DOMAIN_COPY: Record<AssistantDomain, { title: string; blurb: string }> = {
   },
   trainer: {
     title: "Ask sales trainer",
-    blurb: "Call scores, role-plays, assignments, and who needs help next.",
+    blurb: "Call scores, role-plays, scenarios, assignments, and your performance.",
   },
 };
 
-function uid() {
-  return Math.random().toString(36).slice(2, 10);
-}
-
 export function QueryWorkspace() {
-  const [domain, setDomain] = useState<AssistantDomain>("all");
+  const { hydrated, domain, setDomain, messages, setMessages, clear, uid } = useAskSession();
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
-  const [messages, setMessages] = useState<Msg[]>([]);
-  const [, startTransition] = useTransition();
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const started = messages.length > 0;
 
   useEffect(() => {
@@ -95,40 +82,61 @@ export function QueryWorkspace() {
     const message = text.trim();
     if (!message || pending) return;
     setInput("");
-    const userMsg: Msg = { id: uid(), role: "user", content: message };
-    startTransition(() => setMessages((prev) => [...prev, userMsg]));
+    const userMsg = { id: uid(), role: "user" as const, content: message };
+    const assistantId = uid();
+    setMessages((prev) => [
+      ...prev,
+      userMsg,
+      { id: assistantId, role: "assistant", content: "", pending: true },
+    ]);
     setPending(true);
+    abortRef.current?.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
     try {
       const history = [...messages, userMsg].map((m) => ({ role: m.role, content: m.content }));
-      const res = await fetch("/api/assistant/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message, history, domain }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setMessages((prev) => [
-          ...prev,
-          { id: uid(), role: "assistant", content: data.error ?? "Something went wrong." },
-        ]);
-        return;
-      }
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: uid(),
-          role: "assistant",
-          content: data.reply ?? "Done.",
-          links: data.links,
-          sources: data.sources,
-          mode: data.mode,
+      const result = await streamAssistantChat({
+        message,
+        history,
+        domain,
+        signal: ac.signal,
+        onToken: (chunk) => {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, content: m.content + chunk, pending: true } : m,
+            ),
+          );
         },
-      ]);
-    } catch {
-      setMessages((prev) => [
-        ...prev,
-        { id: uid(), role: "assistant", content: "Network error talking to the assistant." },
-      ]);
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                content: result.reply || m.content,
+                links: result.links,
+                sources: result.sources,
+                mode: result.mode,
+                data: result.data,
+                followUps: result.followUps,
+                pending: false,
+              }
+            : m,
+        ),
+      );
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === assistantId
+            ? {
+                ...m,
+                content: e instanceof Error ? e.message : "Something went wrong.",
+                pending: false,
+              }
+            : m,
+        ),
+      );
     } finally {
       setPending(false);
     }
@@ -143,13 +151,18 @@ export function QueryWorkspace() {
 
   const copy = DOMAIN_COPY[domain];
   const examples = EXAMPLES[domain];
+  const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant" && !m.pending);
+  const followUps = lastAssistant?.followUps?.length
+    ? lastAssistant.followUps
+    : examples.slice(0, 4).map((e) => e.query);
+
+  if (!hydrated) {
+    return <div className="min-h-[40vh] flex items-center justify-center text-muted text-sm">Loading Ask…</div>;
+  }
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] flex flex-col">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-8 h-72 overflow-hidden"
-      >
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-8 h-72 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(99,102,241,0.18),_transparent_60%)]" />
         <div className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(to_right,#fff_1px,transparent_1px),linear-gradient(to_bottom,#fff_1px,transparent_1px)] bg-size-[28px_28px]" />
       </div>
@@ -161,11 +174,7 @@ export function QueryWorkspace() {
           }`}
         >
           <div className={`mx-auto w-full max-w-3xl ${started ? "" : "text-center"}`}>
-            <p
-              className={`text-[11px] uppercase tracking-[0.22em] text-accent-hover/90 mb-3 transition-opacity duration-300 ${
-                started ? "opacity-70" : "opacity-100"
-              }`}
-            >
+            <p className="text-[11px] uppercase tracking-[0.22em] text-accent-hover/90 mb-3">
               SalesCoach · Query
             </p>
             <h1
@@ -186,13 +195,13 @@ export function QueryWorkspace() {
             <DomainTabs value={domain} onChange={setDomain} />
 
             <form
-              className="mt-5 group"
+              className="mt-5"
               onSubmit={(e) => {
                 e.preventDefault();
                 void send(input);
               }}
             >
-              <div className="relative rounded-2xl border border-line bg-surface/90 shadow-[0_0_0_1px_rgba(99,102,241,0.08)] focus-within:border-accent/45 focus-within:shadow-[0_0_0_1px_rgba(99,102,241,0.35)] transition-all duration-300">
+              <div className="relative rounded-2xl border border-line bg-surface/90 focus-within:border-accent/45 transition-all duration-300">
                 <textarea
                   ref={inputRef}
                   value={input}
@@ -201,26 +210,37 @@ export function QueryWorkspace() {
                   rows={started ? 2 : 3}
                   placeholder={
                     domain === "crm"
-                      ? "e.g. Show me the Cascade deal…"
+                      ? "e.g. Move Cascade to negotiation…"
                       : domain === "erp"
-                        ? "e.g. List open quotes…"
+                        ? "e.g. Show details for Q-1001…"
                         : domain === "trainer"
-                          ? "e.g. What was Alex's last Cascade call score?…"
+                          ? "e.g. How am I doing?…"
                           : "Ask about pipeline, quotes, call scores, or coaching…"
                   }
-                  className="w-full resize-none bg-transparent px-5 pt-4 pb-14 text-[15px] leading-relaxed outline-none placeholder:text-muted/70"
+                  className="w-full resize-none bg-transparent px-4 sm:px-5 pt-4 pb-14 text-[15px] leading-relaxed outline-none placeholder:text-muted/70"
                 />
                 <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 px-3 pb-3">
-                  <span className="text-[11px] text-muted px-2">
-                    Enter to send · Shift+Enter for newline
+                  <span className="text-[11px] text-muted px-2 hidden sm:inline">
+                    Enter to send · history syncs with the floating chat
                   </span>
-                  <button
-                    type="submit"
-                    disabled={pending || !input.trim()}
-                    className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white transition-all hover:bg-accent-hover disabled:opacity-40 active:scale-[0.98]"
-                  >
-                    {pending ? "Querying…" : "Ask"}
-                  </button>
+                  <div className="flex gap-2 ml-auto">
+                    {pending && (
+                      <button
+                        type="button"
+                        onClick={() => abortRef.current?.abort()}
+                        className="rounded-xl border border-line px-3 py-2 text-sm text-muted hover:text-foreground"
+                      >
+                        Stop
+                      </button>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={pending || !input.trim()}
+                      className="rounded-xl bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-40"
+                    >
+                      {pending ? "Streaming…" : "Ask"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </form>
@@ -235,7 +255,7 @@ export function QueryWorkspace() {
                     onClick={() => void send(ex.query)}
                     className="group/ex text-left rounded-xl border border-transparent px-4 py-3 transition-all hover:border-line hover:bg-surface-2/70"
                   >
-                    <div className="text-[11px] uppercase tracking-wider text-muted mb-1 group-hover/ex:text-accent-hover transition-colors">
+                    <div className="text-[11px] uppercase tracking-wider text-muted mb-1 group-hover/ex:text-accent-hover">
                       {ex.label}
                     </div>
                     <div className="text-sm text-foreground/90">{ex.query}</div>
@@ -261,11 +281,24 @@ export function QueryWorkspace() {
                         : "bg-surface border border-line text-foreground rounded-bl-md"
                     }`}
                   >
-                    <ReplyBody content={m.content} invert={m.role === "user"} />
-                    <SourceBadges sources={m.sources} />
-                    <ReplyLinks links={m.links} />
-                    {m.mode === "demo" && m.role === "assistant" && (
-                      <div className="mt-2 text-[10px] text-muted/80">Demo router · live seeded data</div>
+                    <ReplyBody content={m.content || (m.pending ? "…" : "")} invert={m.role === "user"} />
+                    {!m.pending && m.role === "assistant" && (
+                      <>
+                        <ResultCard data={m.data} />
+                        <SourceBadges sources={m.sources} />
+                        <ReplyLinks links={m.links} />
+                        <MessageActions
+                          content={m.content}
+                          onRegenerate={() => {
+                            const idx = messages.findIndex((x) => x.id === m.id);
+                            const prevUser = [...messages.slice(0, idx)].reverse().find((x) => x.role === "user");
+                            if (prevUser) void send(prevUser.content);
+                          }}
+                        />
+                        {m.mode === "demo" && (
+                          <div className="mt-2 text-[10px] text-muted/80">Demo router · live seeded data</div>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -279,21 +312,21 @@ export function QueryWorkspace() {
               <div ref={bottomRef} />
             </div>
 
-            {messages.length >= 2 && !pending && (
+            {!pending && (
               <div className="mt-6 flex flex-wrap gap-2">
-                {examples.slice(0, 4).map((ex) => (
+                {followUps.map((q) => (
                   <button
-                    key={ex.query}
+                    key={q}
                     type="button"
-                    onClick={() => void send(ex.query)}
+                    onClick={() => void send(q)}
                     className="rounded-lg border border-line px-3 py-1.5 text-xs text-muted hover:text-foreground hover:border-accent/40 transition-colors"
                   >
-                    {ex.label}
+                    {q}
                   </button>
                 ))}
                 <button
                   type="button"
-                  onClick={() => setMessages([])}
+                  onClick={clear}
                   className="rounded-lg px-3 py-1.5 text-xs text-muted hover:text-foreground transition-colors"
                 >
                   Clear

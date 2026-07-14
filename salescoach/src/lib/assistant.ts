@@ -26,6 +26,7 @@ export type AssistantResult = {
   links?: AssistantLink[];
   data?: unknown;
   sources?: AssistantSource[];
+  followUps?: string[];
   mode: "demo" | "llm";
 };
 
@@ -49,6 +50,12 @@ const TOOL_SOURCES: Record<string, AssistantSource[]> = {
   list_calls: ["trainer", "crm"],
   get_call_grade: ["trainer", "crm"],
   list_roleplays: ["trainer"],
+  update_deal_stage: ["crm"],
+  get_document: ["erp"],
+  list_activities: ["crm", "erp", "trainer"],
+  list_conversations: ["crm"],
+  list_scenarios: ["trainer"],
+  my_performance: ["trainer"],
   help: ["crm", "erp", "trainer"],
 };
 
@@ -71,12 +78,27 @@ type ToolCtx = {
   isManager: boolean;
 };
 
+type ToolResult = {
+  text: string;
+  links?: AssistantLink[];
+  data?: unknown;
+  followUps?: string[];
+};
+
 type ToolDef = {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
-  run: (args: Record<string, unknown>, ctx: ToolCtx) => Promise<{ text: string; links?: AssistantLink[]; data?: unknown }>;
+  run: (args: Record<string, unknown>, ctx: ToolCtx) => Promise<ToolResult>;
 };
+
+function dealOwnerFilter(ctx: ToolCtx) {
+  return ctx.isManager ? {} : { ownerId: ctx.userId };
+}
+
+function repFilter(ctx: ToolCtx) {
+  return ctx.isManager ? {} : { repId: ctx.userId };
+}
 
 function q(s: unknown) {
   return String(s ?? "").trim();
@@ -197,24 +219,34 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     parameters: { type: "object", properties: {} },
     async run(_args, ctx) {
       const deals = await db.deal.findMany({
-        where: { orgId: ctx.orgId, stage: { in: [...OPEN_STAGES] } },
+        where: { orgId: ctx.orgId, stage: { in: [...OPEN_STAGES] }, ...dealOwnerFilter(ctx) },
         include: {
           account: { select: { name: true } },
           owner: { select: { name: true } },
         },
       });
       const withGrades = await db.call.findMany({
-        where: { orgId: ctx.orgId, dealId: { not: null }, status: "GRADED" },
+        where: {
+          orgId: ctx.orgId,
+          dealId: { not: null },
+          status: "GRADED",
+          ...(ctx.isManager ? {} : { repId: ctx.userId }),
+        },
         select: { dealId: true },
         distinct: ["dealId"],
       });
       const coached = new Set(withGrades.map((c) => c.dealId));
       const total = deals.reduce((s, d) => s + d.amount, 0);
       const weighted = deals.reduce((s, d) => s + (d.amount * d.probability) / 100, 0);
-      const byStage = DEAL_STAGES.filter((s) => OPEN_STAGES.includes(s.key)).map((s) => {
+      const stageRows = DEAL_STAGES.filter((s) => OPEN_STAGES.includes(s.key)).map((s) => {
         const list = deals.filter((d) => d.stage === s.key);
-        return `${s.label}: ${list.length} (${fmtMoney(list.reduce((a, d) => a + d.amount, 0))})`;
+        return {
+          label: s.label,
+          count: list.length,
+          value: list.reduce((a, d) => a + d.amount, 0),
+        };
       });
+      const byStage = stageRows.map((s) => `${s.label}: ${s.count} (${fmtMoney(s.value)})`);
       const top = [...deals]
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5)
@@ -222,9 +254,10 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           (d) =>
             `• ${d.name} — ${stageLabel(d.stage)} · ${fmtMoney(d.amount)} · ${d.owner?.name ?? "unassigned"}${coached.has(d.id) ? " · coached" : ""}`,
         );
+      const scope = ctx.isManager ? "Open pipeline" : "Your open pipeline";
       return {
         text: [
-          `Open pipeline: ${deals.length} deals · ${fmtMoney(total)} · weighted ${fmtMoney(Math.round(weighted))}.`,
+          `${scope}: ${deals.length} deals · ${fmtMoney(total)} · weighted ${fmtMoney(Math.round(weighted))}.`,
           `${coached.size} deals have graded coaching.`,
           byStage.join(" · "),
           top.length ? `Largest deals:\n${top.join("\n")}` : "",
@@ -232,7 +265,18 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           .filter(Boolean)
           .join("\n"),
         links: [{ href: "/crm", label: "Open pipeline" }],
-        data: { count: deals.length, total, weighted },
+        data: {
+          kind: "pipeline",
+          count: deals.length,
+          total,
+          weighted: Math.round(weighted),
+          stages: stageRows,
+        },
+        followUps: [
+          "Show me the Cascade deal",
+          "Who needs coaching?",
+          "List open quotes",
+        ],
       };
     },
   },
@@ -263,6 +307,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       const deals = await db.deal.findMany({
         where: {
           orgId: ctx.orgId,
+          ...dealOwnerFilter(ctx),
           ...(stage ? { stage } : {}),
           ...(query
             ? {
@@ -360,7 +405,19 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           { href: "/erp", label: "ERP hub" },
           { href: "/erp/finance", label: "Finance" },
         ],
-        data: snap,
+        data: {
+          kind: "finance",
+          openQuoteCount: snap.openQuoteCount,
+          openQuoteValue: snap.openQuoteValue,
+          openOrderCount: snap.openOrderCount,
+          openOrderValue: snap.openOrderValue,
+          arBalance: snap.arBalance,
+          arCount: snap.arCount,
+          revenue: snap.revenue,
+          products: snap.products,
+          lowStockCount: snap.lowStockCount,
+        },
+        followUps: ["List open quotes", "Show sales orders", "What's low in inventory?"],
       };
     },
   },
@@ -688,7 +745,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       },
     },
     async run(args, ctx) {
-      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const rep = (await resolveRep(ctx.orgId, q(args.rep))) || (!ctx.isManager ? { id: ctx.userId, name: "you" } : null);
       const since = new Date();
       since.setDate(since.getDate() - 30);
       const grades = await db.grade.findMany({
@@ -712,7 +769,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         ? grades.filter((g) => g.overallScore < 60)
         : grades;
       if (!filtered.length) {
-        return { text: rep ? `No recent grades for ${rep.name}.` : "No recent grades." };
+        return { text: rep ? `No recent grades for ${"name" in rep ? rep.name : "rep"}.` : "No recent grades." };
       }
       const avg = Math.round(filtered.reduce((s, g) => s + g.overallScore, 0) / filtered.length);
       const lines = filtered.slice(0, 8).map((g) => {
@@ -720,15 +777,21 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         const subject = g.subjectType === "CALL" ? g.call?.deal?.name || "call" : "role-play";
         return `• ${who} · ${g.overallScore}/100 (${BAND_LABELS[g.band as keyof typeof BAND_LABELS] ?? g.band}) · ${subject}`;
       });
+      const label = rep && "name" in rep ? (rep.name === "you" ? "You" : rep.name) : "Team";
       return {
         text: [
-          `${rep ? rep.name : "Team"} · last 30 days: ${filtered.length} grades · avg ${avg}/100`,
+          `${label} · last 30 days: ${filtered.length} grades · avg ${avg}/100`,
           lines.join("\n"),
         ].join("\n"),
         links: [
-          { href: "/dashboard", label: "Team dashboard" },
-          ...(rep ? [{ href: `/team/${rep.id}`, label: `${rep.name}'s drill-down` }] : []),
+          { href: ctx.isManager ? "/dashboard" : "/me", label: ctx.isManager ? "Team dashboard" : "My performance" },
+          ...(rep && "id" in rep && rep.name !== "you" ? [{ href: `/team/${rep.id}`, label: `${rep.name}'s drill-down` }] : []),
           { href: "/calls", label: "Calls" },
+        ],
+        followUps: [
+          "What was Alex's last Cascade call score?",
+          "Show recent role-plays",
+          "Show assignments",
         ],
       };
     },
@@ -746,7 +809,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       const assignments = await db.assignment.findMany({
         where: {
           orgId: ctx.orgId,
-          ...(rep ? { assignedToId: rep.id } : {}),
+          ...(rep ? { assignedToId: rep.id } : ctx.isManager ? {} : { assignedToId: ctx.userId }),
           ...(status ? { status } : {}),
         },
         include: {
@@ -786,7 +849,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       const calls = await db.call.findMany({
         where: {
           orgId: ctx.orgId,
-          ...(rep ? { repId: rep.id } : {}),
+          ...(rep ? { repId: rep.id } : repFilter(ctx)),
           ...(args.graded_only ? { status: "GRADED" } : {}),
           ...(deal
             ? { dealId: deal.id }
@@ -1006,6 +1069,294 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "update_deal_stage",
+    description: "Move a CRM deal to a new pipeline stage.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        stage: {
+          type: "string",
+          description: "lead|qualified|discovery|demo|proposal|negotiation|closed_won|closed_lost",
+        },
+      },
+      required: ["query", "stage"],
+    },
+    async run(args, ctx) {
+      const deal = await resolveDeal(ctx.orgId, q(args.query));
+      if (!deal) return { text: `No deal matched "${q(args.query)}".` };
+      if (!ctx.isManager && deal.ownerId !== ctx.userId) {
+        return { text: "You can only update deals you own." };
+      }
+      const stageRaw = q(args.stage).toLowerCase().replace(/\s+/g, "_");
+      const stage = DEAL_STAGES.find(
+        (s) => s.key === stageRaw || s.label.toLowerCase() === q(args.stage).toLowerCase(),
+      );
+      if (!stage) return { text: `Unknown stage "${q(args.stage)}".` };
+      const updated = await db.deal.update({
+        where: { id: deal.id },
+        data: { stage: stage.key, probability: stage.probability },
+      });
+      await db.activity.create({
+        data: {
+          orgId: ctx.orgId,
+          dealId: deal.id,
+          accountId: deal.accountId,
+          contactId: deal.contactId,
+          ownerId: ctx.userId,
+          type: "NOTE",
+          subject: `Stage → ${stage.label}`,
+          body: `Moved from ${stageLabel(deal.stage)} to ${stage.label} via Ask.`,
+        },
+      });
+      return {
+        text: `Moved **${updated.name}** to ${stage.label} (${stage.probability}%).`,
+        links: [{ href: `/crm/deals/${updated.id}`, label: "Open deal" }],
+        followUps: ["Show me the Cascade deal", "What's our pipeline look like?"],
+      };
+    },
+  },
+  {
+    name: "get_document",
+    description: "Get quote, sales order, or invoice detail by number.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        type: { type: "string", enum: ["quote", "order", "invoice", "auto"] },
+      },
+      required: ["query"],
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const type = q(args.type).toLowerCase() || "auto";
+      if (type === "quote" || type === "auto" || /^Q-/i.test(query)) {
+        const quote = await resolveQuote(ctx.orgId, query);
+        if (quote) {
+          const lines = await db.quoteLine.findMany({ where: { quoteId: quote.id }, orderBy: { sortOrder: "asc" } });
+          return {
+            text: [
+              `**${quote.number}** · ${quote.status} · ${fmtMoney(quote.total)}`,
+              `Title: ${quote.title || "—"} · Deal: ${quote.deal?.name ?? "—"} · Account: ${quote.account?.name ?? "—"}`,
+              lines.length
+                ? `Lines:\n${lines.map((l) => `• ${l.quantity}× ${l.description} @ ${fmtMoney(l.unitPrice)} = ${fmtMoney(l.lineTotal)}`).join("\n")}`
+                : "Lines: none",
+            ].join("\n"),
+            links: [{ href: `/erp/quotes/${quote.id}`, label: quote.number }],
+            followUps: [`Accept quote ${quote.number}`, "List open quotes"],
+          };
+        }
+        if (type === "quote") return { text: `No quote matched "${query}".` };
+      }
+      if (type === "order" || type === "auto" || /^SO-/i.test(query)) {
+        const order = await resolveOrder(ctx.orgId, query);
+        if (order) {
+          const lines = await db.orderLine.findMany({ where: { orderId: order.id }, orderBy: { sortOrder: "asc" } });
+          return {
+            text: [
+              `**${order.number}** · ${order.status} · ${fmtMoney(order.total)}`,
+              `Deal: ${order.deal?.name ?? "—"} · Account: ${order.account?.name ?? "—"}`,
+              `Invoices: ${order.invoices?.map((i) => `${i.number} ${i.status}`).join("; ") || "none"}`,
+              lines.length
+                ? `Lines:\n${lines.map((l) => `• ${l.quantity}× ${l.description} @ ${fmtMoney(l.unitPrice)}`).join("\n")}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            links: [{ href: `/erp/orders/${order.id}`, label: order.number }],
+            followUps: [`Confirm order ${order.number}`, "Finance snapshot"],
+          };
+        }
+        if (type === "order") return { text: `No order matched "${query}".` };
+      }
+      if (type === "invoice" || type === "auto" || /^INV-/i.test(query)) {
+        const invoice = await resolveInvoice(ctx.orgId, query);
+        if (invoice) {
+          return {
+            text: [
+              `**${invoice.number}** · ${invoice.status} · ${fmtMoney(invoice.total)}`,
+              `Paid ${fmtMoney(invoice.amountPaid)} · Balance ${fmtMoney(invoice.total - invoice.amountPaid)}`,
+              `Deal: ${invoice.deal?.name ?? "—"} · Account: ${invoice.account?.name ?? "—"}`,
+              invoice.payments?.length
+                ? `Payments: ${invoice.payments.map((p) => `${fmtMoney(p.amount)} ${p.method}`).join("; ")}`
+                : "Payments: none",
+            ].join("\n"),
+            links: [{ href: `/erp/invoices/${invoice.id}`, label: invoice.number }],
+            followUps: [`Record payment on ${invoice.number}`, "List invoices"],
+          };
+        }
+      }
+      return { text: `No document matched "${query}".` };
+    },
+  },
+  {
+    name: "list_activities",
+    description: "List recent CRM/ERP/coaching activity timeline entries for a deal or account.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+      required: ["query"],
+    },
+    async run(args, ctx) {
+      const deal = await resolveDeal(ctx.orgId, q(args.query));
+      const activities = await db.activity.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(deal
+            ? { dealId: deal.id }
+            : {
+                OR: [
+                  { subject: { contains: q(args.query) } },
+                  { account: { name: { contains: q(args.query) } } },
+                ],
+              }),
+        },
+        include: { owner: { select: { name: true } }, deal: { select: { name: true } } },
+        orderBy: { occurredAt: "desc" },
+        take: 12,
+      });
+      if (!activities.length) return { text: "No activities found." };
+      return {
+        text: activities
+          .map(
+            (a) =>
+              `• ${a.type} · ${a.subject}${a.score != null ? ` · ${a.score}/100` : ""} · ${a.deal?.name ?? "—"} · ${a.owner?.name ?? ""}`,
+          )
+          .join("\n"),
+        links: deal
+          ? [{ href: `/crm/deals/${deal.id}`, label: deal.name }]
+          : [{ href: "/crm", label: "Pipeline" }],
+        followUps: deal ? [`Show me the ${deal.name} deal`] : ["What's our pipeline look like?"],
+      };
+    },
+  },
+  {
+    name: "list_conversations",
+    description: "List CRM email/phone conversation threads.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const deal = query ? await resolveDeal(ctx.orgId, query) : null;
+      const conversations = await db.conversation.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(ctx.isManager ? {} : { ownerId: ctx.userId }),
+          ...(deal
+            ? { dealId: deal.id }
+            : query
+              ? {
+                  OR: [
+                    { subject: { contains: query } },
+                    { prospectAddress: { contains: query } },
+                    { deal: { name: { contains: query } } },
+                  ],
+                }
+              : {}),
+        },
+        include: {
+          deal: { select: { name: true } },
+          contact: { select: { name: true } },
+          _count: { select: { messages: true } },
+        },
+        orderBy: { lastMessageAt: "desc" },
+        take: 10,
+      });
+      if (!conversations.length) return { text: "No conversations found." };
+      return {
+        text: conversations
+          .map(
+            (c) =>
+              `• ${c.channel} · ${c.subject || "(no subject)"} · ${c.deal?.name || c.contact?.name || c.prospectAddress} · ${c._count.messages} msgs · ${c.status}`,
+          )
+          .join("\n"),
+        links: [{ href: "/conversations", label: "Conversations" }],
+        followUps: ["Show me the Cascade deal", "Find contact Dana"],
+      };
+    },
+  },
+  {
+    name: "list_scenarios",
+    description: "List sales trainer role-play scenarios.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const scenarios = await db.scenario.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(query
+            ? {
+                OR: [{ title: { contains: query } }, { callType: { contains: query } }, { difficulty: { contains: query } }],
+              }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      });
+      if (!scenarios.length) return { text: "No scenarios found." };
+      return {
+        text: scenarios
+          .map((s) => `• ${s.title} · ${s.callType} · ${s.difficulty}`)
+          .join("\n"),
+        links: [
+          { href: "/scenarios", label: "Scenarios" },
+          ...scenarios.slice(0, 2).map((s) => ({ href: `/scenarios/${s.id}`, label: s.title })),
+        ],
+        followUps: ["Show recent role-plays", "Who needs coaching?"],
+      };
+    },
+  },
+  {
+    name: "my_performance",
+    description: "Summary of the current user's coaching performance and open assignments.",
+    parameters: { type: "object", properties: {} },
+    async run(_args, ctx) {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const [grades, assignments, calls] = await Promise.all([
+        db.grade.findMany({
+          where: {
+            orgId: ctx.orgId,
+            createdAt: { gte: since },
+            OR: [{ call: { repId: ctx.userId } }, { roleplay: { repId: ctx.userId } }],
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        }),
+        db.assignment.findMany({
+          where: { orgId: ctx.orgId, assignedToId: ctx.userId, status: { not: "COMPLETED" } },
+          include: { scenario: { select: { title: true } } },
+          take: 8,
+        }),
+        db.call.count({ where: { orgId: ctx.orgId, repId: ctx.userId, callDate: { gte: since } } }),
+      ]);
+      const avg = grades.length
+        ? Math.round(grades.reduce((s, g) => s + (g.managerOverrideScore ?? g.overallScore), 0) / grades.length)
+        : null;
+      return {
+        text: [
+          `Last 30 days: ${calls} calls · ${grades.length} grades${avg != null ? ` · avg ${avg}/100` : ""}`,
+          grades[0]
+            ? `Latest: ${grades[0].overallScore}/100 (${BAND_LABELS[grades[0].band as keyof typeof BAND_LABELS] ?? grades[0].band})`
+            : "Latest: no grades yet",
+          assignments.length
+            ? `Open assignments:\n${assignments.map((a) => `• ${a.type} · ${a.doneCount}/${a.targetCount}${a.scenario ? ` · ${a.scenario.title}` : ""}`).join("\n")}`
+            : "Open assignments: none",
+        ].join("\n"),
+        links: [
+          { href: "/me", label: "My performance" },
+          { href: "/assignments", label: "Assignments" },
+        ],
+        followUps: ["Show recent role-plays", "Show assignments", "Who needs coaching?"],
+      };
+    },
+  },
+  {
     name: "help",
     description: "Explain what the assistant can do across coaching, CRM, and ERP.",
     parameters: { type: "object", properties: {} },
@@ -1128,6 +1479,12 @@ export function routeDemoIntent(
   if (allowTrainer && /\b(role-?plays?|practice sessions?)\b/.test(lower)) {
     return [{ name: "list_roleplays", args: { rep: namedRep || "" } }];
   }
+  if (allowTrainer && /\b(scenarios?)\b/.test(lower)) {
+    return [{ name: "list_scenarios", args: { query: "" } }];
+  }
+  if (allowTrainer && /\b(my performance|my scores|how am i doing)\b/.test(lower)) {
+    return [{ name: "my_performance", args: {} }];
+  }
 
   if (allowCrm && /\b(pipeline|open deals|deal board)\b/.test(lower) && !namedAccount) {
     return [{ name: "pipeline_summary", args: {} }];
@@ -1156,6 +1513,35 @@ export function routeDemoIntent(
     !/\bcall\b/.test(lower)
   ) {
     return [{ name: "coaching_summary", args: { rep: namedRep || "" } }];
+  }
+
+  // Move deal stage
+  if (allowCrm && /\b(move|set|update|change)\b.*\b(stage|to)\b|\bstage\b.*\b(to|as)\b/.test(lower)) {
+    const stageMatch = m.match(
+      /\b(lead|qualified|discovery|demo|proposal|negotiation|closed[_\s]?won|closed[_\s]?lost)\b/i,
+    );
+    return [
+      {
+        name: "update_deal_stage",
+        args: {
+          query: namedAccount || m,
+          stage: (stageMatch?.[1] || "").replace(/\s+/g, "_"),
+        },
+      },
+    ];
+  }
+
+  // Document detail
+  if (allowErp && /\b(Q-\d+|SO-\d+|INV-\d+)\b/i.test(m) && /\b(show|get|open|details?|line items?)\b/.test(lower)) {
+    const num = m.match(/\b(Q-\d+|SO-\d+|INV-\d+)\b/i)?.[0] || "";
+    return [{ name: "get_document", args: { query: num, type: "auto" } }];
+  }
+
+  if ((allowCrm || allowErp || allowTrainer) && /\b(activit(y|ies)|timeline)\b/.test(lower)) {
+    return [{ name: "list_activities", args: { query: namedAccount || m } }];
+  }
+  if (allowCrm && /\b(conversations?|threads?|emails?|outreach)\b/.test(lower)) {
+    return [{ name: "list_conversations", args: { query: namedAccount || namedContact || "" } }];
   }
 
   // Quote actions (ERP)
@@ -1238,7 +1624,7 @@ export function routeDemoIntent(
   }
 
   // Deal / account / contact — allowed from CRM, or any tab when clearly an entity lookup
-  if (allowCrm || looksLikeDealLookup || (domain === "all" && (namedAccount || namedContact))) {
+  if (allowCrm || looksLikeDealLookup || Boolean(namedAccount || namedContact)) {
     if (
       (namedContact || /\b(contact|email|phone)\b/.test(lower)) &&
       !/\bdeal\b/.test(lower) &&
@@ -1332,17 +1718,24 @@ export async function runAssistantChat(input: {
     const parts: string[] = [];
     const links: AssistantLink[] = [];
     const toolNames: string[] = [];
+    const followUps: string[] = [];
+    let data: unknown;
     for (const call of calls) {
       toolNames.push(call.name);
       const result = await runTool(call.name, call.args, ctx);
       parts.push(result.text);
       links.push(...(result.links ?? []));
+      followUps.push(...(result.followUps ?? []));
+      if (result.data != null && data == null) data = result.data;
     }
     const uniq = links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i);
+    const uniqFollow = followUps.filter((f, i, arr) => arr.indexOf(f) === i).slice(0, 4);
     return {
       reply: parts.join("\n\n") || "I wasn't sure — try “help”.",
       links: uniq.slice(0, 6),
       sources: sourcesForTools(toolNames),
+      followUps: uniqFollow,
+      data,
       mode: "demo",
     };
   }
@@ -1373,6 +1766,8 @@ Current user role: ${input.role}.`;
 
   const links: AssistantLink[] = [];
   const toolNames: string[] = [];
+  const followUps: string[] = [];
+  let data: unknown;
   let guard = 0;
   while (guard++ < 4) {
     const res = await client.chat.completions.create({
@@ -1398,6 +1793,8 @@ Current user role: ${input.role}.`;
         toolNames.push(tc.function.name);
         const result = await runTool(tc.function.name, args, ctx);
         links.push(...(result.links ?? []));
+        followUps.push(...(result.followUps ?? []));
+        if (result.data != null && data == null) data = result.data;
         messages.push({
           role: "tool",
           tool_call_id: tc.id,
@@ -1409,13 +1806,22 @@ Current user role: ${input.role}.`;
 
     const reply = choice.content?.trim() || "Done.";
     const uniq = links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i);
-    return { reply, links: uniq.slice(0, 6), sources: sourcesForTools(toolNames), mode: "llm" };
+    return {
+      reply,
+      links: uniq.slice(0, 6),
+      sources: sourcesForTools(toolNames),
+      followUps: followUps.filter((f, i, arr) => arr.indexOf(f) === i).slice(0, 4),
+      data,
+      mode: "llm",
+    };
   }
 
   return {
     reply: "I hit a tool loop limit — try a more specific question.",
     links,
     sources: sourcesForTools(toolNames),
+    followUps: followUps.slice(0, 4),
+    data,
     mode: "llm",
   };
 }

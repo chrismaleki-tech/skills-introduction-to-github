@@ -139,3 +139,92 @@ export function DomainTabs({
     </div>
   );
 }
+
+function money(n: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(n);
+}
+
+export function ResultCard({ data }: { data?: unknown }) {
+  if (!data || typeof data !== "object") return null;
+  const d = data as Record<string, unknown>;
+  if (d.kind === "pipeline") {
+    const stages = Array.isArray(d.stages) ? (d.stages as { label: string; count: number; value: number }[]) : [];
+    return (
+      <div className="mt-3 rounded-xl border border-line bg-background/50 p-3">
+        <div className="grid grid-cols-3 gap-2 text-center mb-3">
+          <Stat label="Deals" value={String(d.count ?? 0)} />
+          <Stat label="Pipeline" value={money(Number(d.total ?? 0))} />
+          <Stat label="Weighted" value={money(Number(d.weighted ?? 0))} />
+        </div>
+        {stages.length > 0 && (
+          <div className="space-y-1.5">
+            {stages
+              .filter((s) => s.count > 0)
+              .map((s) => (
+                <div key={s.label} className="flex items-center justify-between text-xs">
+                  <span className="text-muted">{s.label}</span>
+                  <span className="tabular-nums">
+                    {s.count} · {money(s.value)}
+                  </span>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (d.kind === "finance") {
+    return (
+      <div className="mt-3 rounded-xl border border-line bg-background/50 p-3 grid grid-cols-2 gap-2">
+        <Stat label="Open quotes" value={`${d.openQuoteCount} · ${money(Number(d.openQuoteValue ?? 0))}`} />
+        <Stat label="Open orders" value={`${d.openOrderCount} · ${money(Number(d.openOrderValue ?? 0))}`} />
+        <Stat label="AR" value={money(Number(d.arBalance ?? 0))} />
+        <Stat label="Cash collected" value={money(Number(d.revenue ?? 0))} />
+      </div>
+    );
+  }
+  return null;
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-surface-2/60 px-2.5 py-2">
+      <div className="text-[10px] uppercase tracking-wider text-muted">{label}</div>
+      <div className="text-sm font-medium tabular-nums mt-0.5">{value}</div>
+    </div>
+  );
+}
+
+export function MessageActions({
+  content,
+  onRegenerate,
+}: {
+  content: string;
+  onRegenerate?: () => void;
+}) {
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <button
+        type="button"
+        className="text-[10px] text-muted hover:text-foreground transition-colors"
+        onClick={() => void navigator.clipboard?.writeText(content)}
+      >
+        Copy
+      </button>
+      {onRegenerate && (
+        <button
+          type="button"
+          className="text-[10px] text-muted hover:text-foreground transition-colors"
+          onClick={onRegenerate}
+        >
+          Regenerate
+        </button>
+      )}
+    </div>
+  );
+}
+
