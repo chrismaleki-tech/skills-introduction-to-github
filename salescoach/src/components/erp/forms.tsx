@@ -668,42 +668,7 @@ export function NewPoForm({
   );
 }
 
-export function PoActions({ poId, status }: { poId: string; status: string }) {
-  const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  async function run(action: string) {
-    setError(null);
-    const res = await fetch(`/api/erp/purchasing/${poId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      setError(data.error ?? "Failed.");
-      return;
-    }
-    startTransition(() => router.refresh());
-  }
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {status === "draft" && (
-        <Button disabled={pending} variant="secondary" onClick={() => run("submit")}>
-          Submit
-        </Button>
-      )}
-      {(status === "draft" || status === "submitted") && (
-        <Button disabled={pending} onClick={() => run("receive")}>
-          Receive stock
-        </Button>
-      )}
-      {error && <p className="text-xs text-rose-400 w-full">{error}</p>}
-    </div>
-  );
-}
+export { PoActions } from "./po-actions";
 
 function Field({
   label,

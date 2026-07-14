@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { adjustWarehouseStock, ensureDefaultWarehouse } from "@/lib/erp-deep";
 import { currentUser, isManagerRole } from "@/lib/session";
 
 export async function PATCH(
@@ -21,13 +22,30 @@ export async function PATCH(
   for (const key of ["name", "description", "category", "unit", "sku"] as const) {
     if (typeof body[key] === "string") data[key] = (body[key] as string).trim();
   }
-  for (const key of ["listPrice", "cost", "qtyOnHand", "qtyReserved", "reorderPoint"] as const) {
+  for (const key of ["listPrice", "cost", "qtyReserved", "reorderPoint"] as const) {
     if (body[key] != null) data[key] = Math.max(0, Math.round(Number(body[key])) || 0);
   }
   if (typeof body.trackInventory === "boolean") data.trackInventory = body.trackInventory;
   if (typeof body.active === "boolean") data.active = body.active;
 
   try {
+    if (body.qtyOnHand != null && existing.trackInventory) {
+      const target = Math.max(0, Math.round(Number(body.qtyOnHand)) || 0);
+      const warehouse = await ensureDefaultWarehouse(user.orgId);
+      const balance = await db.inventoryBalance.findUnique({
+        where: {
+          warehouseId_productId: { warehouseId: warehouse.id, productId: id },
+        },
+      });
+      const current = balance?.qtyOnHand ?? 0;
+      await adjustWarehouseStock({
+        orgId: user.orgId,
+        productId: id,
+        warehouseId: warehouse.id,
+        deltaOnHand: target - current,
+      });
+    }
+
     const product = await db.product.update({ where: { id }, data });
     return NextResponse.json({ product });
   } catch {

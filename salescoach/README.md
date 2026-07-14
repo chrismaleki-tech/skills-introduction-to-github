@@ -47,13 +47,18 @@ No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mod
 | **Quotes** | Draft/send/accept/reject; accepting creates a sales order and writes `QUOTE` activities on the deal |
 | **Orders** | Confirm (marks CRM deal closed-won), fulfill (decrements tracked inventory), invoice |
 | **Invoices + payments** | AR documents with partial/full payment recording and `PAYMENT` timeline events |
-| **Inventory** | On-hand / reserved / reorder for tracked hardware SKUs |
-| **Purchasing** | Vendors + POs; receiving stock replenishes inventory |
+| **Inventory** | On-hand / reserved / reorder; balances roll up from warehouses |
+| **Warehouses** | Multi-location stock, bins, and inter-warehouse transfers |
+| **Purchasing** | Vendors, PO approval, partial/full goods receipts, matched vendor bills (AP) |
+| **General ledger** | Chart of accounts, journals from invoices/payments/bills/payroll, trial balance, CSV export |
+| **Projects & time** | Implementation projects linked to CRM deals with billable time |
+| **HR & payroll** | Employee roster and monthly payroll accrual journals |
+| **ERP settings** | Base currency, tax codes, FX rates applied to commercial documents |
 | **Finance hub** | Cash collected, AR balance, open order book, low-stock alerts |
 
-Deal pages show live ERP documents and a one-click quote builder. Grading prompts include open quote/order/invoice state so coaching stays grounded in commercial reality (`src/lib/erp.ts` + pipeline enrichment).
+Deal pages show live ERP documents and a one-click quote builder. Grading prompts include open quote/order/invoice state so coaching stays grounded in commercial reality (`src/lib/erp.ts`, `src/lib/erp-deep.ts` + pipeline enrichment).
 
-**Phase 8 — Natural-language platform assistant.** Floating **Ask SalesCoach** chat on every page. Talk to CRM, ERP, and coaching in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “Accept the Cascade quote”, “Who needs coaching?”, “Finance snapshot”. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
+**Phase 8 — Natural-language platform assistant.** Floating **Ask SalesCoach** chat on every page. Talk to CRM, ERP, and coaching in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “Accept the Cascade quote”, “Who needs coaching?”, “Finance snapshot”, “Trial balance”, “Warehouse stock”. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
 
 ## Architecture notes
 
@@ -82,4 +87,4 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 
 ## Not yet implemented (known gaps)
 
-Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, multi-currency/tax engines, warehouse multi-bin inventory, GL/accounting export, real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.
+Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.

@@ -630,6 +630,118 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         links: [
           { href: "/erp/catalog", label: "Catalog" },
           { href: "/erp/inventory", label: "Inventory" },
+          { href: "/erp/warehouses", label: "Warehouses" },
+        ],
+      };
+    },
+  },
+  {
+    name: "warehouse_stock",
+    description: "Multi-warehouse inventory balances and recent transfers.",
+    parameters: { type: "object", properties: { query: { type: "string" } } },
+    async run(args, ctx) {
+      const { ensureDefaultWarehouse } = await import("./erp-deep");
+      await ensureDefaultWarehouse(ctx.orgId);
+      const query = q(args.query);
+      const warehouses = await db.warehouse.findMany({
+        where: { orgId: ctx.orgId },
+        include: {
+          balances: {
+            include: { product: { select: { sku: true, name: true } } },
+            ...(query
+              ? { where: { OR: [{ product: { sku: { contains: query } } }, { product: { name: { contains: query } } }] } }
+              : {}),
+          },
+        },
+        orderBy: [{ isDefault: "desc" }, { code: "asc" }],
+      });
+      const lines = warehouses.map((w) => {
+        const stock =
+          w.balances.length === 0
+            ? "empty"
+            : w.balances.map((b) => `${b.product.sku} ${b.qtyOnHand}`).join(", ");
+        return `• ${w.code} ${w.name}${w.isDefault ? " (default)" : ""}: ${stock}`;
+      });
+      return {
+        text: lines.join("\n") || "No warehouses.",
+        links: [
+          { href: "/erp/warehouses", label: "Warehouses" },
+          { href: "/erp/inventory", label: "Inventory" },
+        ],
+      };
+    },
+  },
+  {
+    name: "gl_trial_balance",
+    description: "General ledger trial balance and recent journal count.",
+    parameters: { type: "object", properties: {} },
+    async run(_args, ctx) {
+      const { glTrialBalance } = await import("./erp-deep");
+      const tb = await glTrialBalance(ctx.orgId);
+      const jeCount = await db.journalEntry.count({ where: { orgId: ctx.orgId } });
+      return {
+        text: [
+          `Journal entries: ${jeCount}`,
+          ...tb
+            .filter((a) => a.debit > 0 || a.credit > 0)
+            .map((a) => `• ${a.code} ${a.name}: Dr ${fmtMoney(a.debit)} / Cr ${fmtMoney(a.credit)}`),
+        ].join("\n"),
+        links: [
+          { href: "/erp/ledger", label: "General ledger" },
+          { href: "/api/erp/gl?format=csv", label: "Export CSV" },
+        ],
+      };
+    },
+  },
+  {
+    name: "projects_summary",
+    description: "Implementation projects and hours logged.",
+    parameters: { type: "object", properties: { query: { type: "string" } } },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const projects = await db.project.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(query
+            ? { OR: [{ name: { contains: query } }, { code: { contains: query } }] }
+            : {}),
+        },
+        include: { _count: { select: { timeEntries: true } } },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      });
+      const hours = await db.timeEntry.groupBy({
+        by: ["projectId"],
+        where: { orgId: ctx.orgId },
+        _sum: { hours: true },
+      });
+      const byId = Object.fromEntries(hours.map((h) => [h.projectId, h._sum.hours ?? 0]));
+      if (!projects.length) return { text: "No projects.", links: [{ href: "/erp/projects", label: "Projects" }] };
+      return {
+        text: projects
+          .map((p) => `• ${p.code} ${p.name} (${p.status}) — ${byId[p.id] ?? 0}h / ${p.budgetHours || "—"}h budget`)
+          .join("\n"),
+        links: [{ href: "/erp/projects", label: "Projects" }],
+      };
+    },
+  },
+  {
+    name: "hr_payroll_snapshot",
+    description: "HR headcount and monthly payroll accrual snapshot.",
+    parameters: { type: "object", properties: {} },
+    async run(_args, ctx) {
+      const { payrollAccrualSnapshot } = await import("./erp-deep");
+      const snap = await payrollAccrualSnapshot(ctx.orgId);
+      return {
+        text: [
+          `Headcount: ${snap.headcount}`,
+          `Annual payroll: ${fmtMoney(snap.annualPayroll)}`,
+          `Monthly accrual: ${fmtMoney(snap.monthlyAccrual)}`,
+          ...snap.byDepartment.map((d) => `• ${d.department}: ${d.count} · ${fmtMoney(d.annual)}/yr`),
+        ].join("\n"),
+        links: [
+          { href: "/erp/hr", label: "HR & payroll" },
+          { href: "/erp/ledger", label: "Ledger" },
         ],
       };
     },
@@ -781,6 +893,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           "• “List open quotes” / “Accept the Cascade quote”",
           "• “Confirm order SO-1002” / “Invoice Harbor's order”",
           "• “Finance snapshot” / “What's low in inventory?”",
+          "• “Trial balance” / “Warehouse stock” / “Projects” / “Payroll”",
           "• “Who needs coaching?” / “How is Alex doing?”",
           "• “Create a quote for BlueRidge with Meridian Core”",
           "• “Find contact Dana” / “Show assignments”",
@@ -788,6 +901,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         links: [
           { href: "/crm", label: "Pipeline" },
           { href: "/erp", label: "ERP" },
+          { href: "/erp/ledger", label: "Ledger" },
           { href: "/dashboard", label: "Dashboard" },
         ],
       };
@@ -825,6 +939,18 @@ export function routeDemoIntent(message: string): { name: string; args: Record<s
   }
   if (/\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
     return [{ name: "finance_snapshot", args: {} }];
+  }
+  if (/\b(trial balance|general ledger|g\/?l|journal)\b/.test(lower)) {
+    return [{ name: "gl_trial_balance", args: {} }];
+  }
+  if (/\b(warehouse|warehouses|transfer)\b/.test(lower)) {
+    return [{ name: "warehouse_stock", args: {} }];
+  }
+  if (/\b(project|projects|time entries|hours logged)\b/.test(lower)) {
+    return [{ name: "projects_summary", args: {} }];
+  }
+  if (/\b(payroll|headcount|hr|employees)\b/.test(lower)) {
+    return [{ name: "hr_payroll_snapshot", args: {} }];
   }
   if (/\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
     return [{ name: "list_products", args: { inventory_only: true } }];
@@ -999,7 +1125,7 @@ export async function runAssistantChat(input: {
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const system = `You are SalesCoach Assistant for Meridian Software.
-You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, finance), and coaching (scores, assignments, role-play).
+You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, warehouses, GL, projects, HR/payroll, finance), and coaching (scores, assignments, role-play).
 Use tools for live data and actions. Be concise. After tool results, summarize clearly with numbers and next steps.
 Current user role: ${input.role}.`;
 

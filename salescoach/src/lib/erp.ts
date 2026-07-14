@@ -26,7 +26,10 @@ export const INVOICE_STATUSES = [
 
 export const PO_STATUSES = [
   { key: "draft", label: "Draft" },
+  { key: "pending_approval", label: "Pending approval" },
+  { key: "approved", label: "Approved" },
   { key: "submitted", label: "Submitted" },
+  { key: "partial", label: "Partial" },
   { key: "received", label: "Received" },
   { key: "cancelled", label: "Cancelled" },
 ] as const;
@@ -165,9 +168,12 @@ export async function createQuote(input: {
   title?: string;
   notes?: string;
   taxRate?: number;
+  taxCode?: string;
+  currency?: string;
   validUntil?: Date | null;
   lines: LineInput[];
 }) {
+  const { resolveTaxRate, resolveFxRate, getOrgErpDefaults } = await import("./erp-deep");
   let accountId = input.accountId ?? null;
   let contactId = input.contactId ?? null;
   let dealStage: string | null = null;
@@ -181,7 +187,12 @@ export async function createQuote(input: {
 
   const lines = normalizeLines(input.lines);
   if (lines.length === 0) throw new Error("At least one line item is required.");
-  const totals = calcTotals(lines, input.taxRate ?? 0);
+  const defaults = await getOrgErpDefaults(input.orgId);
+  const currency = input.currency || defaults.baseCurrency;
+  const tax = await resolveTaxRate(input.orgId, input.taxCode || defaults.defaultTaxCode);
+  const taxRate = input.taxRate != null ? input.taxRate : tax.ratePercent;
+  const fxRateToBase = await resolveFxRate(input.orgId, currency);
+  const totals = calcTotals(lines, taxRate);
   const number = await nextNumber(input.orgId, "Q", "quote");
 
   const quote = await db.quote.create({
@@ -195,6 +206,9 @@ export async function createQuote(input: {
       title: input.title?.trim() || `Quote ${number}`,
       notes: input.notes?.trim() ?? "",
       status: "draft",
+      currency,
+      fxRateToBase,
+      taxCode: tax.code,
       validUntil: input.validUntil ?? null,
       ...totals,
       lines: { create: lines },
@@ -223,8 +237,8 @@ export async function createQuote(input: {
   await writeErpActivity({
     orgId: input.orgId,
     type: "QUOTE",
-    subject: `Quote ${number} drafted · ${fmtMoney(totals.total)}`,
-    body: quote.title,
+    subject: `Quote ${number} drafted · ${fmtMoney(totals.total, currency)}`,
+    body: `${quote.title} · ${tax.code} @ ${taxRate}%`,
     externalRef: `quote:${quote.id}:draft`,
     dealId: quote.dealId,
     accountId: quote.accountId,
@@ -366,6 +380,9 @@ export async function createOrderFromQuote(quoteId: string, orgId: string, userI
       ownerId: userId,
       status: "pending",
       notes: quote.notes,
+      currency: quote.currency,
+      fxRateToBase: quote.fxRateToBase,
+      taxCode: quote.taxCode,
       subtotal: quote.subtotal,
       taxRate: quote.taxRate,
       taxAmount: quote.taxAmount,
@@ -383,18 +400,6 @@ export async function createOrderFromQuote(quoteId: string, orgId: string, userI
     },
     include: { lines: true },
   });
-
-  // Reserve inventory for tracked products.
-  for (const line of order.lines) {
-    if (!line.productId) continue;
-    const product = await db.product.findFirst({ where: { id: line.productId, orgId } });
-    if (product?.trackInventory) {
-      await db.product.update({
-        where: { id: product.id },
-        data: { qtyReserved: product.qtyReserved + line.quantity },
-      });
-    }
-  }
 
   if (order.dealId) {
     await db.deal.update({
@@ -466,17 +471,6 @@ export async function createOrder(input: {
     include: { lines: true },
   });
 
-  for (const line of order.lines) {
-    if (!line.productId) continue;
-    const product = await db.product.findFirst({ where: { id: line.productId, orgId: input.orgId } });
-    if (product?.trackInventory) {
-      await db.product.update({
-        where: { id: product.id },
-        data: { qtyReserved: product.qtyReserved + line.quantity },
-      });
-    }
-  }
-
   await writeErpActivity({
     orgId: input.orgId,
     type: "ORDER",
@@ -493,14 +487,37 @@ export async function createOrder(input: {
 }
 
 export async function confirmOrder(orderId: string, orgId: string, userId: string) {
-  const order = await db.salesOrder.findFirst({ where: { id: orderId, orgId } });
+  const order = await db.salesOrder.findFirst({
+    where: { id: orderId, orgId },
+    include: { lines: true },
+  });
   if (!order) throw new Error("Order not found.");
   if (order.status === "cancelled" || order.status === "fulfilled") {
     throw new Error(`Cannot confirm a ${order.status} order.`);
   }
+  if (order.status === "confirmed") return order;
+
+  const { ensureDefaultWarehouse, adjustWarehouseStock } = await import("./erp-deep");
+  const warehouse =
+    (order.warehouseId
+      ? await db.warehouse.findFirst({ where: { id: order.warehouseId } })
+      : null) || (await ensureDefaultWarehouse(orgId));
+
+  for (const line of order.lines) {
+    if (!line.productId) continue;
+    const product = await db.product.findFirst({ where: { id: line.productId, orgId } });
+    if (!product?.trackInventory) continue;
+    await adjustWarehouseStock({
+      orgId,
+      productId: line.productId,
+      warehouseId: warehouse.id,
+      deltaReserved: line.quantity,
+    });
+  }
+
   const updated = await db.salesOrder.update({
     where: { id: orderId },
-    data: { status: "confirmed" },
+    data: { status: "confirmed", warehouseId: warehouse.id },
   });
   if (updated.dealId) {
     await db.deal.update({
@@ -518,7 +535,7 @@ export async function confirmOrder(orderId: string, orgId: string, userId: strin
     orgId,
     type: "ORDER",
     subject: `Sales order ${updated.number} confirmed · ${fmtMoney(updated.total)}`,
-    body: "Deal marked closed won.",
+    body: `Deal marked closed won. Stock reserved at ${warehouse.code}.`,
     externalRef: `order:${updated.id}:confirmed`,
     dealId: updated.dealId,
     accountId: updated.accountId,
@@ -537,29 +554,35 @@ export async function fulfillOrder(orderId: string, orgId: string, userId: strin
   if (order.status === "cancelled") throw new Error("Cannot fulfill a cancelled order.");
   if (order.status === "fulfilled") return order;
 
+  const { ensureDefaultWarehouse, adjustWarehouseStock } = await import("./erp-deep");
+  const warehouse =
+    (order.warehouseId
+      ? await db.warehouse.findFirst({ where: { id: order.warehouseId } })
+      : null) || (await ensureDefaultWarehouse(orgId));
+
   for (const line of order.lines) {
     if (!line.productId) continue;
     const product = await db.product.findFirst({ where: { id: line.productId, orgId } });
     if (!product?.trackInventory) continue;
-    await db.product.update({
-      where: { id: product.id },
-      data: {
-        qtyOnHand: Math.max(0, product.qtyOnHand - line.quantity),
-        qtyReserved: Math.max(0, product.qtyReserved - line.quantity),
-      },
+    await adjustWarehouseStock({
+      orgId,
+      productId: line.productId,
+      warehouseId: warehouse.id,
+      deltaOnHand: -line.quantity,
+      deltaReserved: -line.quantity,
     });
   }
 
   const updated = await db.salesOrder.update({
     where: { id: orderId },
-    data: { status: "fulfilled", fulfilledAt: new Date() },
+    data: { status: "fulfilled", fulfilledAt: new Date(), warehouseId: warehouse.id },
   });
 
   await writeErpActivity({
     orgId,
     type: "ORDER",
     subject: `Sales order ${updated.number} fulfilled`,
-    body: "Inventory decremented for tracked SKUs.",
+    body: `Inventory decremented from ${warehouse.code}.`,
     externalRef: `order:${updated.id}:fulfilled`,
     dealId: updated.dealId,
     accountId: updated.accountId,
@@ -594,8 +617,12 @@ export async function createInvoiceFromOrder(orderId: string, orgId: string, use
       accountId: order.accountId,
       contactId: order.contactId,
       ownerId: userId,
+      projectId: order.projectId,
       status: "draft",
       notes: order.notes,
+      currency: order.currency,
+      fxRateToBase: order.fxRateToBase,
+      taxCode: order.taxCode,
       subtotal: order.subtotal,
       taxRate: order.taxRate,
       taxAmount: order.taxAmount,
@@ -641,11 +668,13 @@ export async function sendInvoice(invoiceId: string, orgId: string, userId: stri
     where: { id: invoiceId },
     data: { status: invoice.amountPaid > 0 ? "partial" : "sent" },
   });
+  const { postInvoiceToGl } = await import("./erp-deep");
+  await postInvoiceToGl(updated.id, userId);
   await writeErpActivity({
     orgId,
     type: "INVOICE",
-    subject: `Invoice ${updated.number} sent · ${fmtMoney(updated.total)}`,
-    body: updated.dueAt ? `Due ${updated.dueAt.toISOString().slice(0, 10)}` : "",
+    subject: `Invoice ${updated.number} sent · ${fmtMoney(updated.total, updated.currency)}`,
+    body: updated.dueAt ? `Due ${updated.dueAt.toISOString().slice(0, 10)} · GL posted` : "GL posted",
     externalRef: `invoice:${updated.id}:sent`,
     dealId: updated.dealId,
     accountId: updated.accountId,
@@ -671,7 +700,7 @@ export async function recordPayment(input: {
 
   const amount = Math.max(1, Math.round(Number(input.amount) || 0));
   const balance = invoice.total - invoice.amountPaid;
-  if (amount > balance) throw new Error(`Payment exceeds balance of ${fmtMoney(balance)}.`);
+  if (amount > balance) throw new Error(`Payment exceeds balance of ${fmtMoney(balance, invoice.currency)}.`);
 
   const payment = await db.payment.create({
     data: {
@@ -679,6 +708,7 @@ export async function recordPayment(input: {
       invoiceId: invoice.id,
       recordedById: input.userId,
       amount,
+      currency: invoice.currency,
       method: input.method?.trim() || "ach",
       reference: input.reference?.trim() ?? "",
       notes: input.notes?.trim() ?? "",
@@ -697,14 +727,18 @@ export async function recordPayment(input: {
     },
   });
 
+  const { postPaymentToGl } = await import("./erp-deep");
+  await postPaymentToGl(payment.id, input.userId);
+
   await writeErpActivity({
     orgId: input.orgId,
     type: "PAYMENT",
-    subject: `Payment ${fmtMoney(amount)} on ${updated.number}`,
+    subject: `Payment ${fmtMoney(amount, invoice.currency)} on ${updated.number}`,
     body: [
       `Method: ${payment.method}`,
       payment.reference ? `Ref: ${payment.reference}` : null,
-      `Balance: ${fmtMoney(updated.total - updated.amountPaid)}`,
+      `Balance: ${fmtMoney(updated.total - updated.amountPaid, invoice.currency)}`,
+      "GL posted",
     ]
       .filter(Boolean)
       .join(" · "),
@@ -769,56 +803,42 @@ export async function submitPurchaseOrder(poId: string, orgId: string, userId: s
   if (!po) throw new Error("Purchase order not found.");
   const updated = await db.purchaseOrder.update({
     where: { id: poId },
-    data: { status: "submitted" },
+    data: { status: "pending_approval" },
   });
   await writeErpActivity({
     orgId,
     type: "PO",
-    subject: `PO ${updated.number} submitted · ${fmtMoney(updated.total)}`,
+    subject: `PO ${updated.number} submitted for approval · ${fmtMoney(updated.total)}`,
     body: updated.notes,
-    externalRef: `po:${updated.id}:submitted`,
+    externalRef: `po:${updated.id}:pending_approval`,
+    ownerId: userId,
+  });
+  return updated;
+}
+
+export async function approvePurchaseOrder(poId: string, orgId: string, userId: string) {
+  const { approvePurchaseOrder: approve } = await import("./erp-deep");
+  const updated = await approve(poId, orgId, userId);
+  await writeErpActivity({
+    orgId,
+    type: "PO",
+    subject: `PO ${updated.number} approved`,
+    body: updated.notes,
+    externalRef: `po:${updated.id}:approved`,
     ownerId: userId,
   });
   return updated;
 }
 
 export async function receivePurchaseOrder(poId: string, orgId: string, userId: string) {
-  const po = await db.purchaseOrder.findFirst({
-    where: { id: poId, orgId },
-    include: { lines: true },
-  });
-  if (!po) throw new Error("Purchase order not found.");
-  if (po.status === "received") return po;
-  if (po.status === "cancelled") throw new Error("Cannot receive a cancelled PO.");
-
-  for (const line of po.lines) {
-    if (!line.productId) continue;
-    const product = await db.product.findFirst({ where: { id: line.productId, orgId } });
-    if (!product) continue;
-    await db.product.update({
-      where: { id: product.id },
-      data: {
-        qtyOnHand: product.qtyOnHand + line.quantity,
-        trackInventory: true,
-      },
-    });
-  }
-
-  const updated = await db.purchaseOrder.update({
-    where: { id: poId },
-    data: { status: "received", receivedAt: new Date() },
-  });
-
-  await writeErpActivity({
+  const { receivePurchaseOrderDeep } = await import("./erp-deep");
+  const result = await receivePurchaseOrderDeep({
     orgId,
-    type: "PO",
-    subject: `PO ${updated.number} received · stock updated`,
-    body: updated.notes,
-    externalRef: `po:${updated.id}:received`,
-    ownerId: userId,
+    userId,
+    poId,
+    createVendorBill: true,
   });
-
-  return updated;
+  return db.purchaseOrder.findUniqueOrThrow({ where: { id: poId } });
 }
 
 export async function financeSnapshot(orgId: string) {

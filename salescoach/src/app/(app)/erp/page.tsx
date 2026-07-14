@@ -27,15 +27,20 @@ export default async function ErpHubPage() {
     { href: "/erp/orders", label: "Orders", hint: "Accepted quotes → fulfillment" },
     { href: "/erp/invoices", label: "Invoices", hint: "AR, payments, cash collection" },
     { href: "/erp/inventory", label: "Inventory", hint: "On-hand, reserved, reorder" },
-    { href: "/erp/purchasing", label: "Purchasing", hint: "Vendors and replenishment POs" },
+    { href: "/erp/warehouses", label: "Warehouses", hint: "Multi-location stock + transfers" },
+    { href: "/erp/purchasing", label: "Purchasing", hint: "Approve POs, partial receive, vendor bills" },
+    { href: "/erp/ledger", label: "General ledger", hint: "COA, journals, trial balance, CSV export" },
+    { href: "/erp/projects", label: "Projects & time", hint: "Implementation projects + billable hours" },
+    { href: "/erp/hr", label: "HR & payroll", hint: "Employees and payroll accrual journals" },
     { href: "/erp/finance", label: "Finance", hint: "Revenue and receivables snapshot" },
+    { href: "/erp/settings", label: "ERP settings", hint: "Currency, tax codes, FX rates" },
   ];
 
   return (
     <div>
       <PageHeader
         title="ERP"
-        subtitle="Sales-ops ERP inside SalesCoach — catalog through cash, linked to CRM deals and coaching scorecards."
+        subtitle="Sales-ops ERP inside SalesCoach — quote to cash, multi-warehouse inventory, GL, projects, and HR, linked to CRM deals and coaching."
         actions={<LinkButton href="/erp/quotes">New quote</LinkButton>}
       />
 

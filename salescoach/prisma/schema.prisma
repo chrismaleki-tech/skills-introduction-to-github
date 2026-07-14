@@ -21,6 +21,10 @@ model Org {
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
 
+  // ERP org defaults
+  baseCurrency   String @default("USD") // ISO 4217
+  defaultTaxCode String @default("US-CA") // TaxCode.code
+
   users          User[]
   methodologies  Methodology[]
   companyContext CompanyContext?
@@ -43,6 +47,18 @@ model Org {
   invoices       Invoice[]
   payments       Payment[]
   purchaseOrders PurchaseOrder[]
+  taxCodes       TaxCode[]
+  fxRates        FxRate[]
+  warehouses     Warehouse[]
+  inventoryBalances InventoryBalance[]
+  stockTransfers StockTransfer[]
+  glAccounts     GlAccount[]
+  journalEntries JournalEntry[]
+  employees      Employee[]
+  projects       Project[]
+  timeEntries    TimeEntry[]
+  goodsReceipts  GoodsReceipt[]
+  vendorBills    VendorBill[]
 
   createdAt DateTime @default(now())
 }
@@ -73,6 +89,12 @@ model User {
   invoices       Invoice[]         @relation("InvoiceOwner")
   payments       Payment[]         @relation("PaymentRecorder")
   purchaseOrders PurchaseOrder[]   @relation("PoOwner")
+  employee       Employee?
+  projectOwned   Project[]         @relation("ProjectOwner")
+  timeEntries    TimeEntry[]       @relation("TimeEntryUser")
+  approvedPos    PurchaseOrder[]   @relation("PoApprover")
+  journalPosted  JournalEntry[]    @relation("JournalPoster")
+  transfersMade  StockTransfer[]   @relation("TransferUser")
 
   createdAt DateTime @default(now())
 }
@@ -303,7 +325,7 @@ model Product {
   unit        String @default("seat") // seat | license | warehouse | hour | each
   active      Boolean @default(true)
   trackInventory Boolean @default(false)
-  qtyOnHand      Int     @default(0)
+  qtyOnHand      Int     @default(0) // denormalized sum across warehouses for fast lists
   qtyReserved    Int     @default(0)
   reorderPoint   Int     @default(0)
 
@@ -311,6 +333,11 @@ model Product {
   orderLines OrderLine[]
   invoiceLines InvoiceLine[]
   poLines    PurchaseOrderLine[]
+  balances   InventoryBalance[]
+  transferLines StockTransferLine[]
+  receiptLines  GoodsReceiptLine[]
+  billLines     VendorBillLine[]
+  projectTasks  ProjectTask[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -325,13 +352,16 @@ model Vendor {
   orgId String
   org   Org    @relation(fields: [orgId], references: [id])
 
-  name    String
-  email   String @default("")
-  phone   String @default("")
-  website String @default("")
-  notes   String @default("")
+  name     String
+  email    String @default("")
+  phone    String @default("")
+  website  String @default("")
+  notes    String @default("")
+  currency String @default("USD")
+  paymentTermsDays Int @default(30)
 
   purchaseOrders PurchaseOrder[]
+  vendorBills    VendorBill[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -357,6 +387,9 @@ model Quote {
   status    String @default("draft")
   title     String @default("")
   notes     String @default("")
+  currency  String @default("USD")
+  fxRateToBase Int @default(10000) // rate * 10000 vs org base (10000 = 1.0)
+  taxCode   String @default("")
   subtotal  Int    @default(0)
   taxRate   Int    @default(0) // percent whole number, e.g. 8 = 8%
   taxAmount Int    @default(0)
@@ -407,10 +440,17 @@ model SalesOrder {
   contact   Contact? @relation(fields: [contactId], references: [id])
   ownerId   String?
   owner     User?   @relation("OrderOwner", fields: [ownerId], references: [id])
+  warehouseId String?
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
+  projectId   String?
+  project     Project? @relation(fields: [projectId], references: [id])
 
   // pending | confirmed | fulfilled | cancelled
   status    String @default("pending")
   notes     String @default("")
+  currency  String @default("USD")
+  fxRateToBase Int @default(10000)
+  taxCode   String @default("")
   subtotal  Int    @default(0)
   taxRate   Int    @default(0)
   taxAmount Int    @default(0)
@@ -460,10 +500,15 @@ model Invoice {
   contact   Contact? @relation(fields: [contactId], references: [id])
   ownerId   String?
   owner     User?   @relation("InvoiceOwner", fields: [ownerId], references: [id])
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id])
 
   // draft | sent | partial | paid | void
   status      String @default("draft")
   notes       String @default("")
+  currency    String @default("USD")
+  fxRateToBase Int @default(10000)
+  taxCode     String @default("")
   subtotal    Int    @default(0)
   taxRate     Int    @default(0)
   taxAmount   Int    @default(0)
@@ -510,6 +555,7 @@ model Payment {
   recordedBy   User? @relation("PaymentRecorder", fields: [recordedById], references: [id])
 
   amount      Int
+  currency    String @default("USD")
   method      String @default("ach") // ach | card | check | wire | other
   reference   String @default("")
   notes       String @default("")
@@ -530,16 +576,27 @@ model PurchaseOrder {
   vendor   Vendor  @relation(fields: [vendorId], references: [id])
   ownerId  String?
   owner    User?   @relation("PoOwner", fields: [ownerId], references: [id])
+  approvedById String?
+  approvedBy   User? @relation("PoApprover", fields: [approvedById], references: [id])
+  warehouseId String?
+  warehouse   Warehouse? @relation(fields: [warehouseId], references: [id])
 
-  // draft | submitted | received | cancelled
+  // draft | pending_approval | approved | submitted | partial | received | cancelled
   status    String @default("draft")
   notes     String @default("")
+  currency  String @default("USD")
+  fxRateToBase Int @default(10000)
   subtotal  Int    @default(0)
+  taxRate   Int    @default(0)
+  taxAmount Int    @default(0)
   total     Int    @default(0)
   orderedAt DateTime @default(now())
+  approvedAt DateTime?
   receivedAt DateTime?
 
-  lines PurchaseOrderLine[]
+  lines         PurchaseOrderLine[]
+  goodsReceipts GoodsReceipt[]
+  vendorBills   VendorBill[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -556,13 +613,381 @@ model PurchaseOrderLine {
   productId       String?
   product         Product?      @relation(fields: [productId], references: [id])
 
+  description     String
+  quantity        Int @default(1)
+  qtyReceived     Int @default(0)
+  unitCost        Int @default(0)
+  lineTotal       Int @default(0)
+  sortOrder       Int @default(0)
+
+  @@index([purchaseOrderId])
+}
+
+// ---------- ERP deep: tax/FX, warehouses, GL, HR/projects, AP ----------
+
+model TaxCode {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  code        String // US-CA, US-EXEMPT, EU-VAT-DE
+  name        String
+  ratePercent Int    @default(0) // whole percent
+  jurisdiction String @default("")
+  active      Boolean @default(true)
+
+  @@unique([orgId, code])
+}
+
+model FxRate {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  currency    String // quote currency
+  // Multiply quote amount by rate/10000 to get base currency
+  rateToBase  Int
+  asOf        DateTime @default(now())
+
+  @@index([orgId, currency, asOf])
+}
+
+model Warehouse {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  code     String
+  name     String
+  address  String @default("")
+  isDefault Boolean @default(false)
+  active   Boolean @default(true)
+
+  bins       WarehouseBin[]
+  balances   InventoryBalance[]
+  orders     SalesOrder[]
+  purchaseOrders PurchaseOrder[]
+  transfersFrom StockTransfer[] @relation("TransferFrom")
+  transfersTo   StockTransfer[] @relation("TransferTo")
+  goodsReceipts GoodsReceipt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, code])
+}
+
+model WarehouseBin {
+  id          String    @id @default(cuid())
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  code String
+  name String @default("")
+
+  balances InventoryBalance[]
+
+  @@unique([warehouseId, code])
+}
+
+model InventoryBalance {
+  id          String  @id @default(cuid())
+  orgId       String
+  org         Org     @relation(fields: [orgId], references: [id])
+  productId   String
+  product     Product @relation(fields: [productId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+  binId       String?
+  bin         WarehouseBin? @relation(fields: [binId], references: [id])
+
+  qtyOnHand   Int @default(0)
+  qtyReserved Int @default(0)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([warehouseId, productId])
+  @@index([orgId, productId])
+  @@index([orgId, warehouseId])
+}
+
+model StockTransfer {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  number String
+  fromWarehouseId String
+  fromWarehouse   Warehouse @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouseId   String
+  toWarehouse     Warehouse @relation("TransferTo", fields: [toWarehouseId], references: [id])
+  createdById     String?
+  createdBy       User? @relation("TransferUser", fields: [createdById], references: [id])
+
+  // draft | posted
+  status String @default("draft")
+  notes  String @default("")
+  postedAt DateTime?
+
+  lines StockTransferLine[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, number])
+}
+
+model StockTransferLine {
+  id         String        @id @default(cuid())
+  transferId String
+  transfer   StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product @relation(fields: [productId], references: [id])
+  quantity   Int @default(1)
+
+  @@index([transferId])
+}
+
+model GlAccount {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  code String // 1000, 4000, etc.
+  name String
+  // asset | liability | equity | revenue | expense | cogs
+  type String
+  active Boolean @default(true)
+
+  lines JournalLine[]
+
+  @@unique([orgId, code])
+  @@index([orgId, type])
+}
+
+model JournalEntry {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  number String
+  memo   String @default("")
+  // invoice | payment | bill | receipt | manual | payroll
+  sourceType String @default("manual")
+  sourceId   String?
+  currency   String @default("USD")
+  postedById String?
+  postedBy   User? @relation("JournalPoster", fields: [postedById], references: [id])
+  postedAt   DateTime @default(now())
+
+  lines JournalLine[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, number])
+  @@index([orgId, postedAt])
+  @@index([orgId, sourceType, sourceId])
+}
+
+model JournalLine {
+  id      String @id @default(cuid())
+  entryId String
+  entry   JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  accountId String
+  account   GlAccount @relation(fields: [accountId], references: [id])
+
+  memo    String @default("")
+  debit   Int @default(0)  // base currency minor units (whole dollars in demo)
+  credit  Int @default(0)
+
+  @@index([entryId])
+  @@index([accountId])
+}
+
+model Employee {
+  id     String  @id @default(cuid())
+  orgId  String
+  org    Org     @relation(fields: [orgId], references: [id])
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  name       String
+  email      String @default("")
+  title      String @default("")
+  department String @default("") // Sales | Engineering | Finance | Operations | People
+  // full_time | contractor | part_time
+  employmentType String @default("full_time")
+  // active | terminated | leave
+  status     String @default("active")
+  hireDate   DateTime?
+  // Annual salary whole dollars (or hourly * 2080 for contractors in demo)
+  salaryAnnual Int @default(0)
+  currency   String @default("USD")
+  managerName String @default("")
+
+  timeEntries TimeEntry[]
+  projectsOwned Project[] @relation("ProjectManager")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, department])
+  @@index([orgId, status])
+}
+
+model Project {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  code  String
+  name  String
+  // planning | active | on_hold | done
+  status String @default("planning")
+  dealId String?
+  accountId String?
+  ownerId String?
+  owner   User? @relation("ProjectOwner", fields: [ownerId], references: [id])
+  managerEmployeeId String?
+  managerEmployee   Employee? @relation("ProjectManager", fields: [managerEmployeeId], references: [id])
+
+  budgetHours Int @default(0)
+  budgetAmount Int @default(0)
+  currency String @default("USD")
+  startDate DateTime?
+  endDate   DateTime?
+  notes     String @default("")
+
+  tasks       ProjectTask[]
+  timeEntries TimeEntry[]
+  salesOrders SalesOrder[]
+  invoices    Invoice[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, code])
+  @@index([orgId, status])
+}
+
+model ProjectTask {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id])
+
+  title       String
+  // todo | doing | done
+  status      String @default("todo")
+  estimateHrs Int @default(0)
+  sortOrder   Int @default(0)
+
+  timeEntries TimeEntry[]
+
+  @@index([projectId])
+}
+
+model TimeEntry {
+  id         String @id @default(cuid())
+  orgId      String
+  org        Org    @relation(fields: [orgId], references: [id])
+  projectId  String
+  project    Project @relation(fields: [projectId], references: [id])
+  taskId     String?
+  task       ProjectTask? @relation(fields: [taskId], references: [id])
+  userId     String?
+  user       User? @relation("TimeEntryUser", fields: [userId], references: [id])
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+
+  workDate   DateTime
+  hours      Int @default(1) // whole hours for demo
+  billable   Boolean @default(true)
+  notes      String @default("")
+  // draft | submitted | approved
+  status     String @default("approved")
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId, workDate])
+  @@index([projectId, workDate])
+}
+
+model GoodsReceipt {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  number String
+  purchaseOrderId String
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  warehouseId String
+  warehouse   Warehouse @relation(fields: [warehouseId], references: [id])
+
+  // draft | posted
+  status String @default("posted")
+  notes  String @default("")
+  receivedAt DateTime @default(now())
+
+  lines GoodsReceiptLine[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, number])
+  @@index([orgId, purchaseOrderId])
+}
+
+model GoodsReceiptLine {
+  id             String @id @default(cuid())
+  goodsReceiptId String
+  goodsReceipt   GoodsReceipt @relation(fields: [goodsReceiptId], references: [id], onDelete: Cascade)
+  productId      String?
+  product        Product? @relation(fields: [productId], references: [id])
+  description    String @default("")
+  quantity       Int @default(1)
+
+  @@index([goodsReceiptId])
+}
+
+model VendorBill {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  number String
+  vendorId String
+  vendor   Vendor @relation(fields: [vendorId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+
+  // draft | open | partial | paid | void
+  status String @default("open")
+  currency String @default("USD")
+  subtotal Int @default(0)
+  taxAmount Int @default(0)
+  total Int @default(0)
+  amountPaid Int @default(0)
+  issuedAt DateTime @default(now())
+  dueAt DateTime?
+  notes String @default("")
+
+  lines VendorBillLine[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, number])
+  @@index([orgId, status])
+  @@index([orgId, vendorId])
+}
+
+model VendorBillLine {
+  id          String @id @default(cuid())
+  vendorBillId String
+  vendorBill  VendorBill @relation(fields: [vendorBillId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
   description String
   quantity    Int @default(1)
   unitCost    Int @default(0)
   lineTotal   Int @default(0)
-  sortOrder   Int @default(0)
 
-  @@index([purchaseOrderId])
+  @@index([vendorBillId])
 }
 
 // ---------- Channels: employee email + phone connected for CRM outreach ----------

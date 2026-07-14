@@ -140,7 +140,43 @@ function fillerTranscript(i: number): string {
 async function main() {
   console.log("Seeding...");
 
-  // Wipe (idempotent seed)
+  // Wipe (idempotent seed) — children before parents
+  await db.journalLine.deleteMany();
+  await db.journalEntry.deleteMany();
+  await db.timeEntry.deleteMany();
+  await db.projectTask.deleteMany();
+  await db.vendorBillLine.deleteMany();
+  await db.vendorBill.deleteMany();
+  await db.goodsReceiptLine.deleteMany();
+  await db.goodsReceipt.deleteMany();
+  await db.stockTransferLine.deleteMany();
+  await db.stockTransfer.deleteMany();
+  await db.inventoryBalance.deleteMany();
+  await db.warehouseBin.deleteMany();
+  await db.payment.deleteMany();
+  await db.invoiceLine.deleteMany();
+  await db.invoice.deleteMany();
+  await db.orderLine.deleteMany();
+  await db.salesOrder.deleteMany();
+  await db.quoteLine.deleteMany();
+  await db.quote.deleteMany();
+  await db.purchaseOrderLine.deleteMany();
+  await db.purchaseOrder.deleteMany();
+  await db.project.deleteMany();
+  await db.employee.deleteMany();
+  await db.glAccount.deleteMany();
+  await db.warehouse.deleteMany();
+  await db.taxCode.deleteMany();
+  await db.fxRate.deleteMany();
+  await db.product.deleteMany();
+  await db.vendor.deleteMany();
+  await db.message.deleteMany();
+  await db.conversation.deleteMany();
+  await db.channelConnection.deleteMany();
+  await db.activity.deleteMany();
+  await db.deal.deleteMany();
+  await db.contact.deleteMany();
+  await db.account.deleteMany();
   await db.grade.deleteMany();
   await db.transcript.deleteMany();
   await db.call.deleteMany();
@@ -776,7 +812,7 @@ async function main() {
     gradeWithSalesCoach: true,
   });
 
-  // ---------- ERP: catalog, quotes, orders, invoices, inventory, purchasing ----------
+  // ---------- ERP: catalog → cash + warehouses/GL/HR/projects ----------
   const {
     createQuote,
     sendQuote,
@@ -788,8 +824,50 @@ async function main() {
     recordPayment,
     createPurchaseOrder,
     submitPurchaseOrder,
+    approvePurchaseOrder,
     receivePurchaseOrder,
   } = await import("../src/lib/erp");
+  const {
+    ensureChartOfAccounts,
+    ensureDefaultWarehouse,
+    adjustWarehouseStock,
+    createProject,
+    logTimeEntry,
+    postMonthlyPayrollJournal,
+    receivePurchaseOrderDeep,
+  } = await import("../src/lib/erp-deep");
+
+  await db.org.update({
+    where: { id: org.id },
+    data: { baseCurrency: "USD", defaultTaxCode: "US-CA" },
+  });
+
+  await db.taxCode.createMany({
+    data: [
+      { orgId: org.id, code: "US-CA", name: "California sales tax", ratePercent: 8, jurisdiction: "CA, USA" },
+      { orgId: org.id, code: "US-EXEMPT", name: "Tax exempt", ratePercent: 0, jurisdiction: "USA" },
+      { orgId: org.id, code: "EU-VAT-DE", name: "German VAT", ratePercent: 19, jurisdiction: "DE" },
+    ],
+  });
+  await db.fxRate.createMany({
+    data: [
+      { orgId: org.id, currency: "EUR", rateToBase: 10800 }, // 1.08
+      { orgId: org.id, currency: "GBP", rateToBase: 12700 },
+      { orgId: org.id, currency: "CAD", rateToBase: 7300 },
+    ],
+  });
+
+  await ensureChartOfAccounts(org.id);
+  const mainWh = await ensureDefaultWarehouse(org.id);
+  const westWh = await db.warehouse.create({
+    data: {
+      orgId: org.id,
+      code: "WEST",
+      name: "West coast DC",
+      address: "Fresno, CA",
+      bins: { create: [{ code: "A-01", name: "Receiving" }, { code: "C-12", name: "Hardware" }] },
+    },
+  });
 
   const coreSeat = await db.product.create({
     data: {
@@ -858,10 +936,59 @@ async function main() {
       cost: 190,
       unit: "each",
       trackInventory: true,
-      qtyOnHand: 24,
+      qtyOnHand: 0,
       qtyReserved: 0,
       reorderPoint: 8,
       active: true,
+    },
+  });
+
+  // Seed multi-warehouse balances (syncs product qtyOnHand).
+  await adjustWarehouseStock({
+    orgId: org.id,
+    productId: scanner.id,
+    warehouseId: mainWh.id,
+    binId: mainWh.bins[0]?.id,
+    deltaOnHand: 18,
+  });
+  await adjustWarehouseStock({
+    orgId: org.id,
+    productId: scanner.id,
+    warehouseId: westWh.id,
+    deltaOnHand: 6,
+  });
+
+  for (const [u, dept, salary, title] of [
+    [manager, "People", 145000, "VP Sales"],
+    [reps[0], "Sales", 95000, "Account Executive"],
+    [reps[1], "Sales", 90000, "Account Executive"],
+    [reps[2], "Sales", 92000, "Account Executive"],
+    [reps[3], "Sales", 88000, "Account Executive"],
+  ] as const) {
+    await db.employee.create({
+      data: {
+        orgId: org.id,
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        title,
+        department: dept,
+        salaryAnnual: salary,
+        hireDate: new Date(now.getTime() - 400 * 86400000),
+        status: "active",
+      },
+    });
+  }
+  await db.employee.create({
+    data: {
+      orgId: org.id,
+      name: "Casey Nguyen",
+      email: "casey@meridian.demo",
+      title: "Implementation Lead",
+      department: "Operations",
+      salaryAnnual: 118000,
+      hireDate: new Date(now.getTime() - 200 * 86400000),
+      status: "active",
     },
   });
 
@@ -872,6 +999,7 @@ async function main() {
       email: "orders@pacificscan.demo",
       phone: "+1-415-555-0188",
       notes: "Primary hardware distributor for scanner kits.",
+      paymentTermsDays: 30,
     },
   });
 
@@ -884,7 +1012,7 @@ async function main() {
     contactId: dana.id,
     title: "Cascade · Core + implementation",
     notes: "Fixed-fee rollout for Fresno first, Reno second. Net 30.",
-    taxRate: 0,
+    taxCode: "US-CA",
     validUntil: new Date(now.getTime() + 21 * 86400000),
     lines: [
       { productId: coreSeat.id, description: coreSeat.name, quantity: 20, unitPrice: coreSeat.listPrice },
@@ -895,7 +1023,7 @@ async function main() {
   });
   await sendQuote(cascadeQuote.id, org.id, reps[0].id);
 
-  // Summit Forecast quote still in draft.
+  // Summit Forecast quote still in draft (EUR demo of multi-currency).
   await createQuote({
     orgId: org.id,
     ownerId: reps[3].id,
@@ -903,7 +1031,9 @@ async function main() {
     accountId: summit.id,
     contactId: priya.id,
     title: "Summit · Forecast add-on",
-    notes: "Seasonal demand scenarios included in demo.",
+    notes: "Seasonal demand scenarios included in demo. Quoted in EUR.",
+    currency: "EUR",
+    taxCode: "EU-VAT-DE",
     lines: [
       { productId: forecast.id, description: forecast.name, quantity: 1, unitPrice: forecast.listPrice },
       { productId: coreSeat.id, description: "Forecast seats (bundled)", quantity: 10, unitPrice: 400 },
@@ -935,6 +1065,8 @@ async function main() {
       dealId: harborDeal.id,
       accountId: harborAccount.id,
       title: "Harbor Parts · Core rollout",
+      taxCode: "US-EXEMPT",
+      taxRate: 0,
       lines: [
         { productId: coreSeat.id, description: coreSeat.name, quantity: 15, unitPrice: coreSeat.listPrice },
         { productId: impl.id, description: impl.name, quantity: 1, unitPrice: impl.listPrice },
@@ -965,7 +1097,57 @@ async function main() {
       reference: "WIRE-HARBOR-2",
       receivedAt: new Date(now.getTime() - 2 * 86400000),
     });
+
+    const harborProject = await createProject({
+      orgId: org.id,
+      ownerId: manager.id,
+      code: "PRJ-HARBOR",
+      name: "Harbor Parts · Core implementation",
+      dealId: harborDeal.id,
+      accountId: harborAccount.id,
+      budgetHours: 120,
+      budgetAmount: 18000,
+      tasks: [
+        { title: "Kickoff & discovery", estimateHrs: 16, productId: impl.id },
+        { title: "Warehouse 1 go-live", estimateHrs: 40, productId: impl.id },
+        { title: "Training & hypercare", estimateHrs: 24 },
+      ],
+    });
+    await logTimeEntry({
+      orgId: org.id,
+      projectId: harborProject.id,
+      userId: manager.id,
+      taskId: harborProject.tasks[0]?.id,
+      hours: 8,
+      notes: "Kickoff workshop",
+      workDate: new Date(now.getTime() - 5 * 86400000),
+    });
+    await logTimeEntry({
+      orgId: org.id,
+      projectId: harborProject.id,
+      userId: reps[2].id,
+      taskId: harborProject.tasks[1]?.id,
+      hours: 12,
+      notes: "Floor walkthrough + scanner staging",
+      workDate: new Date(now.getTime() - 2 * 86400000),
+    });
   }
+
+  // Cascade implementation project (open opportunity).
+  await createProject({
+    orgId: org.id,
+    ownerId: manager.id,
+    code: "PRJ-CASCADE",
+    name: "Cascade · proposed rollout",
+    dealId: dealCascadeCore.id,
+    accountId: cascade.id,
+    budgetHours: 160,
+    budgetAmount: 18000,
+    tasks: [
+      { title: "Fresno warehouse cutover", estimateHrs: 48 },
+      { title: "Reno warehouse cutover", estimateHrs: 40 },
+    ],
+  });
 
   // BlueRidge mid-funnel: accepted quote / pending order (not yet confirmed).
   const brQuote = await createQuote({
@@ -975,6 +1157,7 @@ async function main() {
     accountId: blueRidge.id,
     contactId: tom.id,
     title: "BlueRidge · Core evaluation package",
+    taxCode: "US-CA",
     lines: [
       { productId: coreSeat.id, description: coreSeat.name, quantity: 12, unitPrice: coreSeat.listPrice },
       { productId: scanner.id, description: scanner.name, quantity: 4, unitPrice: scanner.listPrice },
@@ -983,7 +1166,7 @@ async function main() {
   await sendQuote(brQuote.id, org.id, reps[1].id);
   await acceptQuote(brQuote.id, org.id, reps[1].id);
 
-  // Replenishment PO for scanners (partially received path).
+  // Replenishment PO: pending approval / partial receive path.
   const po = await createPurchaseOrder({
     orgId: org.id,
     ownerId: manager.id,
@@ -994,7 +1177,17 @@ async function main() {
     ],
   });
   await submitPurchaseOrder(po.id, org.id, manager.id);
-  // Leave one submitted PO open; create a second already received.
+  await approvePurchaseOrder(po.id, org.id, manager.id);
+  await receivePurchaseOrderDeep({
+    orgId: org.id,
+    userId: manager.id,
+    poId: po.id,
+    warehouseId: westWh.id,
+    lines: [{ productId: scanner.id, description: scanner.name, quantity: 8 }],
+    createVendorBill: true,
+  });
+
+  // Fully received PO into MAIN.
   const po2 = await createPurchaseOrder({
     orgId: org.id,
     ownerId: manager.id,
@@ -1005,7 +1198,10 @@ async function main() {
     ],
   });
   await submitPurchaseOrder(po2.id, org.id, manager.id);
+  await approvePurchaseOrder(po2.id, org.id, manager.id);
   await receivePurchaseOrder(po2.id, org.id, manager.id);
+
+  await postMonthlyPayrollJournal(org.id, manager.id);
 
   const counts = {
     calls: await db.call.count(),
@@ -1025,6 +1221,11 @@ async function main() {
     payments: await db.payment.count(),
     vendors: await db.vendor.count(),
     purchaseOrders: await db.purchaseOrder.count(),
+    warehouses: await db.warehouse.count(),
+    journalEntries: await db.journalEntry.count(),
+    employees: await db.employee.count(),
+    projects: await db.project.count(),
+    vendorBills: await db.vendorBill.count(),
   };
   console.log("Seeded:", counts);
 }

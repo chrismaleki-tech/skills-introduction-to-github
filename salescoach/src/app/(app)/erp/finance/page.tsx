@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { financeSnapshot } from "@/lib/erp";
 import { fmtMoney } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
-import { Card, PageHeader, Stat, StatusPill, fmtDate } from "@/components/ui";
+import { Card, LinkButton, PageHeader, Stat, StatusPill, fmtDate } from "@/components/ui";
 
 export default async function FinancePage() {
   const user = await currentUser();
@@ -27,7 +27,8 @@ export default async function FinancePage() {
     <div>
       <PageHeader
         title="Finance"
-        subtitle="Cash collected, open receivables, and booked orders — the commercial side of SalesCoach."
+        subtitle="Cash collected, open receivables, booked orders — plus GL posting on invoices and payments."
+        actions={<LinkButton href="/erp/ledger">Open ledger</LinkButton>}
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-8">
         <Stat label="Revenue collected" value={fmtMoney(snap.revenue)} />

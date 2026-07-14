@@ -29,12 +29,16 @@ export function stageMeta(stage: string) {
   return DEAL_STAGES.find((s) => s.key === stage) ?? DEAL_STAGES[0];
 }
 
-export function fmtMoney(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(amount);
+export function fmtMoney(amount: number, currency = "USD"): string {
+  try {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${currency} ${amount.toLocaleString("en-US")}`;
+  }
 }
 
 /** Human-readable deal context string injected into the grading prompt. */
