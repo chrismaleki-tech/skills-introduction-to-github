@@ -282,11 +282,27 @@ async function gradeSubject(args: {
       create: { ...data, callId: args.callId },
       update: data,
     });
+    const { recordUsage } = await import("./metering");
+    await recordUsage({
+      orgId: args.orgId,
+      type: "CALL_GRADED",
+      subjectType: "CALL",
+      subjectId: args.callId,
+      meta: { gradedBy: result.gradedBy, score: result.overallScore },
+    });
   } else if (args.roleplayId) {
     await db.grade.upsert({
       where: { roleplayId: args.roleplayId },
       create: { ...data, roleplayId: args.roleplayId },
       update: data,
+    });
+    const { recordUsage } = await import("./metering");
+    await recordUsage({
+      orgId: args.orgId,
+      type: "ROLEPLAY_GRADED",
+      subjectType: "ROLEPLAY",
+      subjectId: args.roleplayId,
+      meta: { gradedBy: result.gradedBy, score: result.overallScore },
     });
   }
   return result;

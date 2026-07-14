@@ -15,7 +15,7 @@ import {
   useDroppable,
   useDraggable,
 } from "@dnd-kit/core";
-import { DEAL_STAGES, fmtMoney } from "@/lib/crm";
+import { DEAL_STAGES, fmtMoney } from "@/lib/crm-constants";
 
 type DealCard = {
   id: string;

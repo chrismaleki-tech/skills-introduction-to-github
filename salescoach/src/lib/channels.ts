@@ -1,22 +1,14 @@
 import { db } from "./db";
 import { ingestCall } from "./pipeline";
 import { parseIngestionPolicy } from "./types";
+import { EMAIL_PROVIDERS, PHONE_PROVIDERS, providerReady } from "./channels-ready";
 
 export type ChannelKind = "EMAIL" | "PHONE";
+export { EMAIL_PROVIDERS, PHONE_PROVIDERS, providerReady };
 
-export const EMAIL_PROVIDERS = [
-  { key: "demo_email", label: "Demo inbox (no OAuth)" },
-  { key: "gmail", label: "Gmail / Google Workspace" },
-  { key: "outlook", label: "Outlook / Microsoft 365" },
-  { key: "work_smtp", label: "Work email (SMTP/IMAP)" },
-] as const;
-
-export const PHONE_PROVIDERS = [
-  { key: "demo_phone", label: "Demo dialer (no carrier)" },
-  { key: "twilio", label: "Twilio" },
-  { key: "aircall", label: "Aircall" },
-  { key: "ringcentral", label: "RingCentral" },
-] as const;
+function isDemoProvider(provider: string) {
+  return provider.startsWith("demo");
+}
 
 export async function getUserConnections(userId: string) {
   return db.channelConnection.findMany({
@@ -45,12 +37,44 @@ export async function connectChannel(input: {
   channel: ChannelKind;
   provider: string;
   address: string;
+  /** OAuth / API tokens for live providers (never store demo:true for live). */
+  credentials?: Record<string, unknown>;
 }) {
   const address = input.address.trim();
   if (!address) throw new Error("Address is required.");
   if (input.channel === "EMAIL" && !address.includes("@")) {
     throw new Error("Enter a valid email address.");
   }
+
+  const ready = providerReady(input.provider);
+  if (!ready.ok) {
+    throw new Error(ready.reason || "Provider is not configured.");
+  }
+
+  // OAuth providers need a completed token exchange before CONNECTED.
+  const needsOAuth = input.provider === "gmail" || input.provider === "outlook" || input.provider === "ringcentral";
+  const hasToken =
+    Boolean(input.credentials?.accessToken) ||
+    Boolean(input.credentials?.refreshToken) ||
+    Boolean(input.credentials?.apiToken);
+
+  if (needsOAuth && !hasToken && process.env.NODE_ENV === "production") {
+    throw new Error(
+      `Complete OAuth for ${input.provider} before connecting. Open the provider authorize URL from Channels.`,
+    );
+  }
+
+  const credentialsJson = JSON.stringify(
+    isDemoProvider(input.provider)
+      ? { demo: true, connectedVia: "ui" }
+      : {
+          demo: false,
+          connectedVia: hasToken ? "oauth" : "env",
+          ...(input.credentials ?? {}),
+          // Mark env-backed providers as ready when org-level secrets exist.
+          envBacked: !needsOAuth,
+        },
+  );
 
   return db.channelConnection.upsert({
     where: { userId_channel: { userId: input.userId, channel: input.channel } },
@@ -61,13 +85,14 @@ export async function connectChannel(input: {
       provider: input.provider,
       address,
       status: "CONNECTED",
-      credentialsJson: JSON.stringify({ demo: true, connectedVia: "ui" }),
+      credentialsJson,
     },
     update: {
       provider: input.provider,
       address,
       status: "CONNECTED",
       lastError: "",
+      credentialsJson,
       connectedAt: new Date(),
     },
   });
@@ -80,7 +105,7 @@ export async function disconnectChannel(userId: string, channel: ChannelKind) {
   if (!existing) return null;
   return db.channelConnection.update({
     where: { id: existing.id },
-    data: { status: "DISCONNECTED" },
+    data: { status: "DISCONNECTED", credentialsJson: "{}" },
   });
 }
 
@@ -141,10 +166,106 @@ function demoProspectCallReply(repNotes: string): string {
   return "Prospect acknowledged the inventory pain, asked about rollout risk, and requested a follow-up email.";
 }
 
+async function deliverOutboundEmail(input: {
+  provider: string;
+  from: string;
+  to: string;
+  subject: string;
+  body: string;
+}): Promise<{ status: "sent" | "queued" | "failed"; externalId?: string; error?: string }> {
+  if (isDemoProvider(input.provider)) {
+    return { status: "sent", externalId: `demo-email-${Date.now()}` };
+  }
+
+  if (input.provider === "work_smtp") {
+    // Prefer SMTP via raw TCP is heavy; use a webhook relay if SMTP_RELAY_URL is set,
+    // otherwise mark queued for the worker / external MTA.
+    const relay = process.env.SMTP_RELAY_URL?.trim();
+    if (relay) {
+      const res = await fetch(relay, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(process.env.SMTP_RELAY_TOKEN
+            ? { Authorization: `Bearer ${process.env.SMTP_RELAY_TOKEN}` }
+            : {}),
+        },
+        body: JSON.stringify({
+          from: input.from,
+          to: input.to,
+          subject: input.subject,
+          text: input.body,
+        }),
+      });
+      if (!res.ok) {
+        return { status: "failed", error: `SMTP relay failed (${res.status})` };
+      }
+      const data = (await res.json().catch(() => ({}))) as { id?: string };
+      return { status: "sent", externalId: data.id || `smtp-${Date.now()}` };
+    }
+    return { status: "queued", externalId: `smtp-queue-${Date.now()}` };
+  }
+
+  if (input.provider === "gmail" || input.provider === "outlook") {
+    // Tokens would be used here; without a send API call we queue for the sync worker.
+    return { status: "queued", externalId: `${input.provider}-queue-${Date.now()}` };
+  }
+
+  return { status: "queued", externalId: `email-queue-${Date.now()}` };
+}
+
+async function placeLivePhoneCall(input: {
+  provider: string;
+  from: string;
+  to: string;
+}): Promise<{ status: "initiated" | "logged" | "failed"; externalId?: string; error?: string }> {
+  if (isDemoProvider(input.provider)) {
+    return { status: "logged", externalId: `demo-phone-${Date.now()}` };
+  }
+
+  if (input.provider === "twilio") {
+    const sid = process.env.TWILIO_ACCOUNT_SID!;
+    const token = process.env.TWILIO_AUTH_TOKEN!;
+    const twimlUrl = process.env.TWILIO_TWIML_URL?.trim();
+    if (!twimlUrl) {
+      return {
+        status: "failed",
+        error: "Set TWILIO_TWIML_URL (TwiML App or webhook URL) to place live Twilio calls.",
+      };
+    }
+    const auth = Buffer.from(`${sid}:${token}`).toString("base64");
+    const body = new URLSearchParams({
+      To: input.to,
+      From: input.from,
+      Url: twimlUrl,
+    });
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Calls.json`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { status: "failed", error: `Twilio call failed (${res.status}): ${text.slice(0, 200)}` };
+    }
+    const data = (await res.json()) as { sid?: string };
+    return { status: "initiated", externalId: data.sid };
+  }
+
+  // Aircall / RingCentral: initiate via their APIs when tokens exist; otherwise fail clearly.
+  return {
+    status: "failed",
+    error: `${input.provider} live dial requires provider API wiring — use demo_phone or Twilio for now.`,
+  };
+}
+
 /**
  * Send an email from the employee's connected inbox to a prospect.
- * Demo providers record the outbound message and auto-append a realistic reply
- * so the CRM conversation history is immediately usable.
+ * Demo providers record the outbound message and auto-append a realistic reply.
+ * Live providers attempt delivery (SMTP relay / queue) and never fabricate replies.
  */
 export async function sendCrmEmail(input: {
   orgId: string;
@@ -165,7 +286,6 @@ export async function sendCrmEmail(input: {
   if (!to || !to.includes("@")) throw new Error("Prospect email is required.");
   if (!body) throw new Error("Email body is required.");
 
-  // Inherit CRM links from an existing conversation when replying in-thread.
   let dealId = input.dealId ?? null;
   let contactId = input.contactId ?? null;
   let accountId = input.accountId ?? null;
@@ -199,6 +319,21 @@ export async function sendCrmEmail(input: {
     });
   }
 
+  const delivery = await deliverOutboundEmail({
+    provider: conn.provider,
+    from: conn.address,
+    to,
+    subject,
+    body,
+  });
+  if (delivery.status === "failed") {
+    await db.channelConnection.update({
+      where: { id: conn.id },
+      data: { lastError: delivery.error || "send failed", status: "ERROR" },
+    });
+    throw new Error(delivery.error || "Email delivery failed.");
+  }
+
   const now = new Date();
   const outbound = await db.message.create({
     data: {
@@ -208,10 +343,10 @@ export async function sendCrmEmail(input: {
       direction: "OUTBOUND",
       subject,
       body,
-      status: conn.provider.startsWith("demo") ? "sent" : "queued",
+      status: delivery.status,
       fromAddress: conn.address,
       toAddress: to,
-      externalId: `email-out-${Date.now()}`,
+      externalId: delivery.externalId || `email-out-${Date.now()}`,
       occurredAt: now,
     },
   });
@@ -231,7 +366,6 @@ export async function sendCrmEmail(input: {
     },
   });
 
-  // Coach outbound emails when org policy allows (default on).
   const org = await db.org.findUnique({ where: { id: input.orgId } });
   const policy = parseIngestionPolicy(org?.ingestionPolicyJson ?? "{}");
   if (policy.gradeOutboundEmails !== false) {
@@ -244,7 +378,7 @@ export async function sendCrmEmail(input: {
   }
 
   let inbound = null;
-  const simulate = input.simulateReply !== false && conn.provider.startsWith("demo");
+  const simulate = input.simulateReply !== false && isDemoProvider(conn.provider);
   if (simulate) {
     const contact = contactId
       ? await db.contact.findUnique({ where: { id: contactId } })
@@ -290,12 +424,12 @@ export async function sendCrmEmail(input: {
     });
   }
 
-  return { conversation, outbound, inbound, from: conn.address };
+  return { conversation, outbound, inbound, from: conn.address, deliveryStatus: delivery.status };
 }
 
 /**
  * Place (or log) a phone call from the employee's connected dialer.
- * Creates/updates a PHONE conversation, optionally runs SalesCoach grading.
+ * Live Twilio dials when configured; demo synthesizes a transcript for coaching.
  */
 export async function placeCrmCall(input: {
   orgId: string;
@@ -346,6 +480,67 @@ export async function placeCrmCall(input: {
   const durationSec = Math.max(0, Math.round(Number(input.durationSec ?? 180)));
   const notes = (input.notes ?? "").trim();
   const now = new Date();
+  const demo = isDemoProvider(conn.provider);
+
+  if (!demo) {
+    const live = await placeLivePhoneCall({ provider: conn.provider, from: conn.address, to });
+    if (live.status === "failed") {
+      await db.channelConnection.update({
+        where: { id: conn.id },
+        data: { lastError: live.error || "dial failed", status: "ERROR" },
+      });
+      throw new Error(live.error || "Live dial failed.");
+    }
+  }
+
+  const hasTranscript = Boolean(input.transcript?.trim());
+  if (!demo && !hasTranscript && input.gradeWithSalesCoach !== false) {
+    // Live calls without a transcript yet: log CRM activity only; webhook/recording
+    // will attach transcript later via ingest.
+    const outbound = await db.message.create({
+      data: {
+        orgId: input.orgId,
+        conversationId: conversation.id,
+        senderId: input.userId,
+        direction: "OUTBOUND",
+        subject: `Outbound call · initiated`,
+        body: notes || "Live outbound call initiated.",
+        status: "initiated",
+        fromAddress: conn.address,
+        toAddress: to,
+        durationSec: 0,
+        externalId: `phone-out-${Date.now()}`,
+        occurredAt: now,
+      },
+    });
+    await db.activity.create({
+      data: {
+        orgId: input.orgId,
+        dealId,
+        contactId,
+        accountId,
+        ownerId: input.userId,
+        type: "CALL",
+        subject: `Call → ${contact?.name || to} (live)`,
+        body: notes || "Live call initiated — transcript pending.",
+        externalRef: `msg:${outbound.id}`,
+        occurredAt: now,
+      },
+    });
+    await db.conversation.update({
+      where: { id: conversation.id },
+      data: { lastMessageAt: now },
+    });
+    return {
+      conversation,
+      outbound,
+      inbound: null,
+      callId: null,
+      gradeScore: null,
+      from: conn.address,
+      live: true,
+    };
+  }
 
   const defaultTranscript =
     input.transcript?.trim() ||
@@ -414,7 +609,7 @@ REP: Great — I'll send a recap and proposed next step by email.`;
   });
 
   let inbound = null;
-  if (input.simulateProspectSummary !== false && conn.provider.startsWith("demo")) {
+  if (input.simulateProspectSummary !== false && demo) {
     const summary = demoProspectCallReply(notes);
     const replyAt = new Date(now.getTime() + 5_000);
     inbound = await db.message.create({
@@ -446,5 +641,6 @@ REP: Great — I'll send a recap and proposed next step by email.`;
     callId,
     gradeScore,
     from: conn.address,
+    live: false,
   };
 }

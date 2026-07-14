@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { EMAIL_PROVIDERS, PHONE_PROVIDERS } from "@/lib/channels";
+import { EMAIL_PROVIDERS, PHONE_PROVIDERS } from "@/lib/channels-ready";
 import { Button } from "@/components/ui";
 
 type Connection = {

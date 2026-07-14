@@ -1,10 +1,8 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { putObject } from "@/lib/storage";
 
 // Manual call upload: multipart form with either an audio file or a pasted
 // transcript. Uploads bypass sampling per policy (gradeManualUploads), so the
@@ -23,7 +21,6 @@ export async function POST(req: Request) {
   const user = await currentUser();
   const form = await req.formData();
 
-  // Managers may upload on behalf of a rep in their org.
   let repId = user.id;
   const requestedRepId = str(form.get("repId"));
   if (requestedRepId && requestedRepId !== user.id) {
@@ -62,10 +59,12 @@ export async function POST(req: Request) {
       );
     }
     const buffer = Buffer.from(await audioFile.arrayBuffer());
-    const relativePath = path.join("uploads", `${randomUUID()}.${ext}`);
-    await mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
-    await writeFile(path.join(process.cwd(), relativePath), buffer);
-    audio = { buffer, mimeType: audioFile.type || AUDIO_EXTENSIONS[ext], path: relativePath };
+    const stored = await putObject(buffer, {
+      ext,
+      contentType: audioFile.type || AUDIO_EXTENSIONS[ext],
+      keyPrefix: `org/${user.orgId}/calls`,
+    });
+    audio = { buffer, mimeType: stored.contentType, path: stored.path };
   }
 
   if (!audio && !transcriptText) {
@@ -90,8 +89,6 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ callId: call.id });
   } catch (err) {
-    // The pipeline marks the Call FAILED before rethrowing, so if the row was
-    // created we can still hand the caller its id for the review page.
     const failed = await db.call.findFirst({
       where: {
         orgId: user.orgId,

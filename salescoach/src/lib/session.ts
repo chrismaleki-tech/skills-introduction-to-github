@@ -1,12 +1,11 @@
 import { cookies } from "next/headers";
 import { db } from "./db";
 import { hashPassword, verifyPassword } from "./password";
+import { isPlatformAdminEmail } from "./config";
+import { mintSessionToken, verifySessionToken } from "./session-token";
 
 export { hashPassword, verifyPassword };
-
-// Session cookie auth with password login. Demo switcher remains available when
-// ALLOW_DEMO_SWITCHER=true (default in development) so managers can still
-// preview every role without logging out.
+export { mintSessionToken, verifySessionToken };
 
 const COOKIE = "sc_user";
 const SESSION_DAYS = 14;
@@ -22,7 +21,7 @@ export function demoSwitcherAllowed() {
 
 export async function setSessionUser(userId: string) {
   const store = await cookies();
-  store.set(COOKIE, userId, {
+  store.set(COOKIE, mintSessionToken(userId, SESSION_DAYS), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -38,7 +37,8 @@ export async function clearSession() {
 
 export async function currentUserOrNull() {
   const store = await cookies();
-  const id = store.get(COOKIE)?.value;
+  const token = store.get(COOKIE)?.value;
+  const id = verifySessionToken(token, { allowLegacyUnsigned: demoSwitcherAllowed() });
   if (!id) return null;
   return db.user.findUnique({ where: { id }, include: { org: true } });
 }
@@ -46,7 +46,6 @@ export async function currentUserOrNull() {
 export async function currentUser() {
   const user = await currentUserOrNull();
   if (user) return user;
-  // Dev convenience only: seed managers can open the app before first login.
   if (demoSwitcherAllowed()) {
     const fallback = await db.user.findFirst({
       where: { role: "MANAGER" },
@@ -60,18 +59,27 @@ export async function currentUser() {
 
 export async function loginWithPassword(email: string, password: string) {
   const normalized = email.trim().toLowerCase();
-  const users = await db.user.findMany({ include: { org: true } });
-  const user = users.find((u) => u.email.toLowerCase() === normalized);
-  if (!user?.passwordHash) {
+  const candidates = await db.user.findMany({ include: { org: true }, take: 500 });
+  const matched = candidates.find((u) => u.email.toLowerCase() === normalized) ?? null;
+
+  if (!matched?.passwordHash) {
     return { ok: false as const, error: "Invalid email or password." };
   }
-  const valid = await verifyPassword(password, user.passwordHash);
+  const valid = await verifyPassword(password, matched.passwordHash);
   if (!valid) return { ok: false as const, error: "Invalid email or password." };
-  await setSessionUser(user.id);
-  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-  return { ok: true as const, user };
+  await setSessionUser(matched.id);
+  await db.user.update({ where: { id: matched.id }, data: { lastLoginAt: new Date() } });
+  return { ok: true as const, user: matched };
 }
 
 export function isManagerRole(role: string) {
   return role === "MANAGER" || role === "ADMIN" || role === "TRAINER";
+}
+
+export function isOrgAdminRole(role: string) {
+  return role === "ADMIN";
+}
+
+export function userIsPlatformAdmin(user: { email: string; role: string }) {
+  return isPlatformAdminEmail(user.email) || user.role === "ADMIN";
 }

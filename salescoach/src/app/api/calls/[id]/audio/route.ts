@@ -1,8 +1,8 @@
-import { readFile } from "fs/promises";
 import path from "path";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { getObject } from "@/lib/storage";
 
 // Streams stored call audio for the <audio> player on the review page.
 // Same access rule as the page: reps only hear their own calls.
@@ -26,18 +26,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "No audio stored for this call." }, { status: 404 });
   }
 
-  const filePath = path.isAbsolute(call.audioPath)
-    ? call.audioPath
-    : path.join(process.cwd(), call.audioPath);
-
   let buffer: Buffer;
   try {
-    buffer = await readFile(filePath);
+    buffer = await getObject(call.audioPath);
   } catch {
     return NextResponse.json({ error: "Audio file is missing from storage." }, { status: 404 });
   }
 
-  const contentType = CONTENT_TYPES[path.extname(filePath).toLowerCase()] ?? "application/octet-stream";
+  const ext = call.audioPath.startsWith("s3://")
+    ? path.extname(call.audioPath.split("/").pop() || "")
+    : path.extname(call.audioPath);
+  const contentType = CONTENT_TYPES[ext.toLowerCase()] ?? "application/octet-stream";
   return new Response(new Uint8Array(buffer), {
     headers: {
       "Content-Type": contentType,
