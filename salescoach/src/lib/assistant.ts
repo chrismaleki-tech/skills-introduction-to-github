@@ -19,12 +19,61 @@ export type ChatMessage = { role: "user" | "assistant"; content: string };
 
 export type AssistantLink = { href: string; label: string };
 
+export type AssistantSource = "crm" | "erp" | "trainer";
+
 export type AssistantResult = {
   reply: string;
   links?: AssistantLink[];
   data?: unknown;
+  sources?: AssistantSource[];
+  followUps?: string[];
   mode: "demo" | "llm";
 };
+
+const TOOL_SOURCES: Record<string, AssistantSource[]> = {
+  pipeline_summary: ["crm"],
+  search_deals: ["crm"],
+  get_deal: ["crm", "erp", "trainer"],
+  search_accounts_contacts: ["crm"],
+  finance_snapshot: ["erp"],
+  list_quotes: ["erp"],
+  quote_action: ["erp"],
+  create_quote_for_deal: ["crm", "erp"],
+  list_orders: ["erp"],
+  order_action: ["erp"],
+  invoice_action: ["erp"],
+  list_invoices: ["erp"],
+  list_products: ["erp"],
+  list_purchase_orders: ["erp"],
+  warehouse_stock: ["erp"],
+  gl_trial_balance: ["erp"],
+  projects_summary: ["erp"],
+  hr_payroll_snapshot: ["erp"],
+  coaching_summary: ["trainer"],
+  list_assignments: ["trainer"],
+  list_calls: ["trainer", "crm"],
+  get_call_grade: ["trainer", "crm"],
+  list_roleplays: ["trainer"],
+  update_deal_stage: ["crm"],
+  get_document: ["erp"],
+  list_activities: ["crm", "erp", "trainer"],
+  list_conversations: ["crm"],
+  list_scenarios: ["trainer"],
+  my_performance: ["trainer"],
+  help: ["crm", "erp", "trainer"],
+};
+
+const ACCOUNT_TOKENS = "Cascade|BlueRidge|Blue Ridge|Summit|Harbor|Northwind|Harbor Parts";
+const REP_TOKENS = "Alex|Casey|Jordan|Morgan|Riley|Sarah";
+const CONTACT_TOKENS = "Dana|Marta|Priya|Tom|Ellis";
+
+function sourcesForTools(names: string[]): AssistantSource[] {
+  const set = new Set<AssistantSource>();
+  for (const name of names) {
+    for (const s of TOOL_SOURCES[name] ?? []) set.add(s);
+  }
+  return (["crm", "erp", "trainer"] as const).filter((s) => set.has(s));
+}
 
 type ToolCtx = {
   orgId: string;
@@ -33,12 +82,27 @@ type ToolCtx = {
   isManager: boolean;
 };
 
+type ToolResult = {
+  text: string;
+  links?: AssistantLink[];
+  data?: unknown;
+  followUps?: string[];
+};
+
 type ToolDef = {
   name: string;
   description: string;
   parameters: Record<string, unknown>;
-  run: (args: Record<string, unknown>, ctx: ToolCtx) => Promise<{ text: string; links?: AssistantLink[]; data?: unknown }>;
+  run: (args: Record<string, unknown>, ctx: ToolCtx) => Promise<ToolResult>;
 };
+
+function dealOwnerFilter(ctx: ToolCtx) {
+  return ctx.isManager ? {} : { ownerId: ctx.userId };
+}
+
+function repFilter(ctx: ToolCtx) {
+  return ctx.isManager ? {} : { repId: ctx.userId };
+}
 
 function q(s: unknown) {
   return String(s ?? "").trim();
@@ -159,24 +223,34 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     parameters: { type: "object", properties: {} },
     async run(_args, ctx) {
       const deals = await db.deal.findMany({
-        where: { orgId: ctx.orgId, stage: { in: [...OPEN_STAGES] } },
+        where: { orgId: ctx.orgId, stage: { in: [...OPEN_STAGES] }, ...dealOwnerFilter(ctx) },
         include: {
           account: { select: { name: true } },
           owner: { select: { name: true } },
         },
       });
       const withGrades = await db.call.findMany({
-        where: { orgId: ctx.orgId, dealId: { not: null }, status: "GRADED" },
+        where: {
+          orgId: ctx.orgId,
+          dealId: { not: null },
+          status: "GRADED",
+          ...(ctx.isManager ? {} : { repId: ctx.userId }),
+        },
         select: { dealId: true },
         distinct: ["dealId"],
       });
       const coached = new Set(withGrades.map((c) => c.dealId));
       const total = deals.reduce((s, d) => s + d.amount, 0);
       const weighted = deals.reduce((s, d) => s + (d.amount * d.probability) / 100, 0);
-      const byStage = DEAL_STAGES.filter((s) => OPEN_STAGES.includes(s.key)).map((s) => {
+      const stageRows = DEAL_STAGES.filter((s) => OPEN_STAGES.includes(s.key)).map((s) => {
         const list = deals.filter((d) => d.stage === s.key);
-        return `${s.label}: ${list.length} (${fmtMoney(list.reduce((a, d) => a + d.amount, 0))})`;
+        return {
+          label: s.label,
+          count: list.length,
+          value: list.reduce((a, d) => a + d.amount, 0),
+        };
       });
+      const byStage = stageRows.map((s) => `${s.label}: ${s.count} (${fmtMoney(s.value)})`);
       const top = [...deals]
         .sort((a, b) => b.amount - a.amount)
         .slice(0, 5)
@@ -184,9 +258,10 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           (d) =>
             `• ${d.name} — ${stageLabel(d.stage)} · ${fmtMoney(d.amount)} · ${d.owner?.name ?? "unassigned"}${coached.has(d.id) ? " · coached" : ""}`,
         );
+      const scope = ctx.isManager ? "Open pipeline" : "Your open pipeline";
       return {
         text: [
-          `Open pipeline: ${deals.length} deals · ${fmtMoney(total)} · weighted ${fmtMoney(Math.round(weighted))}.`,
+          `${scope}: ${deals.length} deals · ${fmtMoney(total)} · weighted ${fmtMoney(Math.round(weighted))}.`,
           `${coached.size} deals have graded coaching.`,
           byStage.join(" · "),
           top.length ? `Largest deals:\n${top.join("\n")}` : "",
@@ -194,7 +269,18 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           .filter(Boolean)
           .join("\n"),
         links: [{ href: "/crm", label: "Open pipeline" }],
-        data: { count: deals.length, total, weighted },
+        data: {
+          kind: "pipeline",
+          count: deals.length,
+          total,
+          weighted: Math.round(weighted),
+          stages: stageRows,
+        },
+        followUps: [
+          "Show me the Cascade deal",
+          "Who needs coaching?",
+          "List open quotes",
+        ],
       };
     },
   },
@@ -225,6 +311,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       const deals = await db.deal.findMany({
         where: {
           orgId: ctx.orgId,
+          ...dealOwnerFilter(ctx),
           ...(stage ? { stage } : {}),
           ...(query
             ? {
@@ -322,7 +409,19 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           { href: "/erp", label: "ERP hub" },
           { href: "/erp/finance", label: "Finance" },
         ],
-        data: snap,
+        data: {
+          kind: "finance",
+          openQuoteCount: snap.openQuoteCount,
+          openQuoteValue: snap.openQuoteValue,
+          openOrderCount: snap.openOrderCount,
+          openOrderValue: snap.openOrderValue,
+          arBalance: snap.arBalance,
+          arCount: snap.arCount,
+          revenue: snap.revenue,
+          products: snap.products,
+          lowStockCount: snap.lowStockCount,
+        },
+        followUps: ["List open quotes", "Show sales orders", "What's low in inventory?"],
       };
     },
   },
@@ -339,10 +438,15 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     async run(args, ctx) {
       const status = q(args.status).toLowerCase();
       const query = q(args.query);
+      const openStatuses = ["draft", "sent"];
       const quotes = await db.quote.findMany({
         where: {
           orgId: ctx.orgId,
-          ...(status ? { status } : {}),
+          ...(status === "open"
+            ? { status: { in: openStatuses } }
+            : status
+              ? { status }
+              : {}),
           ...(query
             ? {
                 OR: [
@@ -757,7 +861,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       },
     },
     async run(args, ctx) {
-      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const rep = (await resolveRep(ctx.orgId, q(args.rep))) || (!ctx.isManager ? { id: ctx.userId, name: "you" } : null);
       const since = new Date();
       since.setDate(since.getDate() - 30);
       const grades = await db.grade.findMany({
@@ -781,7 +885,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         ? grades.filter((g) => g.overallScore < 60)
         : grades;
       if (!filtered.length) {
-        return { text: rep ? `No recent grades for ${rep.name}.` : "No recent grades." };
+        return { text: rep ? `No recent grades for ${"name" in rep ? rep.name : "rep"}.` : "No recent grades." };
       }
       const avg = Math.round(filtered.reduce((s, g) => s + g.overallScore, 0) / filtered.length);
       const lines = filtered.slice(0, 8).map((g) => {
@@ -789,15 +893,21 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         const subject = g.subjectType === "CALL" ? g.call?.deal?.name || "call" : "role-play";
         return `• ${who} · ${g.overallScore}/100 (${BAND_LABELS[g.band as keyof typeof BAND_LABELS] ?? g.band}) · ${subject}`;
       });
+      const label = rep && "name" in rep ? (rep.name === "you" ? "You" : rep.name) : "Team";
       return {
         text: [
-          `${rep ? rep.name : "Team"} · last 30 days: ${filtered.length} grades · avg ${avg}/100`,
+          `${label} · last 30 days: ${filtered.length} grades · avg ${avg}/100`,
           lines.join("\n"),
         ].join("\n"),
         links: [
-          { href: "/dashboard", label: "Team dashboard" },
-          ...(rep ? [{ href: `/team/${rep.id}`, label: `${rep.name}'s drill-down` }] : []),
+          { href: ctx.isManager ? "/dashboard" : "/me", label: ctx.isManager ? "Team dashboard" : "My performance" },
+          ...(rep && "id" in rep && rep.name !== "you" ? [{ href: `/team/${rep.id}`, label: `${rep.name}'s drill-down` }] : []),
           { href: "/calls", label: "Calls" },
+        ],
+        followUps: [
+          "What was Alex's last Cascade call score?",
+          "Show recent role-plays",
+          "Show assignments",
         ],
       };
     },
@@ -815,7 +925,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       const assignments = await db.assignment.findMany({
         where: {
           orgId: ctx.orgId,
-          ...(rep ? { assignedToId: rep.id } : {}),
+          ...(rep ? { assignedToId: rep.id } : ctx.isManager ? {} : { assignedToId: ctx.userId }),
           ...(status ? { status } : {}),
         },
         include: {
@@ -834,6 +944,200 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           )
           .join("\n"),
         links: [{ href: "/assignments", label: "Assignments" }],
+      };
+    },
+  },
+  {
+    name: "list_calls",
+    description: "List recent sales calls, optionally filtered by rep, deal/account, or graded-only.",
+    parameters: {
+      type: "object",
+      properties: {
+        rep: { type: "string" },
+        query: { type: "string", description: "Deal, account, or prospect name" },
+        graded_only: { type: "boolean" },
+      },
+    },
+    async run(args, ctx) {
+      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const query = q(args.query);
+      const deal = query ? await resolveDeal(ctx.orgId, query) : null;
+      const calls = await db.call.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(rep ? { repId: rep.id } : repFilter(ctx)),
+          ...(args.graded_only ? { status: "GRADED" } : {}),
+          ...(deal
+            ? { dealId: deal.id }
+            : query
+              ? {
+                  OR: [
+                    { prospectName: { contains: query } },
+                    { deal: { name: { contains: query } } },
+                    { account: { name: { contains: query } } },
+                    { rep: { name: { contains: query } } },
+                  ],
+                }
+              : {}),
+        },
+        include: {
+          rep: { select: { name: true } },
+          deal: { select: { name: true } },
+          account: { select: { name: true } },
+          grade: true,
+        },
+        orderBy: { callDate: "desc" },
+        take: 10,
+      });
+      if (!calls.length) return { text: "No matching calls found." };
+      return {
+        text: calls
+          .map((c) => {
+            const score = c.grade
+              ? `${c.grade.managerOverrideScore ?? c.grade.overallScore}/100 (${BAND_LABELS[c.grade.band as keyof typeof BAND_LABELS] ?? c.grade.band})`
+              : c.status;
+            return `• ${c.rep.name} · ${c.callType} · ${c.deal?.name || c.account?.name || c.prospectName || "call"} · ${score}`;
+          })
+          .join("\n"),
+        links: [
+          { href: "/calls", label: "All calls" },
+          ...calls.slice(0, 3).map((c) => ({
+            href: `/calls/${c.id}`,
+            label: c.deal?.name || c.prospectName || "Call",
+          })),
+        ],
+      };
+    },
+  },
+  {
+    name: "get_call_grade",
+    description: "Get the latest graded call for a rep and/or deal, with scorecard summary.",
+    parameters: {
+      type: "object",
+      properties: {
+        rep: { type: "string" },
+        query: { type: "string", description: "Deal or account name" },
+      },
+    },
+    async run(args, ctx) {
+      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const query = q(args.query);
+      const deal = query ? await resolveDeal(ctx.orgId, query) : null;
+      const call = await db.call.findFirst({
+        where: {
+          orgId: ctx.orgId,
+          status: "GRADED",
+          ...(rep ? { repId: rep.id } : {}),
+          ...(deal
+            ? { dealId: deal.id }
+            : query
+              ? {
+                  OR: [
+                    { deal: { name: { contains: query } } },
+                    { account: { name: { contains: query } } },
+                    { prospectName: { contains: query } },
+                  ],
+                }
+              : {}),
+        },
+        include: {
+          rep: { select: { name: true } },
+          deal: { select: { id: true, name: true } },
+          account: { select: { name: true } },
+          grade: true,
+        },
+        orderBy: { callDate: "desc" },
+      });
+      if (!call?.grade) {
+        return {
+          text: `No graded call found${rep ? ` for ${rep.name}` : ""}${query ? ` matching "${query}"` : ""}.`,
+          links: [{ href: "/calls", label: "Calls" }],
+        };
+      }
+      const score = call.grade.managerOverrideScore ?? call.grade.overallScore;
+      const band = BAND_LABELS[call.grade.band as keyof typeof BAND_LABELS] ?? call.grade.band;
+      const lines = [
+        `${call.rep.name} · ${call.callType} · ${call.deal?.name || call.account?.name || call.prospectName || "call"}`,
+        `Score: ${score}/100 (${band})${call.grade.managerOverrideScore != null ? " · manager override" : ""}`,
+        call.grade.summary ? `Summary: ${call.grade.summary}` : "",
+      ].filter(Boolean);
+      const links: AssistantLink[] = [{ href: `/calls/${call.id}`, label: "Open scorecard" }];
+      if (call.deal) links.push({ href: `/crm/deals/${call.deal.id}`, label: call.deal.name });
+      return { text: lines.join("\n"), links };
+    },
+  },
+  {
+    name: "list_roleplays",
+    description: "List recent role-play practice sessions and scores.",
+    parameters: {
+      type: "object",
+      properties: { rep: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const rep = await resolveRep(ctx.orgId, q(args.rep));
+      const sessions = await db.roleplaySession.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(rep ? { repId: rep.id } : {}),
+        },
+        include: {
+          rep: { select: { name: true } },
+          scenario: { select: { title: true, difficulty: true } },
+          grade: true,
+        },
+        orderBy: { startedAt: "desc" },
+        take: 10,
+      });
+      if (!sessions.length) return { text: "No role-play sessions found." };
+      return {
+        text: sessions
+          .map((s) => {
+            const score = s.grade
+              ? `${s.grade.managerOverrideScore ?? s.grade.overallScore}/100`
+              : s.status;
+            return `• ${s.rep.name} · ${s.scenario.title} (${s.scenario.difficulty}) · ${score}`;
+          })
+          .join("\n"),
+        links: [
+          { href: "/roleplay", label: "Role-play" },
+          ...sessions.slice(0, 2).map((s) => ({ href: `/roleplay/${s.id}`, label: s.scenario.title })),
+        ],
+      };
+    },
+  },
+  {
+    name: "list_purchase_orders",
+    description: "List purchase orders and vendor restocks.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" }, status: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const status = q(args.status).toLowerCase();
+      const pos = await db.purchaseOrder.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(status ? { status } : {}),
+          ...(query
+            ? {
+                OR: [
+                  { number: { contains: query } },
+                  { vendor: { name: { contains: query } } },
+                ],
+              }
+            : {}),
+        },
+        include: { vendor: true },
+        orderBy: { updatedAt: "desc" },
+        take: 10,
+      });
+      if (!pos.length) return { text: "No purchase orders found." };
+      return {
+        text: pos
+          .map((p) => `• ${p.number} · ${p.status} · ${fmtMoney(p.total)} · ${p.vendor?.name ?? "—"}`)
+          .join("\n"),
+        links: [{ href: "/erp/purchasing", label: "Purchasing" }],
       };
     },
   },
@@ -881,6 +1185,294 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     },
   },
   {
+    name: "update_deal_stage",
+    description: "Move a CRM deal to a new pipeline stage.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        stage: {
+          type: "string",
+          description: "lead|qualified|discovery|demo|proposal|negotiation|closed_won|closed_lost",
+        },
+      },
+      required: ["query", "stage"],
+    },
+    async run(args, ctx) {
+      const deal = await resolveDeal(ctx.orgId, q(args.query));
+      if (!deal) return { text: `No deal matched "${q(args.query)}".` };
+      if (!ctx.isManager && deal.ownerId !== ctx.userId) {
+        return { text: "You can only update deals you own." };
+      }
+      const stageRaw = q(args.stage).toLowerCase().replace(/\s+/g, "_");
+      const stage = DEAL_STAGES.find(
+        (s) => s.key === stageRaw || s.label.toLowerCase() === q(args.stage).toLowerCase(),
+      );
+      if (!stage) return { text: `Unknown stage "${q(args.stage)}".` };
+      const updated = await db.deal.update({
+        where: { id: deal.id },
+        data: { stage: stage.key, probability: stage.probability },
+      });
+      await db.activity.create({
+        data: {
+          orgId: ctx.orgId,
+          dealId: deal.id,
+          accountId: deal.accountId,
+          contactId: deal.contactId,
+          ownerId: ctx.userId,
+          type: "NOTE",
+          subject: `Stage → ${stage.label}`,
+          body: `Moved from ${stageLabel(deal.stage)} to ${stage.label} via Ask.`,
+        },
+      });
+      return {
+        text: `Moved **${updated.name}** to ${stage.label} (${stage.probability}%).`,
+        links: [{ href: `/crm/deals/${updated.id}`, label: "Open deal" }],
+        followUps: ["Show me the Cascade deal", "What's our pipeline look like?"],
+      };
+    },
+  },
+  {
+    name: "get_document",
+    description: "Get quote, sales order, or invoice detail by number.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        type: { type: "string", enum: ["quote", "order", "invoice", "auto"] },
+      },
+      required: ["query"],
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const type = q(args.type).toLowerCase() || "auto";
+      if (type === "quote" || type === "auto" || /^Q-/i.test(query)) {
+        const quote = await resolveQuote(ctx.orgId, query);
+        if (quote) {
+          const lines = await db.quoteLine.findMany({ where: { quoteId: quote.id }, orderBy: { sortOrder: "asc" } });
+          return {
+            text: [
+              `**${quote.number}** · ${quote.status} · ${fmtMoney(quote.total)}`,
+              `Title: ${quote.title || "—"} · Deal: ${quote.deal?.name ?? "—"} · Account: ${quote.account?.name ?? "—"}`,
+              lines.length
+                ? `Lines:\n${lines.map((l) => `• ${l.quantity}× ${l.description} @ ${fmtMoney(l.unitPrice)} = ${fmtMoney(l.lineTotal)}`).join("\n")}`
+                : "Lines: none",
+            ].join("\n"),
+            links: [{ href: `/erp/quotes/${quote.id}`, label: quote.number }],
+            followUps: [`Accept quote ${quote.number}`, "List open quotes"],
+          };
+        }
+        if (type === "quote") return { text: `No quote matched "${query}".` };
+      }
+      if (type === "order" || type === "auto" || /^SO-/i.test(query)) {
+        const order = await resolveOrder(ctx.orgId, query);
+        if (order) {
+          const lines = await db.orderLine.findMany({ where: { orderId: order.id }, orderBy: { sortOrder: "asc" } });
+          return {
+            text: [
+              `**${order.number}** · ${order.status} · ${fmtMoney(order.total)}`,
+              `Deal: ${order.deal?.name ?? "—"} · Account: ${order.account?.name ?? "—"}`,
+              `Invoices: ${order.invoices?.map((i) => `${i.number} ${i.status}`).join("; ") || "none"}`,
+              lines.length
+                ? `Lines:\n${lines.map((l) => `• ${l.quantity}× ${l.description} @ ${fmtMoney(l.unitPrice)}`).join("\n")}`
+                : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+            links: [{ href: `/erp/orders/${order.id}`, label: order.number }],
+            followUps: [`Confirm order ${order.number}`, "Finance snapshot"],
+          };
+        }
+        if (type === "order") return { text: `No order matched "${query}".` };
+      }
+      if (type === "invoice" || type === "auto" || /^INV-/i.test(query)) {
+        const invoice = await resolveInvoice(ctx.orgId, query);
+        if (invoice) {
+          return {
+            text: [
+              `**${invoice.number}** · ${invoice.status} · ${fmtMoney(invoice.total)}`,
+              `Paid ${fmtMoney(invoice.amountPaid)} · Balance ${fmtMoney(invoice.total - invoice.amountPaid)}`,
+              `Deal: ${invoice.deal?.name ?? "—"} · Account: ${invoice.account?.name ?? "—"}`,
+              invoice.payments?.length
+                ? `Payments: ${invoice.payments.map((p) => `${fmtMoney(p.amount)} ${p.method}`).join("; ")}`
+                : "Payments: none",
+            ].join("\n"),
+            links: [{ href: `/erp/invoices/${invoice.id}`, label: invoice.number }],
+            followUps: [`Record payment on ${invoice.number}`, "List invoices"],
+          };
+        }
+      }
+      return { text: `No document matched "${query}".` };
+    },
+  },
+  {
+    name: "list_activities",
+    description: "List recent CRM/ERP/coaching activity timeline entries for a deal or account.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+      required: ["query"],
+    },
+    async run(args, ctx) {
+      const deal = await resolveDeal(ctx.orgId, q(args.query));
+      const activities = await db.activity.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(deal
+            ? { dealId: deal.id }
+            : {
+                OR: [
+                  { subject: { contains: q(args.query) } },
+                  { account: { name: { contains: q(args.query) } } },
+                ],
+              }),
+        },
+        include: { owner: { select: { name: true } }, deal: { select: { name: true } } },
+        orderBy: { occurredAt: "desc" },
+        take: 12,
+      });
+      if (!activities.length) return { text: "No activities found." };
+      return {
+        text: activities
+          .map(
+            (a) =>
+              `• ${a.type} · ${a.subject}${a.score != null ? ` · ${a.score}/100` : ""} · ${a.deal?.name ?? "—"} · ${a.owner?.name ?? ""}`,
+          )
+          .join("\n"),
+        links: deal
+          ? [{ href: `/crm/deals/${deal.id}`, label: deal.name }]
+          : [{ href: "/crm", label: "Pipeline" }],
+        followUps: deal ? [`Show me the ${deal.name} deal`] : ["What's our pipeline look like?"],
+      };
+    },
+  },
+  {
+    name: "list_conversations",
+    description: "List CRM email/phone conversation threads.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const deal = query ? await resolveDeal(ctx.orgId, query) : null;
+      const conversations = await db.conversation.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(ctx.isManager ? {} : { ownerId: ctx.userId }),
+          ...(deal
+            ? { dealId: deal.id }
+            : query
+              ? {
+                  OR: [
+                    { subject: { contains: query } },
+                    { prospectAddress: { contains: query } },
+                    { deal: { name: { contains: query } } },
+                  ],
+                }
+              : {}),
+        },
+        include: {
+          deal: { select: { name: true } },
+          contact: { select: { name: true } },
+          _count: { select: { messages: true } },
+        },
+        orderBy: { lastMessageAt: "desc" },
+        take: 10,
+      });
+      if (!conversations.length) return { text: "No conversations found." };
+      return {
+        text: conversations
+          .map(
+            (c) =>
+              `• ${c.channel} · ${c.subject || "(no subject)"} · ${c.deal?.name || c.contact?.name || c.prospectAddress} · ${c._count.messages} msgs · ${c.status}`,
+          )
+          .join("\n"),
+        links: [{ href: "/conversations", label: "Conversations" }],
+        followUps: ["Show me the Cascade deal", "Find contact Dana"],
+      };
+    },
+  },
+  {
+    name: "list_scenarios",
+    description: "List sales trainer role-play scenarios.",
+    parameters: {
+      type: "object",
+      properties: { query: { type: "string" } },
+    },
+    async run(args, ctx) {
+      const query = q(args.query);
+      const scenarios = await db.scenario.findMany({
+        where: {
+          orgId: ctx.orgId,
+          ...(query
+            ? {
+                OR: [{ title: { contains: query } }, { callType: { contains: query } }, { difficulty: { contains: query } }],
+              }
+            : {}),
+        },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+      });
+      if (!scenarios.length) return { text: "No scenarios found." };
+      return {
+        text: scenarios
+          .map((s) => `• ${s.title} · ${s.callType} · ${s.difficulty}`)
+          .join("\n"),
+        links: [
+          { href: "/scenarios", label: "Scenarios" },
+          ...scenarios.slice(0, 2).map((s) => ({ href: `/scenarios/${s.id}`, label: s.title })),
+        ],
+        followUps: ["Show recent role-plays", "Who needs coaching?"],
+      };
+    },
+  },
+  {
+    name: "my_performance",
+    description: "Summary of the current user's coaching performance and open assignments.",
+    parameters: { type: "object", properties: {} },
+    async run(_args, ctx) {
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const [grades, assignments, calls] = await Promise.all([
+        db.grade.findMany({
+          where: {
+            orgId: ctx.orgId,
+            createdAt: { gte: since },
+            OR: [{ call: { repId: ctx.userId } }, { roleplay: { repId: ctx.userId } }],
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        }),
+        db.assignment.findMany({
+          where: { orgId: ctx.orgId, assignedToId: ctx.userId, status: { not: "COMPLETED" } },
+          include: { scenario: { select: { title: true } } },
+          take: 8,
+        }),
+        db.call.count({ where: { orgId: ctx.orgId, repId: ctx.userId, callDate: { gte: since } } }),
+      ]);
+      const avg = grades.length
+        ? Math.round(grades.reduce((s, g) => s + (g.managerOverrideScore ?? g.overallScore), 0) / grades.length)
+        : null;
+      return {
+        text: [
+          `Last 30 days: ${calls} calls · ${grades.length} grades${avg != null ? ` · avg ${avg}/100` : ""}`,
+          grades[0]
+            ? `Latest: ${grades[0].overallScore}/100 (${BAND_LABELS[grades[0].band as keyof typeof BAND_LABELS] ?? grades[0].band})`
+            : "Latest: no grades yet",
+          assignments.length
+            ? `Open assignments:\n${assignments.map((a) => `• ${a.type} · ${a.doneCount}/${a.targetCount}${a.scenario ? ` · ${a.scenario.title}` : ""}`).join("\n")}`
+            : "Open assignments: none",
+        ].join("\n"),
+        links: [
+          { href: "/me", label: "My performance" },
+          { href: "/assignments", label: "Assignments" },
+        ],
+        followUps: ["Show recent role-plays", "Show assignments", "Who needs coaching?"],
+      };
+    },
+  },
+  {
     name: "help",
     description: "Explain what the assistant can do across coaching, CRM, and ERP.",
     parameters: { type: "object", properties: {} },
@@ -892,13 +1484,16 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           "• “Show me the Cascade deal”",
           "• “List open quotes” / “Accept the Cascade quote”",
           "• “Confirm order SO-1002” / “Invoice Harbor's order”",
-          "• “Finance snapshot” / “What's low in inventory?”",
+          "• “Finance snapshot” / “What's low in inventory?” / “Show purchase orders”",
           "• “Trial balance” / “Warehouse stock” / “Projects” / “Payroll”",
           "• “Who needs coaching?” / “How is Alex doing?”",
+          "• “What was Alex's last Cascade call score?”",
+          "• “Show recent role-plays” / “Show assignments”",
           "• “Create a quote for BlueRidge with Meridian Core”",
-          "• “Find contact Dana” / “Show assignments”",
+          "• “Find contact Dana”",
         ].join("\n"),
         links: [
+          { href: "/ask", label: "Ask view" },
           { href: "/crm", label: "Pipeline" },
           { href: "/erp", label: "ERP" },
           { href: "/erp/ledger", label: "Ledger" },
@@ -927,130 +1522,266 @@ async function runTool(name: string, args: Record<string, unknown>, ctx: ToolCtx
 }
 
 /** Deterministic NL router for demo mode (no API key). */
-export function routeDemoIntent(message: string): { name: string; args: Record<string, unknown> }[] {
+export function routeDemoIntent(
+  message: string,
+  domain: "all" | AssistantSource = "all",
+): { name: string; args: Record<string, unknown> }[] {
   const m = message.trim();
   const lower = m.toLowerCase();
+  const accountRe = new RegExp(`\\b(${ACCOUNT_TOKENS})\\b`, "i");
+  const repRe = new RegExp(`\\b(${REP_TOKENS})\\b`, "i");
+  const contactRe = new RegExp(`\\b(${CONTACT_TOKENS})\\b`, "i");
+  const namedAccount = m.match(accountRe)?.[1];
+  const namedRep = m.match(repRe)?.[1];
+  const namedContact = m.match(contactRe)?.[1];
+  const allowCrm = domain === "all" || domain === "crm";
+  const allowErp = domain === "all" || domain === "erp";
+  const allowTrainer = domain === "all" || domain === "trainer";
+  // Named deal lookups are cross-cutting — useful from any tab.
+  const looksLikeDealLookup =
+    Boolean(namedAccount) &&
+    (/\b(deal|show|get|open|status|tell me about|what's|whats)\b/.test(lower) ||
+      /\bdeal\b/.test(lower));
 
   if (/^(help|what can you do|commands)\b/.test(lower) || lower === "?") {
     return [{ name: "help", args: {} }];
   }
-  if (/\b(pipeline|open deals|deal board)\b/.test(lower) && !/\b(cascade|blueridge|summit|harbor|northwind)\b/.test(lower)) {
+
+  // Domain shortcuts when the user scopes the workspace to one system.
+  if (domain === "crm" && /^(summary|overview|status|how are we)\b/.test(lower) && !namedAccount) {
     return [{ name: "pipeline_summary", args: {} }];
   }
-  if (/\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
+  if (domain === "erp" && /^(summary|overview|status|how are we)\b/.test(lower) && !namedAccount) {
     return [{ name: "finance_snapshot", args: {} }];
   }
-  if (/\b(trial balance|general ledger|g\/?l|journal)\b/.test(lower)) {
-    return [{ name: "gl_trial_balance", args: {} }];
-  }
-  if (/\b(warehouse|warehouses|transfer)\b/.test(lower)) {
-    return [{ name: "warehouse_stock", args: {} }];
-  }
-  if (/\b(project|projects|time entries|hours logged)\b/.test(lower)) {
-    return [{ name: "projects_summary", args: {} }];
-  }
-  if (/\b(payroll|headcount|hr|employees)\b/.test(lower)) {
-    return [{ name: "hr_payroll_snapshot", args: {} }];
-  }
-  if (/\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
-    return [{ name: "list_products", args: { inventory_only: true } }];
-  }
-  if (/\b(catalog|products?|skus?)\b/.test(lower) && !/\bquote\b/.test(lower)) {
-    return [{ name: "list_products", args: {} }];
-  }
-  if (/\b(who needs coaching|needs coaching|coaching queue)\b/.test(lower)) {
-    return [{ name: "coaching_summary", args: { needs_coaching_only: true } }];
-  }
-  if (/\b(assignments?)\b/.test(lower)) {
-    return [{ name: "list_assignments", args: {} }];
-  }
-  if (/\b(how is|how's|performance of|scores? for)\b/.test(lower)) {
-    const repMatch = m.match(/\b(Alex|Casey|Jordan|Morgan|Riley|Sarah)\b/i);
-    return [{ name: "coaching_summary", args: { rep: repMatch?.[1] ?? "" } }];
-  }
-  if (/\b(coaching|team avg|graded calls|scorecard)\b/.test(lower)) {
+  if (domain === "trainer" && /^(summary|overview|status|how are we)\b/.test(lower)) {
     return [{ name: "coaching_summary", args: {} }];
   }
+  if (allowErp && /\b(trial balance|general ledger|g\/?l|journal)\b/.test(lower)) {
+    return [{ name: "gl_trial_balance", args: {} }];
+  }
+  if (allowErp && /\b(warehouse|warehouses|transfer)\b/.test(lower)) {
+    return [{ name: "warehouse_stock", args: {} }];
+  }
+  if (allowErp && /\b(project|projects|time entries|hours logged)\b/.test(lower)) {
+    return [{ name: "projects_summary", args: {} }];
+  }
+  if (allowErp && /\b(payroll|headcount|hr|employees)\b/.test(lower)) {
+    return [{ name: "hr_payroll_snapshot", args: {} }];
+  }
 
-  // Quote actions
-  if (/\b(accept|approve)\b.*\bquote\b|\bquote\b.*\b(accept|approve)\b/.test(lower)) {
-    const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "quote_action", args: { action: "accept", query: num || deal || m } }];
+  // Call / scorecard intents (trainer + CRM overlap)
+  if (
+    (allowTrainer || allowCrm) &&
+    /\b(call score|last call|graded call|scorecard|call grade)\b/.test(lower)
+  ) {
+    return [
+      {
+        name: "get_call_grade",
+        args: { rep: namedRep || "", query: namedAccount || "" },
+      },
+    ];
   }
-  if (/\bsend\b.*\bquote\b|\bquote\b.*\bsend\b/.test(lower)) {
-    const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "quote_action", args: { action: "send", query: num || deal || m } }];
+  if (
+    (allowTrainer || allowCrm) &&
+    /\b(calls?|call history)\b/.test(lower) &&
+    !/\brole-?play\b/.test(lower)
+  ) {
+    if (/\b(score|grade|last)\b/.test(lower) || (namedRep && namedAccount)) {
+      return [
+        {
+          name: "get_call_grade",
+          args: { rep: namedRep || "", query: namedAccount || namedRep || "" },
+        },
+      ];
+    }
+    return [
+      {
+        name: "list_calls",
+        args: {
+          rep: namedRep || "",
+          query: namedAccount || "",
+          graded_only: /\bgraded\b/.test(lower),
+        },
+      },
+    ];
   }
-  if (/\breject\b.*\bquote\b/.test(lower)) {
+  if (allowTrainer && /\b(role-?plays?|practice sessions?)\b/.test(lower)) {
+    return [{ name: "list_roleplays", args: { rep: namedRep || "" } }];
+  }
+  if (allowTrainer && /\b(scenarios?)\b/.test(lower)) {
+    return [{ name: "list_scenarios", args: { query: "" } }];
+  }
+  if (allowTrainer && /\b(my performance|my scores|how am i doing)\b/.test(lower)) {
+    return [{ name: "my_performance", args: {} }];
+  }
+
+  if (allowCrm && /\b(pipeline|open deals|deal board)\b/.test(lower) && !namedAccount) {
+    return [{ name: "pipeline_summary", args: {} }];
+  }
+  if (allowErp && /\b(finance|cash collected|a\/?r|accounts receivable|revenue)\b/.test(lower)) {
+    return [{ name: "finance_snapshot", args: {} }];
+  }
+  if (allowErp && /\b(inventory|stock|reorder|low stock)\b/.test(lower)) {
+    return [{ name: "list_products", args: { inventory_only: true } }];
+  }
+  if (allowErp && /\b(catalog|products?|skus?)\b/.test(lower) && !/\bquote\b/.test(lower)) {
+    return [{ name: "list_products", args: {} }];
+  }
+  if (allowTrainer && /\b(who needs coaching|needs coaching|coaching queue)\b/.test(lower)) {
+    return [{ name: "coaching_summary", args: { needs_coaching_only: true } }];
+  }
+  if (allowTrainer && /\b(assignments?)\b/.test(lower)) {
+    return [{ name: "list_assignments", args: { rep: namedRep || "" } }];
+  }
+  if (allowTrainer && /\b(how is|how's|performance of|scores? for)\b/.test(lower)) {
+    return [{ name: "coaching_summary", args: { rep: namedRep ?? "" } }];
+  }
+  if (
+    allowTrainer &&
+    /\b(coaching|team avg|graded calls|scorecard|trainer)\b/.test(lower) &&
+    !/\bcall\b/.test(lower)
+  ) {
+    return [{ name: "coaching_summary", args: { rep: namedRep || "" } }];
+  }
+
+  // Move deal stage
+  if (allowCrm && /\b(move|set|update|change)\b.*\b(stage|to)\b|\bstage\b.*\b(to|as)\b/.test(lower)) {
+    const stageMatch = m.match(
+      /\b(lead|qualified|discovery|demo|proposal|negotiation|closed[_\s]?won|closed[_\s]?lost)\b/i,
+    );
+    return [
+      {
+        name: "update_deal_stage",
+        args: {
+          query: namedAccount || m,
+          stage: (stageMatch?.[1] || "").replace(/\s+/g, "_"),
+        },
+      },
+    ];
+  }
+
+  // Document detail
+  if (allowErp && /\b(Q-\d+|SO-\d+|INV-\d+)\b/i.test(m) && /\b(show|get|open|details?|line items?)\b/.test(lower)) {
+    const num = m.match(/\b(Q-\d+|SO-\d+|INV-\d+)\b/i)?.[0] || "";
+    return [{ name: "get_document", args: { query: num, type: "auto" } }];
+  }
+
+  if ((allowCrm || allowErp || allowTrainer) && /\b(activit(y|ies)|timeline)\b/.test(lower)) {
+    return [{ name: "list_activities", args: { query: namedAccount || m } }];
+  }
+  if (allowCrm && /\b(conversations?|threads?|emails?|outreach)\b/.test(lower)) {
+    return [{ name: "list_conversations", args: { query: namedAccount || namedContact || "" } }];
+  }
+
+  // Quote actions (ERP)
+  if (allowErp && /\b(accept|approve)\b.*\bquote\b|\bquote\b.*\b(accept|approve)\b/.test(lower)) {
+    const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
+    return [{ name: "quote_action", args: { action: "accept", query: num || namedAccount || m } }];
+  }
+  if (allowErp && /\bsend\b.*\bquote\b|\bquote\b.*\bsend\b/.test(lower)) {
+    const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
+    return [{ name: "quote_action", args: { action: "send", query: num || namedAccount || m } }];
+  }
+  if (allowErp && /\breject\b.*\bquote\b/.test(lower)) {
     const num = m.match(/\bQ-?\d{3,}\b/i)?.[0];
     return [{ name: "quote_action", args: { action: "reject", query: num || m } }];
   }
-  if (/\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)[^,]*/i)?.[0] || "";
+  if (allowErp && /\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
     const product = m.match(/\b(Meridian Core|Meridian Forecast|Core|Forecast|scanner)\b/i)?.[0];
     const qty = Number(m.match(/\b(\d+)\s*(x|×|seats?|units?)?\b/i)?.[1] || 1);
-    return [{ name: "create_quote_for_deal", args: { deal, product, quantity: qty } }];
+    return [
+      {
+        name: "create_quote_for_deal",
+        args: { deal: namedAccount || "", product, quantity: qty },
+      },
+    ];
   }
-  if (/\bquotes?\b/.test(lower)) {
-    const status = lower.includes("open") || lower.includes("sent") ? (lower.includes("draft") ? "draft" : "sent") : "";
-    const query = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind|Q-\d+)\b/i)?.[0] || "";
-    return [{ name: "list_quotes", args: { status: status === "sent" || status === "draft" ? status : "", query } }];
+  if (allowErp && /\bquotes?\b/.test(lower)) {
+    let status = "";
+    if (/\bopen\b/.test(lower)) status = "open";
+    else if (/\bdraft\b/.test(lower)) status = "draft";
+    else if (/\bsent\b/.test(lower)) status = "sent";
+    const query = m.match(/\b(Q-\d+)\b/i)?.[0] || namedAccount || "";
+    return [{ name: "list_quotes", args: { status, query } }];
+  }
+
+  // Purchase orders before sales orders (avoid "order" substring match)
+  if (allowErp && /\bpurchase\s*orders?\b|\bPO-?\d{3,}\b|\bvendors?\b/.test(lower)) {
+    return [
+      {
+        name: "list_purchase_orders",
+        args: { query: m.match(/\bPO-?\d{3,}\b/i)?.[0] || "" },
+      },
+    ];
   }
 
   // Order actions
-  if (/\bconfirm\b.*\border\b|\border\b.*\bconfirm\b/.test(lower)) {
+  if (allowErp && /\bconfirm\b.*\border\b|\border\b.*\bconfirm\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "order_action", args: { action: "confirm", query: num || deal || m } }];
+    return [{ name: "order_action", args: { action: "confirm", query: num || namedAccount || m } }];
   }
-  if (/\bfulfill\b.*\border\b/.test(lower)) {
+  if (allowErp && /\bfulfill\b.*\border\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
     return [{ name: "order_action", args: { action: "fulfill", query: num || m } }];
   }
-  if (/\binvoice\b.*\border\b|\bcreate invoice\b/.test(lower)) {
+  if (allowErp && /\binvoice\b.*\border\b|\bcreate invoice\b/.test(lower)) {
     const num = m.match(/\bSO-?\d{3,}\b/i)?.[0];
-    const deal = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
-    return [{ name: "order_action", args: { action: "invoice", query: num || deal || m } }];
+    return [{ name: "order_action", args: { action: "invoice", query: num || namedAccount || m } }];
   }
-  if (/\borders?\b/.test(lower)) {
-    return [{ name: "list_orders", args: { query: m.match(/\b(Cascade|BlueRidge|Summit|Harbor|SO-\d+)\b/i)?.[0] || "" } }];
+  if (allowErp && /\b(sales\s+)?orders?\b/.test(lower) && !/\bpurchase\b/.test(lower)) {
+    return [
+      {
+        name: "list_orders",
+        args: { query: m.match(/\bSO-\d+\b/i)?.[0] || namedAccount || "" },
+      },
+    ];
   }
 
   // Invoice actions
-  if (/\b(pay|payment|record payment)\b/.test(lower) && /\b(invoice|inv-)/.test(lower)) {
+  if (allowErp && /\b(pay|payment|record payment)\b/.test(lower) && /\b(invoice|inv-)/.test(lower)) {
     const num = m.match(/\bINV-?\d{3,}\b/i)?.[0];
     const amount = Number(m.match(/\$?\s*([\d,]+)/)?.[1]?.replace(/,/g, "") || 0);
     return [{ name: "invoice_action", args: { action: "pay", query: num || m, amount } }];
   }
-  if (/\bsend\b.*\binvoice\b/.test(lower)) {
+  if (allowErp && /\bsend\b.*\binvoice\b/.test(lower)) {
     const num = m.match(/\bINV-?\d{3,}\b/i)?.[0];
     return [{ name: "invoice_action", args: { action: "send", query: num || m } }];
   }
-  if (/\binvoices?\b/.test(lower)) {
-    const query = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind|INV-\d+)\b/i)?.[0] || "";
+  if (allowErp && /\binvoices?\b/.test(lower)) {
+    const query = m.match(/\bINV-\d+\b/i)?.[0] || namedAccount || "";
     return [{ name: "list_invoices", args: { query } }];
   }
 
-  if (/\b(deal|account|contact)\b/.test(lower) || /\b(cascade|blueridge|summit|harbor|northwind|dana|priya|tom)\b/.test(lower)) {
-    if (/\b(contact|email|phone|dana|marta|priya|tom|ellis)\b/.test(lower) && !/\bdeal\b/.test(lower) && !/\bquote\b/.test(lower)) {
-      const query = m.match(/\b(Dana|Marta|Priya|Tom|Ellis|Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0] || m;
+  // Deal / account / contact — allowed from CRM, or any tab when clearly an entity lookup
+  if (allowCrm || looksLikeDealLookup || Boolean(namedAccount || namedContact)) {
+    if (
+      (namedContact || /\b(contact|email|phone)\b/.test(lower)) &&
+      !/\bdeal\b/.test(lower) &&
+      !/\bquote\b/.test(lower) &&
+      !/\bcall\b/.test(lower)
+    ) {
+      const query = namedContact || namedAccount || m;
       return [{ name: "search_accounts_contacts", args: { query } }];
     }
-    if (/\b(show|get|open|what's|whats|status|tell me about)\b/.test(lower) || /\bdeal\b/.test(lower)) {
-      const named = m.match(/\b(Cascade|BlueRidge|Summit|Harbor|Northwind)\b/i)?.[0];
+    if (looksLikeDealLookup || /\bdeal\b/.test(lower) || (namedAccount && /\b(show|get|open|status|tell me about|what's|whats)\b/.test(lower))) {
       const query =
-        named ||
+        namedAccount ||
         m
           .replace(/^(show|get|open|what's|whats|status|tell me about)\s+/i, "")
           .replace(/\bdeal\b/gi, "")
           .trim();
       return [{ name: "get_deal", args: { query } }];
     }
-    return [{ name: "search_deals", args: { query: m } }];
+    if (allowCrm && (/\b(deal|account|contact)\b/.test(lower) || namedAccount)) {
+      return [{ name: "search_deals", args: { query: namedAccount || m } }];
+    }
   }
 
+  // Scoped fallbacks when domain is set but phrasing was vague
+  if (domain === "crm") return [{ name: "pipeline_summary", args: {} }];
+  if (domain === "erp") return [{ name: "finance_snapshot", args: {} }];
+  if (domain === "trainer") return [{ name: "coaching_summary", args: {} }];
   return [{ name: "help", args: {} }];
 }
 
@@ -1094,6 +1825,7 @@ export async function runAssistantChat(input: {
   userId: string;
   role: string;
   isManager: boolean;
+  domain?: "all" | AssistantSource;
 }): Promise<AssistantResult> {
   const ctx: ToolCtx = {
     orgId: input.orgId,
@@ -1101,31 +1833,55 @@ export async function runAssistantChat(input: {
     role: input.role,
     isManager: input.isManager,
   };
+  const domain = input.domain ?? "all";
   const message = input.message.trim();
   if (!message) {
-    return { reply: "Ask me anything about pipeline, quotes, orders, invoices, or coaching.", mode: "demo" };
+    return {
+      reply: "Ask me anything about pipeline, quotes, orders, invoices, or coaching.",
+      mode: "demo",
+      sources: [],
+    };
   }
 
   if (!aiAvailable()) {
-    const calls = routeDemoIntent(message);
+    const calls = routeDemoIntent(message, domain);
     const parts: string[] = [];
     const links: AssistantLink[] = [];
+    const toolNames: string[] = [];
+    const followUps: string[] = [];
+    let data: unknown;
     for (const call of calls) {
+      toolNames.push(call.name);
       const result = await runTool(call.name, call.args, ctx);
       parts.push(result.text);
       links.push(...(result.links ?? []));
+      followUps.push(...(result.followUps ?? []));
+      if (result.data != null && data == null) data = result.data;
     }
     const uniq = links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i);
+    const uniqFollow = followUps.filter((f, i, arr) => arr.indexOf(f) === i).slice(0, 4);
     return {
       reply: parts.join("\n\n") || "I wasn't sure — try “help”.",
       links: uniq.slice(0, 6),
+      sources: sourcesForTools(toolNames),
+      followUps: uniqFollow,
+      data,
       mode: "demo",
     };
   }
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const domainHint =
+    domain === "crm"
+      ? "Prefer CRM tools (pipeline, deals, accounts, contacts)."
+      : domain === "erp"
+        ? "Prefer ERP tools (quotes, orders, invoices, catalog, inventory, finance)."
+        : domain === "trainer"
+          ? "Prefer coaching/trainer tools (scores, assignments, role-play performance)."
+          : "Query across CRM, ERP, and sales trainer as needed.";
   const system = `You are SalesCoach Assistant for Meridian Software.
-You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, warehouses, GL, projects, HR/payroll, finance), and coaching (scores, assignments, role-play).
+You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, warehouses, GL, projects, HR/payroll, finance), and sales trainer / coaching (scores, assignments, role-play).
+${domainHint}
 Use tools for live data and actions. Be concise. After tool results, summarize clearly with numbers and next steps.
 Current user role: ${input.role}.`;
 
@@ -1139,6 +1895,9 @@ Current user role: ${input.role}.`;
   ];
 
   const links: AssistantLink[] = [];
+  const toolNames: string[] = [];
+  const followUps: string[] = [];
+  let data: unknown;
   let guard = 0;
   while (guard++ < 4) {
     const res = await client.chat.completions.create({
@@ -1161,8 +1920,11 @@ Current user role: ${input.role}.`;
         } catch {
           args = {};
         }
+        toolNames.push(tc.function.name);
         const result = await runTool(tc.function.name, args, ctx);
         links.push(...(result.links ?? []));
+        followUps.push(...(result.followUps ?? []));
+        if (result.data != null && data == null) data = result.data;
         messages.push({
           role: "tool",
           tool_call_id: tc.id,
@@ -1174,8 +1936,22 @@ Current user role: ${input.role}.`;
 
     const reply = choice.content?.trim() || "Done.";
     const uniq = links.filter((l, i, arr) => arr.findIndex((x) => x.href === l.href) === i);
-    return { reply, links: uniq.slice(0, 6), mode: "llm" };
+    return {
+      reply,
+      links: uniq.slice(0, 6),
+      sources: sourcesForTools(toolNames),
+      followUps: followUps.filter((f, i, arr) => arr.indexOf(f) === i).slice(0, 4),
+      data,
+      mode: "llm",
+    };
   }
 
-  return { reply: "I hit a tool loop limit — try a more specific question.", links, mode: "llm" };
+  return {
+    reply: "I hit a tool loop limit — try a more specific question.",
+    links,
+    sources: sourcesForTools(toolNames),
+    followUps: followUps.slice(0, 4),
+    data,
+    mode: "llm",
+  };
 }
