@@ -1,7 +1,11 @@
 import { db } from "./db";
+import { autoMatchCallToCrm } from "./crm-match";
+import { formatDealContext, writeBackGradeToCrm } from "./crm";
 import { gradeTranscript } from "./grading";
+import { enqueueProcessCall, inlineJobs } from "./queue";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
+import { parseRetentionPolicy, redactPii, redactSegments } from "./pii";
 import {
   parseCompanyProfile,
   parseDimensions,
@@ -12,26 +16,30 @@ import {
   type TranscriptSegment,
 } from "./types";
 
-// Processing pipeline for ingested calls. Runs inline in dev; in production
-// each step becomes a queue job (see README architecture notes).
+// Processing pipeline for ingested calls. Grades are enqueued by default;
+// set INLINE_JOBS=true to run synchronously (tests / simple deploys).
 
 export interface IngestCallInput {
   orgId: string;
   repId: string;
-  source: "UPLOAD" | "WEBHOOK" | "API" | "DIALER";
+  source: "UPLOAD" | "WEBHOOK" | "API" | "DIALER" | "CRM";
   direction?: string;
   callType?: string;
   durationSec: number;
   externalId?: string;
   prospectName?: string;
+  prospectEmail?: string;
+  prospectPhone?: string;
   callDate?: Date;
   audio?: { buffer: Buffer; mimeType: string; path?: string };
-  providedTranscript?: string; // text or JSON transcript, skips transcription
+  providedTranscript?: string;
   repFlagged?: boolean;
+  accountId?: string;
+  contactId?: string;
+  dealId?: string;
 }
 
 export async function ingestCall(input: IngestCallInput) {
-  // Dedup on provider call id.
   if (input.externalId) {
     const existing = await db.call.findUnique({
       where: { orgId_externalId: { orgId: input.orgId, externalId: input.externalId } },
@@ -41,6 +49,7 @@ export async function ingestCall(input: IngestCallInput) {
 
   const org = await db.org.findUniqueOrThrow({ where: { id: input.orgId } });
   const policy = parseIngestionPolicy(org.ingestionPolicyJson);
+  const retention = parseRetentionPolicy(org.retentionPolicyJson);
   const now = input.callDate ?? new Date();
 
   const stats = await repMonthStats(input.orgId, input.repId, now, input.durationSec);
@@ -49,6 +58,11 @@ export async function ingestCall(input: IngestCallInput) {
     { durationSec: input.durationSec, source: input.source, repFlagged: input.repFlagged },
     stats,
   );
+
+  let providedTranscript = input.providedTranscript;
+  if (providedTranscript && retention.redactPiiInTranscripts) {
+    providedTranscript = redactPii(providedTranscript);
+  }
 
   const call = await db.call.create({
     data: {
@@ -61,29 +75,54 @@ export async function ingestCall(input: IngestCallInput) {
       externalId: input.externalId,
       prospectName: input.prospectName ?? "",
       audioPath: input.audio?.path,
+      accountId: input.accountId,
+      contactId: input.contactId,
+      dealId: input.dealId,
       callDate: now,
       status: decision.grade ? "QUEUED" : decision.samplingStatus === "BELOW_MIN_DURATION" ? "SKIPPED" : "INGESTED",
       samplingStatus: decision.samplingStatus,
     },
   });
 
+  if (policy.autoMatchCrm !== false) {
+    await autoMatchCallToCrm({
+      orgId: input.orgId,
+      callId: call.id,
+      prospectEmail: input.prospectEmail,
+      prospectPhone: input.prospectPhone,
+      prospectName: input.prospectName,
+      callType: input.callType,
+      preferOwnerId: input.repId,
+    });
+  }
+
   if (decision.grade) {
-    await processCall(call.id, input);
-  } else if (input.providedTranscript) {
-    // Store the transcript even when not graded, so "grade this call now" is instant.
-    const segments = parseProvidedTranscript(input.providedTranscript);
-    if (segments.length) await storeTranscript(call.id, segments, "provided");
+    if (inlineJobs() || input.audio) {
+      // Audio buffers can't cross the job queue boundary; process inline.
+      await processCall(call.id, { ...input, providedTranscript });
+    } else {
+      await enqueueProcessCall(input.orgId, call.id, { providedTranscript });
+    }
+  } else if (providedTranscript) {
+    const segments = parseProvidedTranscript(providedTranscript);
+    if (segments.length) {
+      await storeTranscript(
+        call.id,
+        retention.redactPiiInTranscripts ? redactSegments(segments) : segments,
+        "provided",
+      );
+    }
   }
 
   return { call: await db.call.findUniqueOrThrow({ where: { id: call.id } }), deduped: false };
 }
 
-// Transcribe (if needed) and grade a call. Also used by "grade this call now".
 export async function processCall(callId: string, input?: Partial<IngestCallInput>) {
   const call = await db.call.findUniqueOrThrow({
     where: { id: callId },
     include: { transcript: true, org: { include: { companyContext: true } } },
   });
+  const retention = parseRetentionPolicy(call.org.retentionPolicyJson);
 
   try {
     let segments: TranscriptSegment[];
@@ -101,11 +140,11 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
       segments = result.segments;
       engine = result.engine;
     } else {
-      // No audio and no transcript (e.g. seeded/demo webhook without payload).
       segments = mockTranscript(hashId(callId));
       engine = "mock";
     }
 
+    if (retention.redactPiiInTranscripts) segments = redactSegments(segments);
     if (!segments.length) throw new Error("Empty transcript — check the transcript format or audio file.");
     if (!call.transcript) await storeTranscript(callId, segments, engine);
 
@@ -118,6 +157,7 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
       callType: call.callType,
     });
     await db.call.update({ where: { id: callId }, data: { status: "GRADED" } });
+    await writeBackGradeToCrm(callId);
   } catch (err) {
     await db.call.update({
       where: { id: callId },
@@ -127,7 +167,6 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
   }
 }
 
-// Grade a completed role-play session through the same engine.
 export async function gradeRoleplay(sessionId: string) {
   const session = await db.roleplaySession.findUniqueOrThrow({
     where: { id: sessionId },
@@ -161,8 +200,6 @@ export async function gradeRoleplay(sessionId: string) {
   await db.roleplaySession.update({ where: { id: sessionId }, data: { status: "GRADED" } });
 }
 
-// Shared grading entry: resolves rubric + company context, runs the engine,
-// persists the Grade row. Pure function of transcript + rubric + context.
 async function gradeSubject(args: {
   orgId: string;
   subjectType: "CALL" | "ROLEPLAY";
@@ -181,13 +218,25 @@ async function gradeSubject(args: {
   if (!methodologyId) throw new Error("No active methodology configured for this team.");
   const methodology = await db.methodology.findUniqueOrThrow({ where: { id: methodologyId } });
 
+  let scenarioContext = args.scenarioContext ?? "";
+  if (args.callId) {
+    const linked = await db.call.findUnique({
+      where: { id: args.callId },
+      include: { deal: { include: { account: true, contact: true } } },
+    });
+    if (linked?.deal) {
+      const dealCtx = formatDealContext(linked.deal);
+      scenarioContext = scenarioContext ? `${scenarioContext}\n${dealCtx}` : dealCtx;
+    }
+  }
+
   const result = await gradeTranscript({
     segments: args.segments,
     dimensions: parseDimensions(methodology.dimensionsJson),
     company: parseCompanyProfile(org.companyContext?.profileJson ?? "{}"),
     subjectType: args.subjectType,
     callType: args.callType,
-    scenarioContext: args.scenarioContext,
+    scenarioContext: scenarioContext || undefined,
   });
 
   const data = {

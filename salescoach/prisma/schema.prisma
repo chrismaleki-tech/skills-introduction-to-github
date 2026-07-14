@@ -18,17 +18,28 @@ model Org {
   name                String
   // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
   ingestionPolicyJson String  @default("{}")
+  // Compliance / retention (JSON: RetentionPolicy in src/lib/types.ts)
+  retentionPolicyJson String  @default("{}")
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
 
-  users         User[]
-  methodologies Methodology[]
+  users          User[]
+  methodologies  Methodology[]
   companyContext CompanyContext?
-  calls         Call[]
-  scenarios     Scenario[]
-  roleplays     RoleplaySession[]
-  grades        Grade[]
-  assignments   Assignment[]
+  calls          Call[]
+  scenarios      Scenario[]
+  roleplays      RoleplaySession[]
+  grades         Grade[]
+  assignments    Assignment[]
+  accounts       Account[]
+  contacts       Contact[]
+  deals          Deal[]
+  activities     Activity[]
+  connections    ChannelConnection[]
+  conversations  Conversation[]
+  messages       Message[]
+  unmatchedIngests UnmatchedIngest[]
+  jobs           Job[]
 
   createdAt DateTime @default(now())
 }
@@ -38,15 +49,26 @@ model User {
   orgId String
   org   Org    @relation(fields: [orgId], references: [id])
 
-  name  String
-  email String @unique
-  role  String // REP | MANAGER | TRAINER | ADMIN
-  title String @default("")
+  name         String
+  email        String  @unique
+  // bcrypt hash; empty means demo-only switcher login until password is set
+  passwordHash String  @default("")
+  role         String // REP | MANAGER | TRAINER | ADMIN
+  title        String  @default("")
+  lastLoginAt  DateTime?
 
-  calls        Call[]            @relation("RepCalls")
-  roleplays    RoleplaySession[]
-  assignments  Assignment[]      @relation("AssignedTo")
-  assignedById Assignment[]      @relation("AssignedBy")
+  calls          Call[]            @relation("RepCalls")
+  roleplays      RoleplaySession[]
+  assignments    Assignment[]      @relation("AssignedTo")
+  assignedById   Assignment[]      @relation("AssignedBy")
+  ownedDeals     Deal[]            @relation("DealOwner")
+  ownedAccounts  Account[]         @relation("AccountOwner")
+  ownedContacts  Contact[]         @relation("ContactOwner")
+  activities     Activity[]        @relation("ActivityOwner")
+  connections    ChannelConnection[]
+  conversations  Conversation[]    @relation("ConversationOwner")
+  messages       Message[]         @relation("MessageSender")
+  resolvedUnmatched UnmatchedIngest[] @relation("UnmatchedResolver")
 
   createdAt DateTime @default(now())
 }
@@ -91,13 +113,21 @@ model Call {
   repId String
   rep   User   @relation("RepCalls", fields: [repId], references: [id])
 
-  source      String // UPLOAD | WEBHOOK | API | DIALER
-  direction   String @default("outbound") // outbound | inbound
-  callType    String @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
-  durationSec Int    @default(0)
-  externalId  String? // provider call id, used for dedup
-  audioPath   String? // stored audio file (local uploads dir in dev)
+  source       String // UPLOAD | WEBHOOK | API | DIALER | CRM
+  direction    String @default("outbound") // outbound | inbound
+  callType     String @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
+  durationSec  Int    @default(0)
+  externalId   String? // provider call id, used for dedup
+  audioPath    String? // stored audio file (local uploads dir in dev)
   prospectName String @default("")
+
+  // Optional CRM links — graded coaching feedback writes back to the deal timeline.
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id])
 
   status String @default("INGESTED") // INGESTED | SKIPPED | QUEUED | TRANSCRIBING | GRADING | GRADED | FAILED
   // Why this call was (not) graded under the sampling policy:
@@ -107,12 +137,233 @@ model Call {
 
   transcript Transcript?
   grade      Grade?
+  activities Activity[]
+  messages   Message[]
 
   callDate  DateTime @default(now())
   createdAt DateTime @default(now())
 
   @@index([orgId, repId, callDate])
+  @@index([orgId, dealId])
   @@unique([orgId, externalId])
+}
+
+// ---------- CRM (accounts / contacts / deals) ----------
+// Lives in the same tenant as coaching so deal stage context can ground grades
+// and scorecards can write back onto the deal timeline.
+
+model Account {
+  id      String  @id @default(cuid())
+  orgId   String
+  org     Org     @relation(fields: [orgId], references: [id])
+  ownerId String?
+  owner   User?   @relation("AccountOwner", fields: [ownerId], references: [id])
+
+  name     String
+  domain   String  @default("")
+  industry String  @default("")
+  size     String  @default("") // e.g. "50-200"
+  website  String  @default("")
+  notes    String  @default("")
+
+  contacts   Contact[]
+  deals      Deal[]
+  calls      Call[]
+  activities Activity[]
+  conversations Conversation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, name])
+}
+
+model Contact {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  ownerId   String?
+  owner     User?   @relation("ContactOwner", fields: [ownerId], references: [id])
+
+  name   String
+  email  String  @default("")
+  phone  String  @default("")
+  title  String  @default("")
+  notes  String  @default("")
+
+  deals      Deal[]
+  calls      Call[]
+  activities Activity[]
+  conversations Conversation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, name])
+  @@index([orgId, email])
+}
+
+model Deal {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  ownerId   String?
+  owner     User?   @relation("DealOwner", fields: [ownerId], references: [id])
+
+  name   String
+  // lead | qualified | discovery | demo | proposal | negotiation | closed_won | closed_lost
+  stage  String @default("lead")
+  amount Int    @default(0) // USD cents avoided — store whole dollars for demo simplicity
+  // Product / line the deal is about (feeds coaching context)
+  product     String @default("")
+  probability Int    @default(10) // 0..100
+  nextStep    String @default("")
+  notes       String @default("")
+  closeDate   DateTime?
+
+  calls      Call[]
+  activities Activity[]
+  conversations Conversation[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orgId, stage])
+  @@index([orgId, ownerId])
+}
+
+model Activity {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id])
+  ownerId   String?
+  owner     User?   @relation("ActivityOwner", fields: [ownerId], references: [id])
+  callId    String?
+  call      Call?    @relation(fields: [callId], references: [id])
+
+  // NOTE | CALL | EMAIL | MEETING | TASK | COACHING
+  type        String
+  subject     String
+  body        String  @default("")
+  // For COACHING activities written back from SalesCoach grades
+  score       Int?
+  band        String?
+  externalRef String? // stable id for upsert (e.g. grade:<gradeId>)
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@unique([orgId, externalRef])
+  @@index([orgId, dealId, occurredAt])
+  @@index([orgId, accountId, occurredAt])
+}
+
+// ---------- Channels: employee email + phone connected for CRM outreach ----------
+// Demo mode stores a connected address/number without real OAuth; production would
+// swap provider tokens for Gmail/Outlook/Twilio/Aircall.
+
+model ChannelConnection {
+  id     String @id @default(cuid())
+  orgId  String
+  org    Org    @relation(fields: [orgId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // EMAIL | PHONE
+  channel  String
+  // gmail | outlook | work_smtp | demo_email | twilio | aircall | ringcentral | demo_phone
+  provider String
+  // Email address or E.164 phone number shown as the "from"
+  address  String
+  // CONNECTED | DISCONNECTED | ERROR
+  status   String @default("CONNECTED")
+  // Opaque token blob for real providers (JSON string). Demo stores "{}".
+  credentialsJson String @default("{}")
+  lastError       String @default("")
+
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, channel])
+  @@index([orgId, userId])
+}
+
+// A thread of emails or a phone conversation attached to CRM records.
+model Conversation {
+  id        String  @id @default(cuid())
+  orgId     String
+  org       Org     @relation(fields: [orgId], references: [id])
+  ownerId   String
+  owner     User    @relation("ConversationOwner", fields: [ownerId], references: [id])
+  accountId String?
+  account   Account? @relation(fields: [accountId], references: [id])
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id])
+  dealId    String?
+  deal      Deal?    @relation(fields: [dealId], references: [id])
+
+  // EMAIL | PHONE
+  channel String
+  subject String @default("")
+  // OPEN | CLOSED
+  status  String @default("OPEN")
+  // Prospect-facing address/number for this thread
+  prospectAddress String @default("")
+
+  messages Message[]
+
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([orgId, dealId, lastMessageAt])
+  @@index([orgId, contactId, lastMessageAt])
+  @@index([orgId, ownerId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  orgId          String
+  org            Org          @relation(fields: [orgId], references: [id])
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  senderId       String?
+  sender         User?        @relation("MessageSender", fields: [senderId], references: [id])
+  // Optional link when a PHONE message was graded as a SalesCoach call
+  callId         String?
+  call           Call?        @relation(fields: [callId], references: [id])
+
+  // OUTBOUND | INBOUND
+  direction String
+  // For email: subject line of this message; for phone: "Outbound call" etc.
+  subject   String @default("")
+  body      String @default("")
+  // queued | sent | delivered | failed | received | completed
+  status    String @default("sent")
+  // From/to for audit (employee connected address ↔ prospect)
+  fromAddress String @default("")
+  toAddress   String @default("")
+  durationSec Int?
+  externalId  String?
+
+  grade Grade?
+
+  occurredAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([conversationId, occurredAt])
+  @@index([orgId, occurredAt])
 }
 
 model Transcript {
@@ -180,11 +431,13 @@ model Grade {
   orgId String
   org   Org    @relation(fields: [orgId], references: [id])
 
-  subjectType String // CALL | ROLEPLAY
+  subjectType String // CALL | ROLEPLAY | EMAIL
   callId      String? @unique
   call        Call?   @relation(fields: [callId], references: [id])
   roleplayId  String? @unique
   roleplay    RoleplaySession? @relation(fields: [roleplayId], references: [id])
+  messageId   String? @unique
+  message     Message? @relation(fields: [messageId], references: [id])
 
   methodologyId String
   methodology   Methodology @relation(fields: [methodologyId], references: [id])
@@ -233,4 +486,53 @@ model Assignment {
   createdAt DateTime @default(now())
 
   @@index([orgId, assignedToId, status])
+}
+
+// Webhook payloads that couldn't be mapped to a known rep email.
+model UnmatchedIngest {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  // WEBHOOK | CRM_SYNC
+  source       String
+  repEmail     String
+  externalId   String?
+  payloadJson  String
+  // PENDING | RESOLVED | DISMISSED
+  status       String  @default("PENDING")
+  resolvedRepId String?
+  resolvedBy   User?   @relation("UnmatchedResolver", fields: [resolvedRepId], references: [id])
+  resolvedCallId String?
+  note         String  @default("")
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([orgId, status, createdAt])
+  @@unique([orgId, source, externalId])
+}
+
+// Durable job queue (SQLite/Postgres). Workers claim PENDING rows.
+// Production can swap the poller for BullMQ/SQS without changing job names.
+model Job {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  // PROCESS_CALL | GRADE_ROLEPLAY | GRADE_EMAIL | RETENTION_SWEEP
+  type        String
+  // PENDING | RUNNING | DONE | FAILED
+  status      String @default("PENDING")
+  payloadJson String @default("{}")
+  attempts    Int    @default(0)
+  lastError   String @default("")
+  runAfter    DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, runAfter])
+  @@index([orgId, type, status])
 }

@@ -3,8 +3,6 @@ import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import type { IngestionPolicy } from "@/lib/types";
 
-// POST /api/settings/policy — save the org's ingestion & sampling policy.
-
 function intIn(v: unknown, min: number, max: number): number | null {
   if (typeof v !== "number" || !Number.isInteger(v) || v < min || v > max) return null;
   return v;
@@ -47,6 +45,9 @@ export async function POST(req: Request) {
     sampleThreshold,
     sampleSize,
     gradeManualUploads: body.gradeManualUploads,
+    autoMatchCrm: typeof body.autoMatchCrm === "boolean" ? body.autoMatchCrm : true,
+    gradeOutboundEmails:
+      typeof body.gradeOutboundEmails === "boolean" ? body.gradeOutboundEmails : true,
   };
   await db.org.update({
     where: { id: user.orgId },

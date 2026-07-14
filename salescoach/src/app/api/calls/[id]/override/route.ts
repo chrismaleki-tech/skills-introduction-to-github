@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { writeBackGradeToCrm } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
 
 // Manager calibration: override the AI score and/or leave a comment on a
@@ -43,6 +44,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     where: { id: call.grade.id },
     data: { managerOverrideScore: score, managerComment: comment || null },
   });
+
+  // Refresh the CRM coaching activity so manager overrides show on the deal.
+  await writeBackGradeToCrm(call.id);
 
   return NextResponse.json({
     managerOverrideScore: grade.managerOverrideScore,

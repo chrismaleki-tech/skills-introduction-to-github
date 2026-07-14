@@ -72,6 +72,8 @@ export interface IngestionPolicy {
   sampleThreshold: number; // grade everything up to this many eligible calls/rep/month
   sampleSize: number; // random sample size per rep per month beyond threshold
   gradeManualUploads: boolean; // manual uploads bypass sampling
+  autoMatchCrm: boolean; // match prospect email/phone/name to contacts & deals
+  gradeOutboundEmails: boolean; // coach outbound CRM emails
 }
 
 export const DEFAULT_INGESTION_POLICY: IngestionPolicy = {
@@ -79,6 +81,8 @@ export const DEFAULT_INGESTION_POLICY: IngestionPolicy = {
   sampleThreshold: 10,
   sampleSize: 10,
   gradeManualUploads: true,
+  autoMatchCrm: true,
+  gradeOutboundEmails: true,
 };
 
 // ---------- Transcripts ----------

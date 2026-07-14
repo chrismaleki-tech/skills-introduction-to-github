@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui";
 
-// Creates a text role-play session for a scenario and jumps into the chat.
 export function StartSessionButton({
   scenarioId,
   variant = "primary",
@@ -13,36 +12,46 @@ export function StartSessionButton({
   variant?: "primary" | "secondary";
 }) {
   const router = useRouter();
-  const [starting, setStarting] = useState(false);
+  const [starting, setStarting] = useState<"TEXT" | "VOICE" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  async function start() {
-    setStarting(true);
+  async function start(mode: "TEXT" | "VOICE") {
+    setStarting(mode);
     setError(null);
     try {
       const res = await fetch("/api/roleplay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scenarioId }),
+        body: JSON.stringify({ scenarioId, mode }),
       });
-      const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        id?: string;
+        error?: string;
+        demoCompleted?: boolean;
+      };
       if (!res.ok || !data.id) {
         setError(data.error ?? "Could not start the session.");
-        setStarting(false);
+        setStarting(null);
         return;
       }
       router.push(`/roleplay/${data.id}`);
+      router.refresh();
     } catch {
       setError("Network error — try again.");
-      setStarting(false);
+      setStarting(null);
     }
   }
 
   return (
     <div className="flex flex-col items-start gap-1.5">
-      <Button variant={variant} onClick={() => void start()} disabled={starting}>
-        {starting ? "Starting..." : "Start session"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant={variant} onClick={() => void start("TEXT")} disabled={!!starting}>
+          {starting === "TEXT" ? "Starting..." : "Start text session"}
+        </Button>
+        <Button variant="secondary" onClick={() => void start("VOICE")} disabled={!!starting}>
+          {starting === "VOICE" ? "Starting..." : "Start voice session"}
+        </Button>
+      </div>
       {error && <span className="text-xs text-rose-400">{error}</span>}
     </div>
   );

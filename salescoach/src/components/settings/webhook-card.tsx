@@ -56,14 +56,28 @@ export function WebhookCard({ secret }: { secret: string }) {
     "durationSec": 540,
     "callType": "discovery",
     "prospectName": "Dana Whitfield",
+    "dealId": "optional_crm_deal_id",
     "transcript": "Rep: Hi Dana, thanks for taking the time...\\nProspect: Sure, what is this about?"
+  }'`;
+
+  const crmUrl = `${origin || "https://your-deployment"}/api/crm/sync/call`;
+  const crmCurl = `curl -X POST ${crmUrl} \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "secret": "${secret}",
+    "repEmail": "alex@meridian.demo",
+    "dealId": "YOUR_DEAL_ID",
+    "durationSec": 420,
+    "callType": "discovery",
+    "transcript": "REP: ...\\nPROSPECT: ..."
   }'`;
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted">
         Point your dialer or call recorder at this endpoint and every call flows in automatically, subject to
-        the sampling policy above.
+        the sampling policy above. Pass an optional <code className="text-xs">dealId</code> to attach CRM
+        context and write the scorecard back to the deal timeline.
       </p>
       <div>
         <div className="text-xs font-medium text-muted uppercase tracking-wider mb-1.5">Webhook URL</div>
@@ -90,6 +104,21 @@ export function WebhookCard({ secret }: { secret: string }) {
         <div className="text-xs font-medium text-muted uppercase tracking-wider mb-1.5">Example request</div>
         <pre className="bg-surface-2 border border-line rounded-lg px-3 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
           {curlExample}
+        </pre>
+      </div>
+      <div>
+        <div className="text-xs font-medium text-muted uppercase tracking-wider mb-1.5">
+          CRM → SalesCoach bridge
+        </div>
+        <p className="text-sm text-muted mb-2">
+          Log a call against a deal from an external CRM or the Pipeline UI. Same secret; response includes{" "}
+          <code className="text-xs">callId</code> and grading status.
+        </p>
+        <code className="block bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm font-mono break-all mb-2">
+          {crmUrl}
+        </code>
+        <pre className="bg-surface-2 border border-line rounded-lg px-3 py-3 text-xs font-mono overflow-x-auto leading-relaxed">
+          {crmCurl}
         </pre>
       </div>
     </div>

@@ -2,7 +2,11 @@
  * company context, two months of ingested calls (run through the real
  * ingestion pipeline, including sampling), role-play scenarios and graded
  * sessions, and manager assignments. Run: npm run db:seed */
+process.env.SEEDING = "1";
+process.env.INLINE_JOBS = "1";
+
 import { db } from "../src/lib/db";
+import { hashPassword } from "../src/lib/password";
 import { METHODOLOGY_PRESETS } from "../src/lib/presets";
 import { ingestCall, gradeRoleplay } from "../src/lib/pipeline";
 import type { CompanyProfile, RoleplayMessage, ScenarioPersona } from "../src/lib/types";
@@ -160,6 +164,14 @@ async function main() {
         sampleThreshold: 10,
         sampleSize: 10,
         gradeManualUploads: true,
+        autoMatchCrm: true,
+        gradeOutboundEmails: true,
+      }),
+      retentionPolicyJson: JSON.stringify({
+        redactPiiInTranscripts: true,
+        redactPiiInEmailBodies: true,
+        retainCallDays: 365,
+        retainEmailDays: 365,
       }),
     },
   });
@@ -211,8 +223,9 @@ async function main() {
   });
 
   // Users
+  const passwordHash = await hashPassword("password123");
   const mkUser = (name: string, email: string, role: string, title: string) =>
-    db.user.create({ data: { orgId: org.id, name, email, role, title } });
+    db.user.create({ data: { orgId: org.id, name, email, role, title, passwordHash } });
   const manager = await mkUser("Sarah Chen", "sarah@meridian.demo", "MANAGER", "VP of Sales");
   const trainer = await mkUser("Marcus Webb", "marcus@meridian.demo", "TRAINER", "Sales Enablement Lead");
   await mkUser("Ana Ruiz", "ana@meridian.demo", "ADMIN", "RevOps Admin");
@@ -452,10 +465,341 @@ async function main() {
     },
   });
 
+  // ---------- CRM: accounts, contacts, deals, linked coaching ----------
+  const { writeBackGradeToCrm } = await import("../src/lib/crm");
+
+  const cascade = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[0].id,
+      name: "Cascade Distribution",
+      domain: "cascadedist.demo",
+      industry: "Wholesale distribution",
+      size: "120-200",
+      website: "https://cascadedist.demo",
+      notes: "Multi-warehouse NetSuite shop. Primary design partner for Meridian Core.",
+    },
+  });
+  const blueRidge = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[1].id,
+      name: "BlueRidge Supply",
+      domain: "blueridgesupply.demo",
+      industry: "Industrial supply",
+      size: "50-100",
+      website: "https://blueridgesupply.demo",
+    },
+  });
+  const summit = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[3].id,
+      name: "Summit Logistics",
+      domain: "summitlogistics.demo",
+      industry: "3PL",
+      size: "200-400",
+      website: "https://summitlogistics.demo",
+      notes: "Evaluating Meridian Forecast for seasonal demand.",
+    },
+  });
+  const northwind = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[0].id,
+      name: "Northwind Foods",
+      domain: "northwindfoods.demo",
+      industry: "Food wholesale",
+      size: "80-150",
+    },
+  });
+
+  const dana = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      ownerId: reps[0].id,
+      name: "Dana Whitfield",
+      title: "VP of Operations",
+      email: "dana@cascadedist.demo",
+      phone: "+1-503-555-0142",
+    },
+  });
+  const marta = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      ownerId: reps[0].id,
+      name: "Marta Iglesias",
+      title: "CFO",
+      email: "marta@cascadedist.demo",
+      phone: "+1-503-555-0199",
+    },
+  });
+  const tom = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: blueRidge.id,
+      ownerId: reps[1].id,
+      name: "Tom Herrera",
+      title: "Operations Manager",
+      email: "tom@blueridgesupply.demo",
+      phone: "+1-828-555-0118",
+    },
+  });
+  const priya = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: summit.id,
+      ownerId: reps[3].id,
+      name: "Priya Nair",
+      title: "Director of Supply Chain",
+      email: "priya@summitlogistics.demo",
+      phone: "+1-206-555-0177",
+    },
+  });
+  const ellis = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: northwind.id,
+      ownerId: reps[4].id,
+      name: "Ellis Cho",
+      title: "Warehouse Lead",
+      email: "ellis@northwindfoods.demo",
+      phone: "+1-312-555-0133",
+    },
+  });
+
+  const dealCascadeCore = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      contactId: dana.id,
+      ownerId: reps[0].id,
+      name: "Cascade · Meridian Core",
+      stage: "proposal",
+      amount: 42000,
+      product: "Meridian Core",
+      probability: 65,
+      nextStep: "Send fixed-fee rollout plan + CFO payback model",
+      closeDate: new Date(now.getTime() + 21 * 86400000),
+      notes: "Dana is champion; Marta owns budget. Need both on next call.",
+    },
+  });
+  const dealBlueRidge = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: blueRidge.id,
+      contactId: tom.id,
+      ownerId: reps[1].id,
+      name: "BlueRidge · Core evaluation",
+      stage: "discovery",
+      amount: 24000,
+      product: "Meridian Core",
+      probability: 35,
+      nextStep: "Equip Tom to sell internally to his VP",
+      closeDate: new Date(now.getTime() + 45 * 86400000),
+    },
+  });
+  const dealSummit = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: summit.id,
+      contactId: priya.id,
+      ownerId: reps[3].id,
+      name: "Summit · Forecast add-on",
+      stage: "demo",
+      amount: 18000,
+      product: "Meridian Forecast",
+      probability: 50,
+      nextStep: "Schedule live demo with seasonal demand scenarios",
+      closeDate: new Date(now.getTime() + 30 * 86400000),
+    },
+  });
+  const dealNorthwind = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: northwind.id,
+      contactId: ellis.id,
+      ownerId: reps[4].id,
+      name: "Northwind · early outbound",
+      stage: "qualified",
+      amount: 30000,
+      product: "Meridian Core",
+      probability: 20,
+      nextStep: "Book first discovery with warehouse + ops",
+    },
+  });
+  await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      contactId: marta.id,
+      ownerId: reps[0].id,
+      name: "Cascade · Forecast expansion",
+      stage: "lead",
+      amount: 12000,
+      product: "Meridian Forecast",
+      probability: 10,
+      nextStep: "Wait until Core is signed",
+    },
+  });
+  await db.deal.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[2].id,
+      name: "Closed · Harbor Parts",
+      stage: "closed_won",
+      amount: 36000,
+      product: "Meridian Core",
+      probability: 100,
+      closeDate: new Date(now.getTime() - 18 * 86400000),
+      notes: "Reference customer for phased rollout.",
+    },
+  });
+
+  // Seed timeline notes + link recent graded calls for the open deals.
+  for (const [deal, subject, body] of [
+    [dealCascadeCore, "Deal created", "Opened after Dana's cold-call booked Marta."],
+    [dealBlueRidge, "Deal created", "Tom is a friendly champion without budget authority."],
+    [dealSummit, "Deal created", "Priya asked for Forecast after seeing Core at a peer."],
+    [dealNorthwind, "Deal created", "Inbound from warehouse lead; needs ops sponsor."],
+  ] as const) {
+    await db.activity.create({
+      data: {
+        orgId: org.id,
+        dealId: deal.id,
+        accountId: deal.accountId,
+        contactId: deal.contactId,
+        ownerId: deal.ownerId,
+        type: "NOTE",
+        subject,
+        body,
+      },
+    });
+  }
+
+  const linkTargets: { dealId: string; accountId: string | null; contactId: string | null; prospect: string; repId: string }[] = [
+    { dealId: dealCascadeCore.id, accountId: cascade.id, contactId: dana.id, prospect: "Dana Whitfield", repId: reps[0].id },
+    { dealId: dealBlueRidge.id, accountId: blueRidge.id, contactId: tom.id, prospect: "Tom Herrera", repId: reps[1].id },
+    { dealId: dealSummit.id, accountId: summit.id, contactId: priya.id, prospect: "Priya Nair", repId: reps[3].id },
+    { dealId: dealNorthwind.id, accountId: northwind.id, contactId: ellis.id, prospect: "Ellis Cho", repId: reps[4].id },
+  ];
+
+  for (const target of linkTargets) {
+    const calls = await db.call.findMany({
+      where: { orgId: org.id, repId: target.repId, status: "GRADED" },
+      include: { grade: true },
+      orderBy: { callDate: "desc" },
+      take: 2,
+    });
+    for (const call of calls) {
+      await db.call.update({
+        where: { id: call.id },
+        data: {
+          dealId: target.dealId,
+          accountId: target.accountId,
+          contactId: target.contactId,
+          prospectName: call.prospectName || target.prospect,
+        },
+      });
+      if (call.grade) await writeBackGradeToCrm(call.id);
+    }
+  }
+
+  // ---------- Channels: connect employee email + phone, seed conversations ----------
+  const { connectChannel, sendCrmEmail, placeCrmCall } = await import("../src/lib/channels");
+  const phoneByRep = ["+1-555-0140", "+1-555-0141", "+1-555-0142", "+1-555-0143", "+1-555-0144"];
+  for (let i = 0; i < reps.length; i++) {
+    await connectChannel({
+      orgId: org.id,
+      userId: reps[i].id,
+      channel: "EMAIL",
+      provider: "demo_email",
+      address: reps[i].email,
+    });
+    await connectChannel({
+      orgId: org.id,
+      userId: reps[i].id,
+      channel: "PHONE",
+      provider: "demo_phone",
+      address: phoneByRep[i],
+    });
+  }
+  await connectChannel({
+    orgId: org.id,
+    userId: manager.id,
+    channel: "EMAIL",
+    provider: "demo_email",
+    address: manager.email,
+  });
+  await connectChannel({
+    orgId: org.id,
+    userId: manager.id,
+    channel: "PHONE",
+    provider: "demo_phone",
+    address: "+1-555-0100",
+  });
+
+  await sendCrmEmail({
+    orgId: org.id,
+    userId: reps[0].id,
+    to: dana.email,
+    subject: "Cascade rollout plan + Thursday with Marta",
+    body: `Hi Dana,\n\nGreat speaking earlier. As discussed, I'm attaching a one-page agenda for Thursday with you and Marta, plus the fixed-fee 6-week rollout outline.\n\nCan you confirm Thursday afternoon still works?\n\nBest,\nAlex`,
+    dealId: dealCascadeCore.id,
+    contactId: dana.id,
+    accountId: cascade.id,
+  });
+
+  await sendCrmEmail({
+    orgId: org.id,
+    userId: reps[1].id,
+    to: tom.email,
+    subject: "One-pager for your VP on Meridian Core",
+    body: `Hi Tom,\n\nPer our chat — here's a short one-pager you can forward internally covering multi-warehouse sync and the phased rollout. Happy to join a call with your VP whenever useful.\n\nJordan`,
+    dealId: dealBlueRidge.id,
+    contactId: tom.id,
+    accountId: blueRidge.id,
+  });
+
+  await placeCrmCall({
+    orgId: org.id,
+    userId: reps[0].id,
+    to: dana.phone,
+    notes: "Confirm Thursday with CFO Marta and send payback model.",
+    durationSec: 320,
+    callType: "discovery",
+    dealId: dealCascadeCore.id,
+    contactId: dana.id,
+    accountId: cascade.id,
+    gradeWithSalesCoach: true,
+  });
+
+  await placeCrmCall({
+    orgId: org.id,
+    userId: reps[3].id,
+    to: priya.phone,
+    notes: "Schedule Forecast demo with seasonal demand scenarios.",
+    durationSec: 280,
+    callType: "demo",
+    dealId: dealSummit.id,
+    contactId: priya.id,
+    accountId: summit.id,
+    gradeWithSalesCoach: true,
+  });
+
   const counts = {
     calls: await db.call.count(),
     graded: await db.grade.count(),
     roleplays: await db.roleplaySession.count(),
+    accounts: await db.account.count(),
+    contacts: await db.contact.count(),
+    deals: await db.deal.count(),
+    activities: await db.activity.count(),
+    connections: await db.channelConnection.count(),
+    conversations: await db.conversation.count(),
+    messages: await db.message.count(),
   };
   console.log("Seeded:", counts);
 }

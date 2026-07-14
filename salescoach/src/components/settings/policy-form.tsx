@@ -6,15 +6,14 @@ import { Button } from "@/components/ui";
 import type { IngestionPolicy } from "@/lib/types";
 import { Field, InlineError, InlineSuccess, TextInput } from "./fields";
 
-// Ingestion & sampling policy form. Numbers are kept as strings while editing
-// so partially-typed values do not fight the inputs; parsed on save.
-
 export function PolicyForm({ policy }: { policy: IngestionPolicy }) {
   const router = useRouter();
   const [minDuration, setMinDuration] = useState(String(policy.minDurationSec));
   const [threshold, setThreshold] = useState(String(policy.sampleThreshold));
   const [sampleSize, setSampleSize] = useState(String(policy.sampleSize));
   const [gradeManualUploads, setGradeManualUploads] = useState(policy.gradeManualUploads);
+  const [autoMatchCrm, setAutoMatchCrm] = useState(policy.autoMatchCrm ?? true);
+  const [gradeOutboundEmails, setGradeOutboundEmails] = useState(policy.gradeOutboundEmails ?? true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
@@ -45,7 +44,14 @@ export function PolicyForm({ policy }: { policy: IngestionPolicy }) {
     const res = await fetch("/api/settings/policy", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ minDurationSec, sampleThreshold, sampleSize: size, gradeManualUploads }),
+      body: JSON.stringify({
+        minDurationSec,
+        sampleThreshold,
+        sampleSize: size,
+        gradeManualUploads,
+        autoMatchCrm,
+        gradeOutboundEmails,
+      }),
     });
     setSaving(false);
     if (!res.ok) {
@@ -112,11 +118,30 @@ export function PolicyForm({ policy }: { policy: IngestionPolicy }) {
         />
         Always grade manual uploads (bypass sampling)
       </label>
-      <p className="text-sm text-muted">
-        Reps with more than {threshold || "?"} eligible auto-ingested calls per month get a stratified random
-        sample of {sampleSize || "?"} graded; below that, everything is graded. Flagged calls and manual
-        uploads always grade.
-      </p>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={autoMatchCrm}
+          onChange={(e) => {
+            setAutoMatchCrm(e.target.checked);
+            touch();
+          }}
+          className="accent-[var(--accent)] h-4 w-4"
+        />
+        Auto-match calls to CRM contacts/deals by prospect email, phone, or name
+      </label>
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={gradeOutboundEmails}
+          onChange={(e) => {
+            setGradeOutboundEmails(e.target.checked);
+            touch();
+          }}
+          className="accent-[var(--accent)] h-4 w-4"
+        />
+        Grade outbound CRM emails against the active rubric
+      </label>
       <div className="flex items-center gap-3">
         <Button onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save policy"}
