@@ -39,15 +39,17 @@ No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mod
 
 **Phase 6 — Employee email & phone channels.** Each user connects their work email and/or phone under **Channels** (demo inbox/dialer, or Gmail/Outlook/Twilio/Aircall-shaped providers). From a deal, **Email prospect** and **Call prospect** send from the connected address; full threads live in Conversations (on the deal and in the global Conversations page). Demo email auto-captures a prospect reply; phone calls are graded by SalesCoach and appear in the same conversation history.
 
+**Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
+
 ## Architecture notes
 
 - **Grading is a pure function** of (transcript + rubric + company context [+ optional CRM deal context]) — `src/lib/grading.ts` — so uploaded calls and role-plays are directly comparable, and the voice layer is swappable without touching anything downstream.
 - **CRM write-back** (`src/lib/crm.ts`) upserts a coaching activity keyed by `grade:<id>` whenever a linked call is graded or a manager overrides the score.
 - **Channels** (`src/lib/channels.ts`) own connect/send/dial; demo providers persist conversations locally; real OAuth tokens would replace `credentialsJson`.
+- **Jobs** (`src/lib/queue.ts`) persist PROCESS_CALL / GRADE_EMAIL / GRADE_ROLEPLAY / RETENTION_SWEEP rows; set `INLINE_JOBS=true` to run synchronously.
 - **Sampling** logic is pure and unit-testable in `src/lib/sampling.ts`; the pipeline orchestration lives in `src/lib/pipeline.ts`.
-- **Demo auth**: a cookie + user switcher stands in for a real auth provider. Production would swap `src/lib/session.ts` for NextAuth/WorkOS and add tenant-scoped middleware.
+- **Auth**: password sessions via `/login`; demo user switcher only when `ALLOW_DEMO_SWITCHER` is enabled (default outside production).
 - **SQLite in dev**; the Prisma schema is Postgres-portable (JSON payloads are stored as strings with typed parse helpers in `src/lib/types.ts`).
-- **Inline processing in dev**; production moves transcription/grading behind a queue (SQS/BullMQ) — the pipeline entry points are already the natural job boundaries.
 
 ## CRM ↔ SalesCoach connection
 
@@ -58,8 +60,9 @@ No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mod
 | Employee phone | Connect dialer in **Channels**, then **Call prospect** — call logged in CRM and graded by SalesCoach |
 | Coaching → CRM | Graded linked calls upsert a `COACHING` activity on the deal/account timeline with score, band, and summary |
 | Context enrich | Linked deal stage, amount, product, account, and contact are injected into the grading prompt |
+| Auto-match | Prospect email/phone/name maps to contacts and open deals on ingest |
 | Manual link | Call review page → **CRM link** panel attaches an existing call to a deal |
 
 ## Not yet implemented (known gaps)
 
-Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.
+Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, hosted Postgres + Redis/BullMQ workers, SSO (WorkOS/SAML), billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process — the Calibration page captures the data for it.

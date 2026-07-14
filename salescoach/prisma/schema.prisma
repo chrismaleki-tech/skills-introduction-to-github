@@ -18,6 +18,8 @@ model Org {
   name                String
   // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
   ingestionPolicyJson String  @default("{}")
+  // Compliance / retention (JSON: RetentionPolicy in src/lib/types.ts)
+  retentionPolicyJson String  @default("{}")
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
 
@@ -36,6 +38,8 @@ model Org {
   connections    ChannelConnection[]
   conversations  Conversation[]
   messages       Message[]
+  unmatchedIngests UnmatchedIngest[]
+  jobs           Job[]
 
   createdAt DateTime @default(now())
 }
@@ -45,10 +49,13 @@ model User {
   orgId String
   org   Org    @relation(fields: [orgId], references: [id])
 
-  name  String
-  email String @unique
-  role  String // REP | MANAGER | TRAINER | ADMIN
-  title String @default("")
+  name         String
+  email        String  @unique
+  // bcrypt hash; empty means demo-only switcher login until password is set
+  passwordHash String  @default("")
+  role         String // REP | MANAGER | TRAINER | ADMIN
+  title        String  @default("")
+  lastLoginAt  DateTime?
 
   calls          Call[]            @relation("RepCalls")
   roleplays      RoleplaySession[]
@@ -61,6 +68,7 @@ model User {
   connections    ChannelConnection[]
   conversations  Conversation[]    @relation("ConversationOwner")
   messages       Message[]         @relation("MessageSender")
+  resolvedUnmatched UnmatchedIngest[] @relation("UnmatchedResolver")
 
   createdAt DateTime @default(now())
 }
@@ -349,6 +357,8 @@ model Message {
   durationSec Int?
   externalId  String?
 
+  grade Grade?
+
   occurredAt DateTime @default(now())
   createdAt  DateTime @default(now())
 
@@ -421,11 +431,13 @@ model Grade {
   orgId String
   org   Org    @relation(fields: [orgId], references: [id])
 
-  subjectType String // CALL | ROLEPLAY
+  subjectType String // CALL | ROLEPLAY | EMAIL
   callId      String? @unique
   call        Call?   @relation(fields: [callId], references: [id])
   roleplayId  String? @unique
   roleplay    RoleplaySession? @relation(fields: [roleplayId], references: [id])
+  messageId   String? @unique
+  message     Message? @relation(fields: [messageId], references: [id])
 
   methodologyId String
   methodology   Methodology @relation(fields: [methodologyId], references: [id])
@@ -474,4 +486,53 @@ model Assignment {
   createdAt DateTime @default(now())
 
   @@index([orgId, assignedToId, status])
+}
+
+// Webhook payloads that couldn't be mapped to a known rep email.
+model UnmatchedIngest {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  // WEBHOOK | CRM_SYNC
+  source       String
+  repEmail     String
+  externalId   String?
+  payloadJson  String
+  // PENDING | RESOLVED | DISMISSED
+  status       String  @default("PENDING")
+  resolvedRepId String?
+  resolvedBy   User?   @relation("UnmatchedResolver", fields: [resolvedRepId], references: [id])
+  resolvedCallId String?
+  note         String  @default("")
+
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+
+  @@index([orgId, status, createdAt])
+  @@unique([orgId, source, externalId])
+}
+
+// Durable job queue (SQLite/Postgres). Workers claim PENDING rows.
+// Production can swap the poller for BullMQ/SQS without changing job names.
+model Job {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  // PROCESS_CALL | GRADE_ROLEPLAY | GRADE_EMAIL | RETENTION_SWEEP
+  type        String
+  // PENDING | RUNNING | DONE | FAILED
+  status      String @default("PENDING")
+  payloadJson String @default("{}")
+  attempts    Int    @default(0)
+  lastError   String @default("")
+  runAfter    DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([status, runAfter])
+  @@index([orgId, type, status])
 }

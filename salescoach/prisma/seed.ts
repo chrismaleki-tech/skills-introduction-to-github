@@ -2,7 +2,11 @@
  * company context, two months of ingested calls (run through the real
  * ingestion pipeline, including sampling), role-play scenarios and graded
  * sessions, and manager assignments. Run: npm run db:seed */
+process.env.SEEDING = "1";
+process.env.INLINE_JOBS = "1";
+
 import { db } from "../src/lib/db";
+import { hashPassword } from "../src/lib/password";
 import { METHODOLOGY_PRESETS } from "../src/lib/presets";
 import { ingestCall, gradeRoleplay } from "../src/lib/pipeline";
 import type { CompanyProfile, RoleplayMessage, ScenarioPersona } from "../src/lib/types";
@@ -160,6 +164,14 @@ async function main() {
         sampleThreshold: 10,
         sampleSize: 10,
         gradeManualUploads: true,
+        autoMatchCrm: true,
+        gradeOutboundEmails: true,
+      }),
+      retentionPolicyJson: JSON.stringify({
+        redactPiiInTranscripts: true,
+        redactPiiInEmailBodies: true,
+        retainCallDays: 365,
+        retainEmailDays: 365,
       }),
     },
   });
@@ -211,8 +223,9 @@ async function main() {
   });
 
   // Users
+  const passwordHash = await hashPassword("password123");
   const mkUser = (name: string, email: string, role: string, title: string) =>
-    db.user.create({ data: { orgId: org.id, name, email, role, title } });
+    db.user.create({ data: { orgId: org.id, name, email, role, title, passwordHash } });
   const manager = await mkUser("Sarah Chen", "sarah@meridian.demo", "MANAGER", "VP of Sales");
   const trainer = await mkUser("Marcus Webb", "marcus@meridian.demo", "TRAINER", "Sales Enablement Lead");
   await mkUser("Ana Ruiz", "ana@meridian.demo", "ADMIN", "RevOps Admin");

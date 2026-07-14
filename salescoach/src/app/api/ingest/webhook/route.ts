@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
-
-// Generic auto-ingestion front door for dialers / call providers. Authenticated
-// by the org's webhook secret (shown in Settings). The pipeline runs inline in
-// dev; in production this handler would enqueue the call and return
-// immediately, with transcription + grading as queue jobs.
+import { autoMatchCallToCrm } from "@/lib/crm-match";
+import { parkUnmatchedIngest } from "@/lib/unmatched";
 
 interface WebhookPayload {
   secret?: string;
@@ -15,10 +12,10 @@ interface WebhookPayload {
   direction?: string;
   callType?: string;
   prospectName?: string;
+  prospectEmail?: string;
+  prospectPhone?: string;
   callDate?: string;
-  // Plain text in "REP:" / "PROSPECT:" line format, or a JSON segments array.
   transcript?: string | unknown[];
-  // Optional CRM links so dialer webhooks can attach deal context up front.
   dealId?: string;
   contactId?: string;
   accountId?: string;
@@ -44,13 +41,31 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unknown webhook secret." }, { status: 401 });
   }
 
-  const rep = await db.user.findFirst({ where: { orgId: org.id, email: repEmail } });
-  if (!rep) {
-    // TODO: land unmatched calls in a review queue so an admin can map the
-    // provider identity to a rep instead of dropping the call.
+  const rep = await db.user.findFirst({
+    where: { orgId: org.id, email: { equals: repEmail } },
+  });
+  // Case-insensitive fallback for SQLite
+  const resolvedRep =
+    rep ??
+    (await db.user.findMany({ where: { orgId: org.id } })).find(
+      (u) => u.email.toLowerCase() === repEmail.toLowerCase(),
+    );
+
+  if (!resolvedRep) {
+    const parked = await parkUnmatchedIngest({
+      orgId: org.id,
+      source: "WEBHOOK",
+      repEmail,
+      externalId,
+      payload: body as unknown as Record<string, unknown>,
+    });
     return NextResponse.json(
-      { error: `No rep with email "${repEmail}" in this organization. The call was not ingested.` },
-      { status: 422 },
+      {
+        error: `No rep with email "${repEmail}". Call parked in unmatched queue.`,
+        unmatchedId: parked.id,
+        status: "UNMATCHED",
+      },
+      { status: 202 },
     );
   }
 
@@ -69,29 +84,41 @@ export async function POST(req: Request) {
   try {
     const { call, deduped } = await ingestCall({
       orgId: org.id,
-      repId: rep.id,
+      repId: resolvedRep.id,
       source: "WEBHOOK",
       direction: body.direction,
       callType: body.callType,
       durationSec,
       externalId,
       prospectName: body.prospectName,
+      prospectEmail: body.prospectEmail,
+      prospectPhone: body.prospectPhone,
       callDate,
       providedTranscript,
       dealId: body.dealId,
       contactId: body.contactId,
       accountId: body.accountId,
     });
+
+    const matched = await autoMatchCallToCrm({
+      orgId: org.id,
+      callId: call.id,
+      prospectEmail: body.prospectEmail,
+      prospectPhone: body.prospectPhone,
+      prospectName: body.prospectName,
+      callType: body.callType,
+      preferOwnerId: resolvedRep.id,
+    });
+
     return NextResponse.json({
       callId: call.id,
-      status: call.status,
+      status: matched?.status ?? call.status,
       samplingStatus: call.samplingStatus,
-      dealId: call.dealId,
+      dealId: matched?.dealId ?? call.dealId,
+      contactId: matched?.contactId ?? call.contactId,
       deduped,
     });
   } catch (err) {
-    // Grading failures mark the Call FAILED before rethrowing; report the row
-    // if it exists so the integrator can retry from the review page.
     const failed = await db.call.findUnique({
       where: { orgId_externalId: { orgId: org.id, externalId } },
     });

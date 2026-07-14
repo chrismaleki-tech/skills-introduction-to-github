@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { ingestCall } from "./pipeline";
+import { parseIngestionPolicy } from "./types";
 
 export type ChannelKind = "EMAIL" | "PHONE";
 
@@ -229,6 +230,18 @@ export async function sendCrmEmail(input: {
       occurredAt: now,
     },
   });
+
+  // Coach outbound emails when org policy allows (default on).
+  const org = await db.org.findUnique({ where: { id: input.orgId } });
+  const policy = parseIngestionPolicy(org?.ingestionPolicyJson ?? "{}");
+  if (policy.gradeOutboundEmails !== false) {
+    const { enqueueJob } = await import("./queue");
+    await enqueueJob({
+      orgId: input.orgId,
+      type: "GRADE_EMAIL",
+      payload: { messageId: outbound.id },
+    });
+  }
 
   let inbound = null;
   const simulate = input.simulateReply !== false && conn.provider.startsWith("demo");
