@@ -62,6 +62,8 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 
 **Phase 8 — Natural-language Ask.** Floating **Ask SalesCoach** chat on every page plus a full-page **Ask** workspace at `/ask`. Scope queries to **All systems**, **CRM**, **ERP**, or **Sales trainer**, then ask in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “Accept the Cascade quote”, “Who needs coaching?”, “Finance snapshot”, “Trial balance”, “Warehouse stock”. Answers include source badges and deep links into the matching module. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
 
+**Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
+
 ## Architecture notes
 
 - **Grading is a pure function** of (transcript + rubric + company context [+ optional CRM/ERP deal context]) — `src/lib/grading.ts` — so uploaded calls and role-plays are directly comparable, and the voice layer is swappable without touching anything downstream.
@@ -69,10 +71,10 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 - **ERP write-back** (`src/lib/erp.ts`) upserts `QUOTE` / `ORDER` / `INVOICE` / `PAYMENT` / `PO` activities with stable `externalRef` keys; quote accept → order → invoice is the canonical commercial path.
 - **Ask / platform assistant** (`src/lib/assistant.ts`, `/ask`, floating chat) exposes the same domain operations as tools over `POST /api/assistant/chat`, with optional CRM/ERP/trainer domain scoping.
 - **Channels** (`src/lib/channels.ts`) own connect/send/dial; demo providers persist conversations locally; real OAuth tokens would replace `credentialsJson`.
+- **Jobs** (`src/lib/queue.ts`) persist PROCESS_CALL / GRADE_EMAIL / GRADE_ROLEPLAY / RETENTION_SWEEP rows; set `INLINE_JOBS=true` to run synchronously.
 - **Sampling** logic is pure and unit-testable in `src/lib/sampling.ts`; the pipeline orchestration lives in `src/lib/pipeline.ts`.
-- **Demo auth**: a cookie + user switcher stands in for a real auth provider. Production would swap `src/lib/session.ts` for NextAuth/WorkOS and add tenant-scoped middleware.
+- **Auth**: password sessions via `/login`; demo user switcher only when `ALLOW_DEMO_SWITCHER` is enabled (default outside production).
 - **SQLite in dev**; the Prisma schema is Postgres-portable (JSON payloads are stored as strings with typed parse helpers in `src/lib/types.ts`).
-- **Inline processing in dev**; production moves transcription/grading behind a queue (SQS/BullMQ) — the pipeline entry points are already the natural job boundaries.
 
 ## CRM ↔ SalesCoach ↔ ERP connection
 
@@ -84,9 +86,10 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 | Coaching → CRM | Graded linked calls upsert a `COACHING` activity on the deal/account timeline with score, band, and summary |
 | ERP → CRM | Quote/order/invoice/payment events land on the same deal timeline; confirming an order closes the deal won |
 | Context enrich | Linked deal stage, amount, product, account, contact, **and open ERP documents** are injected into the grading prompt |
+| Auto-match | Prospect email/phone/name maps to contacts and open deals on ingest |
 | Manual link | Call review page → **CRM link** panel attaches an existing call to a deal |
 | Quote from deal | Deal detail → **Create quote for this deal** uses catalog SKUs and advances stage toward proposal |
 
 ## Not yet implemented (known gaps)
 
-Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.
+Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, hosted Postgres + Redis/BullMQ workers, SSO (WorkOS/SAML), billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process — the Calibration page captures the data for it.

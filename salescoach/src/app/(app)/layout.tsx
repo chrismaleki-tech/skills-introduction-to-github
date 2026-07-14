@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { currentUser, isManagerRole } from "@/lib/session";
+import { currentUser, demoSwitcherAllowed, isManagerRole } from "@/lib/session";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
 import { AssistantChat } from "@/components/assistant/chat";
@@ -34,6 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/assignments", label: "Assignments" },
     ...(manager
       ? [
+          { href: "/calibration", label: "Calibration" },
           { href: "/rubrics", label: "Rubrics" },
           { href: "/company", label: "Company Profile" },
           { href: "/settings", label: "Settings" },
@@ -60,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
           )}
           <div className="text-[11px] text-muted px-1">Viewing as ({user.role.toLowerCase()})</div>
-          <UserSwitcher users={users} currentId={user.id} />
+          <UserSwitcher users={users} currentId={user.id} allowSwitcher={demoSwitcherAllowed()} />
         </div>
       </aside>
 
@@ -72,6 +73,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           currentId={user.id}
           role={user.role}
           demoMode={!aiAvailable()}
+          allowSwitcher={demoSwitcherAllowed()}
         />
         <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 max-w-6xl w-full mx-auto">{children}</main>
       </div>

@@ -52,7 +52,9 @@ export default async function ContactsPage() {
               {contacts.map((c) => (
                 <tr key={c.id} className="hover:bg-surface-2/40">
                   <td className="px-4 py-3">
-                    <div className="font-medium">{c.name}</div>
+                    <Link href={`/crm/contacts/${c.id}`} className="font-medium text-accent-hover hover:underline">
+                      {c.name}
+                    </Link>
                     {c.title && <div className="text-xs text-muted mt-0.5">{c.title}</div>}
                   </td>
                   <td className="px-4 py-3">

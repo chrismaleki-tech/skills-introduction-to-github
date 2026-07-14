@@ -12,6 +12,7 @@ export function MobileNav({
   currentId,
   role,
   demoMode,
+  allowSwitcher = true,
 }: {
   items: NavItem[];
   orgName: string;
@@ -19,6 +20,7 @@ export function MobileNav({
   currentId: string;
   role: string;
   demoMode: boolean;
+  allowSwitcher?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -49,7 +51,7 @@ export function MobileNav({
             </div>
           )}
           <div className="text-[11px] text-muted px-1">Viewing as ({role.toLowerCase()})</div>
-          <UserSwitcher users={users} currentId={currentId} />
+          <UserSwitcher users={users} currentId={currentId} allowSwitcher={allowSwitcher} />
         </div>
       )}
     </div>

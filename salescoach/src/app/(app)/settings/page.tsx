@@ -4,10 +4,12 @@ import { db } from "@/lib/db";
 import { aiAvailable } from "@/lib/ai";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseIngestionPolicy } from "@/lib/types";
+import { parseRetentionPolicy } from "@/lib/pii";
 import { BandPill, Card, PageHeader } from "@/components/ui";
 import { OrgNameForm } from "@/components/settings/org-name-form";
 import { PolicyForm } from "@/components/settings/policy-form";
 import { WebhookCard } from "@/components/settings/webhook-card";
+import { RetentionForm, UnmatchedQueue } from "@/components/settings/compliance";
 
 const SCORE_BANDS = [
   { range: "90+", label: "Exceptional", sample: 95 },
@@ -22,9 +24,23 @@ export default async function SettingsPage() {
 
   const org = user.org;
   const policy = parseIngestionPolicy(org.ingestionPolicyJson);
+  const retention = parseRetentionPolicy(org.retentionPolicyJson);
   const activeMethodology = org.activeMethodologyId
     ? await db.methodology.findUnique({ where: { id: org.activeMethodologyId } })
     : null;
+
+  const [unmatched, reps] = await Promise.all([
+    db.unmatchedIngest.findMany({
+      where: { orgId: org.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    }),
+    db.user.findMany({
+      where: { orgId: org.id },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   const engines = [
     { label: "OpenAI (grading & role-play)", envVar: "OPENAI_API_KEY", ok: aiAvailable() },
@@ -44,11 +60,26 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Team Settings"
-        subtitle="Ingestion policy, automatic call ingestion, engine status, and scoring reference for your team."
+        subtitle="Ingestion, compliance, unmatched webhooks, engines, and scoring reference."
       />
       <div className="space-y-6">
         <Card title="Ingestion & sampling policy">
           <PolicyForm policy={policy} />
+        </Card>
+
+        <Card title="PII & retention">
+          <RetentionForm policy={retention} />
+        </Card>
+
+        <Card
+          title="Unmatched webhook calls"
+          action={
+            <span className="text-xs text-muted">
+              {unmatched.filter((u) => u.status === "PENDING").length} pending
+            </span>
+          }
+        >
+          <UnmatchedQueue items={unmatched} reps={reps} />
         </Card>
 
         <Card title="Automatic ingestion">
@@ -82,6 +113,11 @@ export default async function SettingsPage() {
                 none set — choose one in Rubrics
               </Link>
             )}
+            <div className="mt-2">
+              <Link href="/calibration" className="text-accent-hover hover:underline text-sm">
+                Open grading calibration →
+              </Link>
+            </div>
           </div>
         </Card>
 
