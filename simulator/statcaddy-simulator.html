@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StatCaddy — Build Your Own Matchup Model</title>
+<style>
+  :root {
+    --green: #1b4332; --green-2: #2d6a4f; --fairway: #40916c; --light: #d8f3dc;
+    --bg: #f6f8f6; --card: #ffffff; --ink: #1b2a24; --muted: #6b7f76; --accent: #b7791f;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 24px 16px; }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  h1 { color: var(--green); font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: var(--muted); margin-bottom: 20px; font-size: .95rem; }
+  .card { background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(27,67,50,.08); padding: 20px; margin-bottom: 18px; }
+  .players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
+  .vs { font-weight: 700; color: var(--accent); padding-bottom: 10px; }
+  label { display: block; font-size: .8rem; font-weight: 600; color: var(--green-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+  input[list], select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; }
+  .weights-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .weights-head h2 { color: var(--green); font-size: 1.05rem; }
+  .presets button { border: 1.5px solid var(--green-2); background: #fff; color: var(--green-2); border-radius: 999px; padding: 5px 12px; margin-left: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; }
+  .presets button:hover { background: var(--light); }
+  .w-row { display: grid; grid-template-columns: 130px 1fr 64px; gap: 12px; align-items: center; padding: 7px 0; }
+  .w-row .name { font-size: .9rem; font-weight: 600; }
+  .w-row .name small { display:block; color: var(--muted); font-weight: 400; }
+  input[type=range] { width: 100%; accent-color: var(--fairway); }
+  .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--green); }
+  .total { text-align: right; font-size: .85rem; color: var(--muted); margin-top: 6px; }
+  .total b.ok { color: var(--fairway); } .total b.warn { color: #b3261e; }
+  .result { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; border-radius: 12px; border: 1.5px solid #e0ece4; }
+  .side { padding: 18px; text-align: center; }
+  .side.a { background: linear-gradient(160deg, var(--green), var(--green-2)); color: #fff; }
+  .side.b { background: #fff; }
+  .side .pname { font-weight: 700; font-size: 1.05rem; min-height: 1.4em; }
+  .side .prob { font-size: 2.2rem; font-weight: 800; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  .side .ml { font-size: .95rem; opacity: .85; font-variant-numeric: tabular-nums; }
+  .edgebar { height: 10px; background: #e4ede7; border-radius: 999px; margin: 14px 0 4px; overflow: hidden; }
+  .edgebar > div { height: 100%; background: linear-gradient(90deg, var(--green-2), var(--fairway)); transition: width .25s; }
+  .breakdown { margin-top: 14px; }
+  .breakdown table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .breakdown th, .breakdown td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #eef4f0; font-variant-numeric: tabular-nums; }
+  .breakdown th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
+  .breakdown td.win { color: var(--fairway); font-weight: 700; }
+  .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Build Your Own Matchup Model</h1>
+  <div class="sub">Weight the stats the way <i>you</i> read this week's course — StatCaddy simulates the head-to-head.</div>
+
+  <div class="card">
+    <div class="players">
+      <div><label>Player 1</label><input list="pl" id="p1" placeholder="Start typing a name…" value="Scottie Scheffler"></div>
+      <div class="vs">VS</div>
+      <div><label>Player 2</label><input list="pl" id="p2" placeholder="Start typing a name…" value="Rory McIlroy"></div>
+    </div>
+    <datalist id="pl"></datalist>
+  </div>
+
+  <div class="card">
+    <div class="weights-head">
+      <h2>Your stat weights</h2>
+      <div class="presets">
+        <button data-preset="balanced">Balanced</button>
+        <button data-preset="ballstriking">Ball-Striking</button>
+        <button data-preset="shortgame">Short Game</button>
+        <button data-preset="hotform">Hot Form</button>
+      </div>
+    </div>
+    <div id="weights"></div>
+    <div class="total">Weights auto-normalize — currently sum to <b id="wsum" class="ok">100%</b></div>
+  </div>
+
+  <div class="card">
+    <div class="result">
+      <div class="side a"><div class="pname" id="n1">—</div><div class="prob" id="pr1">—</div><div class="ml" id="ml1"></div></div>
+      <div class="side b"><div class="pname" id="n2">—</div><div class="prob" id="pr2">—</div><div class="ml" id="ml2"></div></div>
+    </div>
+    <div class="edgebar"><div id="edge" style="width:50%"></div></div>
+    <div class="breakdown" id="bd"></div>
+    <div class="foot">Model: your weighted blend of each player's standardized stats becomes a strokes-per-round edge; win odds via a normal model of 72-hole scoring (&sigma; &asymp; 2.75 strokes/round). Stats through The Open Championship (19 Jul 2026), source: Data Golf.</div>
+  </div>
+</div>
+
+<script>
+const STATS = [
+  { key:"ott",  label:"SG: Off the Tee",   hint:"driving power + accuracy" },
+  { key:"app",  label:"SG: Approach",      hint:"iron play" },
+  { key:"arg",  label:"SG: Around Green",  hint:"chipping, bunkers" },
+  { key:"putt", label:"SG: Putting",       hint:"on the greens" },
+  { key:"form", label:"Current Form",      hint:"last 10 weeks, trimmed" },
+  { key:"hist", label:"Course History",    hint:"past results here" },
+  { key:"pts",  label:"DG Points",         hint:"season-long results" },
+];
+const PRESETS = {
+  balanced:     {ott:15, app:20, arg:12, putt:15, form:18, hist:10, pts:10},
+  ballstriking: {ott:30, app:32, arg:8,  putt:8,  form:12, hist:5,  pts:5},
+  shortgame:    {ott:8,  app:12, arg:28, putt:30, form:12, hist:5,  pts:5},
+  hotform:      {ott:10, app:12, arg:8,  putt:10, form:40, hist:10, pts:10},
+};
+let PLAYERS = [];
+let weights = {...PRESETS.balanced};
+let zstats = {};
+
+const $ = id => document.getElementById(id);
+
+function buildWeightRows() {
+  $("weights").innerHTML = STATS.map(s => `
+    <div class="w-row">
+      <div class="name">${s.label}<small>${s.hint}</small></div>
+      <input type="range" min="0" max="50" step="1" value="${weights[s.key]}" data-k="${s.key}">
+      <div class="pct" id="pct-${s.key}">${weights[s.key]}%</div>
+    </div>`).join("");
+  document.querySelectorAll("input[type=range]").forEach(r =>
+    r.addEventListener("input", e => { weights[e.target.dataset.k] = +e.target.value; refresh(); }));
+}
+
+function computeZParams() {
+  for (const s of STATS) {
+    const vals = PLAYERS.map(p => p[s.key]).filter(v => typeof v === "number");
+    const mean = vals.reduce((a,b)=>a+b,0)/vals.length;
+    const sd = Math.sqrt(vals.reduce((a,v)=>a+(v-mean)**2,0)/vals.length) || 1;
+    zstats[s.key] = {mean, sd};
+  }
+}
+
+function rating(p) {
+  const total = STATS.reduce((a,s)=>a+weights[s.key],0) || 1;
+  let r = 0;
+  for (const s of STATS) {
+    const v = (typeof p[s.key] === "number") ? p[s.key] : zstats[s.key].mean;
+    r += (weights[s.key]/total) * ((v - zstats[s.key].mean) / zstats[s.key].sd);
+  }
+  return r;  // standardized composite
+}
+
+// Convert composite gap to a per-round strokes edge, then to a 72-hole win prob.
+const STROKES_PER_Z = 0.85, SIGMA_ROUND = 2.75, ROUNDS = 4;
+const phi = x => (1 + erf(x/Math.SQRT2))/2;
+function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+.3275911*x);
+  const y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-.284496736)*t+.254829592)*t*Math.exp(-x*x);return s*y;}
+
+function winProb(pa, pb) {
+  const edgePerRound = (rating(pa) - rating(pb)) * STROKES_PER_Z;
+  return phi(edgePerRound * ROUNDS / (SIGMA_ROUND * Math.sqrt(2*ROUNDS)));
+}
+const moneyline = p => p >= .5 ? "-" + Math.round(100*p/(1-p)) : "+" + Math.round(100*(1-p)/p);
+
+function findPlayer(name) {
+  const n = name.trim().toLowerCase();
+  return PLAYERS.find(p => p.name.toLowerCase() === n);
+}
+
+function refresh() {
+  const total = STATS.reduce((a,s)=>a+weights[s.key],0);
+  for (const s of STATS) {
+    const el = $("pct-"+s.key);
+    if (el) el.textContent = total ? Math.round(100*weights[s.key]/total) + "%" : "0%";
+  }
+  $("wsum").textContent = "100%"; $("wsum").className = total ? "ok" : "warn";
+  const a = findPlayer($("p1").value), b = findPlayer($("p2").value);
+  if (!a || !b) { $("bd").innerHTML = ""; return; }
+  const p = winProb(a, b);
+  $("n1").textContent = a.name; $("n2").textContent = b.name;
+  $("pr1").textContent = (100*p).toFixed(1) + "%"; $("pr2").textContent = (100*(1-p)).toFixed(1) + "%";
+  $("ml1").textContent = "fair line " + moneyline(p); $("ml2").textContent = "fair line " + moneyline(1-p);
+  $("edge").style.width = (100*p).toFixed(1) + "%";
+  $("bd").innerHTML = `<table><tr><th>${a.name}</th><th>Stat</th><th>${b.name}</th></tr>` +
+    STATS.map(s => {
+      const va = a[s.key], vb = b[s.key];
+      const fa = typeof va === "number" ? va.toFixed(2) : "–";
+      const fb = typeof vb === "number" ? vb.toFixed(2) : "–";
+      const aw = (va ?? -1e9) > (vb ?? -1e9);
+      return `<tr><td class="${aw?'win':''}">${fa}</td><td>${s.label}</td><td class="${!aw?'win':''}">${fb}</td></tr>`;
+    }).join("") + "</table>";
+}
+
+document.querySelectorAll(".presets button").forEach(b =>
+  b.addEventListener("click", () => { weights = {...PRESETS[b.dataset.preset]}; buildWeightRows(); refresh(); }));
+["p1","p2"].forEach(id => $(id).addEventListener("input", refresh));
+
+fetch("players.json").then(r => r.json()).then(data => {
+  PLAYERS = data;
+  $("pl").innerHTML = PLAYERS.map(p => `<option value="${p.name}">`).join("");
+  computeZParams(); buildWeightRows(); refresh();
+}).catch(() => {
+  document.body.insertAdjacentHTML("afterbegin",
+    "<p style='color:#b3261e;text-align:center'>players.json not found — serve this folder over HTTP (e.g. python3 -m http.server).</p>");
+});
+</script>
+</body>
+</html>
