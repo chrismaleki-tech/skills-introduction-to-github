@@ -90,6 +90,35 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 | Manual link | Call review page → **CRM link** panel attaches an existing call to a deal |
 | Quote from deal | Deal detail → **Create quote for this deal** uses catalog SKUs and advances stage toward proposal |
 
-## Not yet implemented (known gaps)
+## Pre-production checklist
 
-Live Gmail/Outlook OAuth + IMAP sync, live Twilio/Aircall/RingCentral token exchange, Salesforce/HubSpot sync for external CRMs, hosted Postgres + Redis/BullMQ workers, SSO (WorkOS/SAML), billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process — the Calibration page captures the data for it.
+| Area | Status |
+|---|---|
+| Signed session cookies (`SESSION_SECRET`) | ✅ Required in production |
+| Password login + middleware | ✅ |
+| Demo switcher disabled in production | ✅ Default off when `NODE_ENV=production` |
+| Unmatched ingest queue (webhook + CRM sync) | ✅ |
+| PII redaction + retention (incl. audio delete) | ✅ |
+| Durable job queue + `npm run jobs:worker` | ✅ (swap to BullMQ/SQS later if needed) |
+| S3-compatible object storage | ✅ When `S3_*` env set; else local `uploads/` |
+| Live Vapi voice create + webhook grade | ✅ When `VAPI_API_KEY` set |
+| Channel provider gating (SMTP/Twilio/OAuth env) | ✅ Demo vs live paths separated |
+| Usage metering events | ✅ Settings + `/api/admin/usage` |
+| Team invite / multi-org create | ✅ `/api/admin/users`, `/api/admin/orgs` |
+| Health endpoint | ✅ `/api/health` |
+| Unit tests (`npm test`) | ✅ Sampling, PII, sessions, providers |
+
+## Still external / optional integrations
+
+Full Gmail/Outlook OAuth token exchange UI, Salesforce/HubSpot bidirectional sync, SSO (WorkOS/SAML), and Stripe billing checkout are not bundled — env-gated stubs and metering events are in place so those vendors can be wired without schema rewrites. Grading calibration against human-scored calls remains a product process — the Calibration page captures the data for it.
+
+### Production run
+
+```bash
+export SESSION_SECRET="$(openssl rand -base64 48)"
+export ALLOW_DEMO_SWITCHER=false
+export DATABASE_URL="postgresql://..."   # or keep SQLite for single-node
+npm run db:push && npm run build
+npm run start                            # web
+npm run jobs:worker                      # background jobs + retention cron
+```

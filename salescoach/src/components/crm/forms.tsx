@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { DEAL_STAGES } from "@/lib/crm";
+import { DEAL_STAGES } from "@/lib/crm-constants";
 import { Button } from "@/components/ui";
 
 export function DealStageSelect({

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parkUnmatchedIngest } from "@/lib/unmatched";
 
 /**
  * CRM → SalesCoach bridge.
@@ -11,6 +12,7 @@ import { currentUser, isManagerRole } from "@/lib/session";
  * coaching feedback lands on the deal timeline automatically.
  *
  * Auth: session cookie (in-app) OR org webhook secret in the body (external).
+ * Unknown reps (secret auth) are parked in the unmatched ingest queue.
  */
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
@@ -24,6 +26,8 @@ export async function POST(req: Request) {
     direction?: string;
     callType?: string;
     prospectName?: string;
+    prospectEmail?: string;
+    prospectPhone?: string;
     callDate?: string;
     transcript?: string | unknown[];
   } | null;
@@ -44,9 +48,20 @@ export async function POST(req: Request) {
     }
     const rep = await db.user.findFirst({ where: { orgId: org.id, email: body.repEmail } });
     if (!rep) {
+      const parked = await parkUnmatchedIngest({
+        orgId: org.id,
+        source: "CRM_SYNC",
+        repEmail: body.repEmail,
+        externalId: body.externalId,
+        payload: { ...body, secret: undefined },
+      });
       return NextResponse.json(
-        { error: `No rep with email "${body.repEmail}" in this organization.` },
-        { status: 422 },
+        {
+          error: `No rep with email "${body.repEmail}" — parked in unmatched queue.`,
+          unmatchedId: parked.id,
+          status: "UNMATCHED",
+        },
+        { status: 202 },
       );
     }
     orgId = org.id;
@@ -95,6 +110,13 @@ export async function POST(req: Request) {
         ? JSON.stringify(body.transcript)
         : undefined;
 
+  if (!providedTranscript?.trim() && !body.secret) {
+    return NextResponse.json(
+      { error: "transcript is required when logging a call from the CRM." },
+      { status: 400 },
+    );
+  }
+
   const externalId =
     body.externalId ||
     `crm-${dealId ?? contactId ?? accountId ?? "none"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -114,6 +136,8 @@ export async function POST(req: Request) {
       accountId,
       contactId,
       dealId,
+      prospectEmail: body.prospectEmail,
+      prospectPhone: body.prospectPhone,
     });
     return NextResponse.json({
       callId: call.id,

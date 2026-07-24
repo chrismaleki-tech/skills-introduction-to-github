@@ -10,6 +10,7 @@ import { OrgNameForm } from "@/components/settings/org-name-form";
 import { PolicyForm } from "@/components/settings/policy-form";
 import { WebhookCard } from "@/components/settings/webhook-card";
 import { RetentionForm, UnmatchedQueue } from "@/components/settings/compliance";
+import { TeamUsersPanel } from "@/components/settings/team-users";
 
 const SCORE_BANDS = [
   { range: "90+", label: "Exceptional", sample: 95 },
@@ -29,7 +30,8 @@ export default async function SettingsPage() {
     ? await db.methodology.findUnique({ where: { id: org.activeMethodologyId } })
     : null;
 
-  const [unmatched, reps] = await Promise.all([
+  const since = new Date(Date.now() - 30 * 86400000);
+  const [unmatched, reps, usageEvents, teamUsers] = await Promise.all([
     db.unmatchedIngest.findMany({
       where: { orgId: org.id },
       orderBy: { createdAt: "desc" },
@@ -38,6 +40,17 @@ export default async function SettingsPage() {
     db.user.findMany({
       where: { orgId: org.id },
       select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
+    }),
+    db.usageEvent.groupBy({
+      by: ["type"],
+      where: { orgId: org.id, createdAt: { gte: since } },
+      _sum: { quantity: true },
+      _count: true,
+    }),
+    db.user.findMany({
+      where: { orgId: org.id },
+      select: { id: true, name: true, email: true, role: true, title: true, lastLoginAt: true },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -51,8 +64,13 @@ export default async function SettingsPage() {
     },
     {
       label: "Vapi (voice role-play)",
-      envVar: "VAPI_WEBHOOK_SECRET",
-      ok: Boolean(process.env.VAPI_WEBHOOK_SECRET),
+      envVar: "VAPI_API_KEY",
+      ok: Boolean(process.env.VAPI_API_KEY),
+    },
+    {
+      label: "Object storage (S3)",
+      envVar: "S3_BUCKET",
+      ok: Boolean(process.env.S3_BUCKET && process.env.S3_ACCESS_KEY_ID),
     },
   ];
 
@@ -60,7 +78,7 @@ export default async function SettingsPage() {
     <div>
       <PageHeader
         title="Team Settings"
-        subtitle="Ingestion, compliance, unmatched webhooks, engines, and scoring reference."
+        subtitle="Ingestion, compliance, unmatched webhooks, engines, team seats, and usage."
       />
       <div className="space-y-6">
         <Card title="Ingestion & sampling policy">
@@ -84,6 +102,29 @@ export default async function SettingsPage() {
 
         <Card title="Automatic ingestion">
           <WebhookCard secret={org.webhookSecret} />
+        </Card>
+
+        <Card title="Team seats">
+          <TeamUsersPanel users={teamUsers} />
+        </Card>
+
+        <Card title="Usage (last 30 days)">
+          {usageEvents.length === 0 ? (
+            <p className="text-sm text-muted">No metered events yet.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {usageEvents.map((e) => (
+                <li key={e.type} className="flex items-center gap-3">
+                  <span className="font-mono text-xs text-muted w-40">{e.type}</span>
+                  <span className="tabular-nums">{e._count} events</span>
+                  <span className="tabular-nums text-muted">qty {e._sum.quantity ?? 0}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-xs text-muted mt-3">
+            Usage events feed future billing/metering. Stripe wiring is optional and out of band.
+          </p>
         </Card>
 
         <Card title="Grading engine">

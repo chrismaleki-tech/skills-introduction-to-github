@@ -60,6 +60,45 @@ export default async function RoleplaySessionPage({ params }: { params: Promise<
     </Card>
   );
 
+  // --- ACTIVE voice session waiting for Vapi webhook ---
+  if (session.status === "ACTIVE" && session.mode === "VOICE" && isOwner) {
+    return (
+      <div>
+        <PageHeader
+          title={session.scenario.title}
+          subtitle="Voice session is live — complete the call in Vapi. Grading starts when the end-of-call webhook arrives."
+          actions={<StatusPill status={session.status} />}
+        />
+        {briefing}
+        <Card title="Voice role-play">
+          <p className="text-sm text-muted mb-3">
+            If a join URL opened in a new tab, finish the conversation there. This page will show the
+            graded scorecard after Vapi posts the end-of-call report
+            {session.vapiCallId ? ` (call id ${session.vapiCallId})` : ""}.
+          </p>
+          <p className="text-sm text-muted">
+            Without <code className="text-xs">VAPI_API_KEY</code>, voice sessions auto-complete in demo
+            mode. Refresh after the call ends if the scorecard does not appear automatically.
+          </p>
+          {messages.length > 0 && (
+            <div className="mt-4">
+              <TranscriptView
+                segments={messages.map((m) => ({
+                  speaker: m.role,
+                  startSec: m.atMs / 1000,
+                  endSec: m.atMs / 1000 + 2,
+                  text: m.text,
+                }))}
+                repName={user.name}
+                prospectName={persona.name}
+              />
+            </div>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
   // --- ACTIVE, owned by the current user: live chat ---
   if (session.status === "ACTIVE" && isOwner) {
     return (

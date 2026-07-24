@@ -41,6 +41,14 @@ export async function POST(req: Request) {
       domain,
     });
 
+    const { recordUsage } = await import("@/lib/metering");
+    await recordUsage({
+      orgId: user.orgId,
+      type: "ASK_QUERY",
+      userId: user.id,
+      meta: { domain, mode: result.mode },
+    });
+
     if (!wantsStream) {
       return Response.json(result);
     }

@@ -28,13 +28,19 @@ export function StartSessionButton({
         id?: string;
         error?: string;
         demoCompleted?: boolean;
+        vapiJoinUrl?: string | null;
       };
       if (!res.ok || !data.id) {
         setError(data.error ?? "Could not start the session.");
         setStarting(null);
         return;
       }
-      router.push(`/roleplay/${data.id}`);
+      if (data.vapiJoinUrl) {
+        window.open(data.vapiJoinUrl, "_blank", "noopener,noreferrer");
+        router.push(`/roleplay/${data.id}?voice=1`);
+      } else {
+        router.push(`/roleplay/${data.id}`);
+      }
       router.refresh();
     } catch {
       setError("Network error — try again.");

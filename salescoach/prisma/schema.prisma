@@ -63,6 +63,7 @@ model Org {
   vendorBills    VendorBill[]
   unmatchedIngests UnmatchedIngest[]
   jobs           Job[]
+  usageEvents    UsageEvent[]
 
   createdAt DateTime @default(now())
 }
@@ -1263,4 +1264,24 @@ model Job {
 
   @@index([status, runAfter])
   @@index([orgId, type, status])
+}
+
+// Billable usage events for metering / future Stripe integration.
+model UsageEvent {
+  id     String @id @default(cuid())
+  orgId  String
+  org    Org    @relation(fields: [orgId], references: [id])
+  userId String?
+
+  // CALL_GRADED | ROLEPLAY_GRADED | EMAIL_GRADED | ASK_QUERY | VOICE_SESSION | ...
+  type        String
+  quantity    Int    @default(1)
+  subjectType String @default("")
+  subjectId   String?
+  metaJson    String @default("{}")
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId, type, createdAt])
+  @@index([orgId, createdAt])
 }

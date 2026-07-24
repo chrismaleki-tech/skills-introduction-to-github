@@ -3,6 +3,9 @@ import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { enqueueJob, inlineJobs } from "@/lib/queue";
 import { gradeRoleplay } from "@/lib/pipeline";
+import { createVapiWebCall, vapiConfigured } from "@/lib/vapi";
+import { recordUsage } from "@/lib/metering";
+import { parsePersona, parseStringArray } from "@/lib/types";
 
 // Start a text or voice role-play session against a scenario.
 export async function POST(req: Request) {
@@ -21,7 +24,7 @@ export async function POST(req: Request) {
   }
 
   const mode = body.mode === "VOICE" ? "VOICE" : "TEXT";
-  const vapiConfigured = Boolean(process.env.VAPI_API_KEY);
+  const liveVoice = mode === "VOICE" && vapiConfigured();
 
   const session = await db.roleplaySession.create({
     data: {
@@ -29,13 +32,13 @@ export async function POST(req: Request) {
       repId: user.id,
       scenarioId: scenario.id,
       mode,
-      status: mode === "VOICE" ? "ACTIVE" : "ACTIVE",
+      status: "ACTIVE",
       messagesJson: "[]",
-      vapiCallId: mode === "VOICE" ? `demo-voice-${Date.now()}` : null,
+      vapiCallId: null,
     },
   });
 
-  if (mode === "VOICE" && !vapiConfigured) {
+  if (mode === "VOICE" && !liveVoice) {
     // Demo path: synthesize a short voice transcript and grade it so the UI
     // is fully usable without Vapi credentials.
     const demoMessages = [
@@ -63,6 +66,7 @@ export async function POST(req: Request) {
         status: "COMPLETED",
         endedAt: new Date(),
         durationSec: 90,
+        vapiCallId: `demo-voice-${session.id}`,
       },
     });
     if (inlineJobs()) {
@@ -74,6 +78,14 @@ export async function POST(req: Request) {
         payload: { roleplayId: session.id },
       });
     }
+    await recordUsage({
+      orgId: user.orgId,
+      type: "VOICE_SESSION",
+      userId: user.id,
+      subjectType: "ROLEPLAY",
+      subjectId: session.id,
+      meta: { demo: true },
+    });
     return NextResponse.json({
       id: session.id,
       mode: "VOICE",
@@ -82,9 +94,68 @@ export async function POST(req: Request) {
     });
   }
 
+  if (liveVoice) {
+    try {
+      const persona = parsePersona(scenario.personaJson);
+      const win = parseStringArray(scenario.winConditionsJson);
+      const personaLabel = [persona.name, persona.title, persona.company, scenario.difficulty]
+        .filter(Boolean)
+        .join(" · ");
+      const systemPrompt = [
+        `You are ${persona.name || "a sales prospect"}${persona.title ? `, ${persona.title}` : ""}${persona.company ? ` at ${persona.company}` : ""}.`,
+        persona.personality || "",
+        persona.painPoints?.length ? `Pain points: ${persona.painPoints.join("; ")}` : "",
+        persona.objections?.length ? `Likely objections: ${persona.objections.join("; ")}` : "",
+        win.length ? `Win conditions the rep is chasing (resist until earned): ${win.join("; ")}` : "",
+        "Stay in character. Push back realistically. Be concise on a phone call.",
+      ]
+        .filter(Boolean)
+        .join("\n");
+
+      const vapi = await createVapiWebCall({
+        sessionId: session.id,
+        prospectName: persona.name || "Prospect",
+        prospectPersona: personaLabel,
+        systemPrompt,
+        firstMessage: `Hi, this is ${persona.name || "the prospect"}. What are you calling about?`,
+      });
+
+      await db.roleplaySession.update({
+        where: { id: session.id },
+        data: { vapiCallId: vapi.callId },
+      });
+      await recordUsage({
+        orgId: user.orgId,
+        type: "VOICE_SESSION",
+        userId: user.id,
+        subjectType: "ROLEPLAY",
+        subjectId: session.id,
+        meta: { demo: false, vapiCallId: vapi.callId },
+      });
+
+      return NextResponse.json({
+        id: session.id,
+        mode: "VOICE",
+        vapiCallId: vapi.callId,
+        vapiJoinUrl: vapi.joinUrl,
+        message: vapi.joinUrl
+          ? "Voice session created — open the join URL to talk to the AI prospect."
+          : "Voice session created — complete the call in Vapi; webhook will grade on end-of-call.",
+      });
+    } catch (err) {
+      await db.roleplaySession.update({
+        where: { id: session.id },
+        data: { status: "FAILED" },
+      });
+      return NextResponse.json(
+        { error: err instanceof Error ? err.message : "Failed to create Vapi call." },
+        { status: 502 },
+      );
+    }
+  }
+
   return NextResponse.json({
     id: session.id,
     mode,
-    vapiJoinUrl: mode === "VOICE" && vapiConfigured ? null : undefined,
   });
 }

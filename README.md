@@ -21,7 +21,19 @@ Open [http://localhost:3000/login](http://localhost:3000/login) (demo password `
 - **ERP** — quotes → orders → invoices, inventory, GL, HR
 - **Calls / Role-Play / Dashboard** — coaching loop
 
-No API keys required for demo mode. Optional: `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `VAPI_WEBHOOK_SECRET` (see `salescoach/.env.example`).
+No API keys required for demo mode. Optional: `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `VAPI_API_KEY` / `VAPI_WEBHOOK_SECRET`, `SESSION_SECRET`, `S3_*` (see `salescoach/.env.example`).
+
+### Production
+
+```bash
+cd salescoach
+export SESSION_SECRET="$(openssl rand -base64 48)"
+export ALLOW_DEMO_SWITCHER=false
+npm run build && npm run start   # web
+npm run jobs:worker              # jobs + retention sweeps
+```
+
+Pre-production hardening details: [`salescoach/README.md`](salescoach/README.md) (signed sessions, unmatched queue, PII/retention + audio delete, S3 storage, live Vapi, channel env gates, metering, team invite, `/api/health`, unit tests).
 
 ## What’s in this unified build
 
