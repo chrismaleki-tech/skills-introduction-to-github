@@ -2,6 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageHeader, Card, StatusPill, EmptyState, fmtDateTime } from "@/components/ui";
 import { RetryJobButton, RunPendingButton } from "@/components/admin/job-actions";
+import { consoleActor } from "@/lib/platform-admin";
 
 const FILTERS = ["ALL", "PENDING", "RUNNING", "DONE", "FAILED"];
 
@@ -12,6 +13,8 @@ export default async function AdminJobsPage({
 }) {
   const { status } = await searchParams;
   const filter = FILTERS.includes(status?.toUpperCase() ?? "") ? status!.toUpperCase() : "ALL";
+  const actor = await consoleActor();
+  const canManage = actor?.role === "ADMIN";
 
   const jobs = await db.job.findMany({
     where: filter === "ALL" ? undefined : { status: filter },
@@ -25,7 +28,7 @@ export default async function AdminJobsPage({
       <PageHeader
         title="Background jobs"
         subtitle="Grading, transcription, and retention work items. Retry failures or drain the pending queue."
-        actions={<RunPendingButton />}
+        actions={canManage ? <RunPendingButton /> : undefined}
       />
 
       <div className="flex gap-1.5 mb-4">
@@ -69,7 +72,7 @@ export default async function AdminJobsPage({
                     </div>
                   )}
                 </div>
-                {job.status === "FAILED" && <RetryJobButton id={job.id} />}
+                {canManage && job.status === "FAILED" && <RetryJobButton id={job.id} />}
               </div>
             ))}
           </div>

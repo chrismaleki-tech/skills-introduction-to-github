@@ -130,8 +130,52 @@ export default async function AdminOverviewPage() {
               </table>
             )}
           </Card>
+
+          <Card title="Observability">
+            <p className="text-xs text-muted mb-3">
+              This console owns business objects (tenants, users, jobs). Metrics, logs, and alerts belong in
+              your monitoring stack.
+            </p>
+            {observabilityLinks().length ? (
+              <div className="flex flex-wrap gap-2">
+                {observabilityLinks().map((link) => (
+                  <a
+                    key={link.label}
+                    href={link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-lg border border-line bg-surface-2 px-3 py-1.5 text-sm hover:bg-line transition-colors"
+                  >
+                    {link.label} ↗
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted">
+                Set <code className="bg-surface-2 rounded px-1">OBSERVABILITY_LINKS</code> (e.g.{" "}
+                <code className="bg-surface-2 rounded px-1">Grafana=https://…,Sentry=https://…</code>) to link
+                your dashboards here.
+              </p>
+            )}
+          </Card>
         </div>
       </div>
     </div>
   );
+}
+
+/** Parse OBSERVABILITY_LINKS="Label=https://…,Label2=https://…" into links. */
+function observabilityLinks(): { label: string; href: string }[] {
+  return (process.env.OBSERVABILITY_LINKS ?? "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+    .map((entry) => {
+      const eq = entry.indexOf("=");
+      if (eq <= 0) return null;
+      const label = entry.slice(0, eq).trim();
+      const href = entry.slice(eq + 1).trim();
+      return label && href.startsWith("http") ? { label, href } : null;
+    })
+    .filter((link): link is { label: string; href: string } => Boolean(link));
 }

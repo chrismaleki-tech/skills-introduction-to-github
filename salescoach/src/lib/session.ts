@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { db } from "./db";
 import { hashPassword, verifyPassword } from "./password";
-import { isPlatformAdminEmail } from "./config";
-import { mintSessionToken, verifySessionToken } from "./session-token";
+import { consoleRoleForEmail, isPlatformAdminEmail } from "./config";
+import { mintSessionToken, verifySessionToken, verifyScopedToken, scopedTokenExpiry } from "./session-token";
 
 export { hashPassword, verifyPassword };
 export { mintSessionToken, verifySessionToken };
@@ -11,6 +11,8 @@ const COOKIE = "sc_user";
 const SESSION_DAYS = 14;
 
 export const SESSION_COOKIE = COOKIE;
+export const IMPERSONATION_COOKIE = "sc_imp";
+export const IMPERSONATION_SCOPE = "imp";
 
 export function demoSwitcherAllowed() {
   if (process.env.ALLOW_DEMO_SWITCHER != null) {
@@ -35,12 +37,51 @@ export async function clearSession() {
   store.delete(COOKIE);
 }
 
-export async function currentUserOrNull() {
+/** The product session itself — ignores impersonation. */
+export async function rawSessionUserOrNull() {
   const store = await cookies();
   const token = store.get(COOKIE)?.value;
   const id = verifySessionToken(token, { allowLegacyUnsigned: demoSwitcherAllowed() });
   if (!id) return null;
   return db.user.findUnique({ where: { id }, include: { org: true } });
+}
+
+export type ImpersonationInfo = {
+  admin: { id: string; email: string; name: string };
+  target: NonNullable<Awaited<ReturnType<typeof rawSessionUserOrNull>>>;
+  expiresAtMs: number | null;
+};
+
+/**
+ * Active "view as customer" session, if any. The sc_imp cookie carries
+ * "targetId:adminId" and is only honored while the underlying product session
+ * still belongs to that workforce-allowlisted admin — a stolen impersonation
+ * cookie is useless on its own.
+ */
+export async function impersonationInfo(): Promise<ImpersonationInfo | null> {
+  const store = await cookies();
+  const token = store.get(IMPERSONATION_COOKIE)?.value;
+  const subject = verifyScopedToken(IMPERSONATION_SCOPE, token);
+  if (!subject) return null;
+  const [targetId, adminId] = subject.split(":");
+  if (!targetId || !adminId) return null;
+
+  const admin = await rawSessionUserOrNull();
+  if (!admin || admin.id !== adminId || !consoleRoleForEmail(admin.email)) return null;
+
+  const target = await db.user.findUnique({ where: { id: targetId }, include: { org: true } });
+  if (!target) return null;
+  return {
+    admin: { id: admin.id, email: admin.email, name: admin.name },
+    target,
+    expiresAtMs: scopedTokenExpiry(token),
+  };
+}
+
+export async function currentUserOrNull() {
+  const impersonation = await impersonationInfo();
+  if (impersonation) return impersonation.target;
+  return rawSessionUserOrNull();
 }
 
 export async function currentUser() {

@@ -40,16 +40,44 @@ export function objectStorageConfigured() {
   return Boolean(process.env.S3_BUCKET?.trim() && process.env.S3_ACCESS_KEY_ID?.trim());
 }
 
-export function platformAdminEmails(): Set<string> {
-  const raw = process.env.PLATFORM_ADMIN_EMAILS ?? "";
+function emailSet(raw: string | undefined): Set<string> {
   return new Set(
-    raw
+    (raw ?? "")
       .split(",")
       .map((e) => e.trim().toLowerCase())
       .filter(Boolean),
   );
 }
 
+export function platformAdminEmails(): Set<string> {
+  return emailSet(process.env.PLATFORM_ADMIN_EMAILS);
+}
+
+export function platformSupportEmails(): Set<string> {
+  return emailSet(process.env.PLATFORM_SUPPORT_EMAILS);
+}
+
 export function isPlatformAdminEmail(email: string) {
   return platformAdminEmails().has(email.trim().toLowerCase());
+}
+
+/** Console role for a workforce email: ADMIN (full), SUPPORT (read + impersonate), or null. */
+export type ConsoleRole = "ADMIN" | "SUPPORT";
+export function consoleRoleForEmail(email: string): ConsoleRole | null {
+  const normalized = email.trim().toLowerCase();
+  if (platformAdminEmails().has(normalized)) return "ADMIN";
+  if (platformSupportEmails().has(normalized)) return "SUPPORT";
+  return null;
+}
+
+/** Lifetime of an elevated console session (short-lived by design). */
+export function adminSessionMinutes(): number {
+  const n = Number(process.env.ADMIN_SESSION_MINUTES);
+  return Number.isFinite(n) && n > 0 ? n : 60;
+}
+
+/** Lifetime of an impersonation ("view as customer") session. */
+export function impersonationMinutes(): number {
+  const n = Number(process.env.IMPERSONATION_MINUTES);
+  return Number.isFinite(n) && n > 0 ? n : 30;
 }

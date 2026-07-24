@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/session";
-import { platformAdminOrNull } from "@/lib/platform-admin";
-import { usageSummary } from "@/lib/metering";
-import { recordUsage } from "@/lib/metering";
+import { requireConsole } from "@/lib/platform-admin";
+import { usageSummary, sinceDaysAgo, recordUsage } from "@/lib/metering";
+import { recordAudit } from "@/lib/audit";
 
 const ROLES = new Set(["REP", "MANAGER", "TRAINER", "ADMIN"]);
 
 /** GET /api/admin/orgs/[id] — tenant detail for the platform admin console. */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const actor = await platformAdminOrNull();
+  const actor = await requireConsole("SUPPORT");
   if (!actor) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const { id } = await params;
@@ -28,14 +28,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   });
   if (!org) return NextResponse.json({ error: "Organization not found." }, { status: 404 });
 
-  const since = new Date(Date.now() - 30 * 86400000);
+  const since = sinceDaysAgo(30);
   const usage = await usageSummary(id, since);
   return NextResponse.json({ org, usage, usageSince: since.toISOString() });
 }
 
 /** POST /api/admin/orgs/[id] — create a user inside a specific tenant. */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const actor = await platformAdminOrNull();
+  const actor = await requireConsole("ADMIN");
   if (!actor) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const { id } = await params;
@@ -81,9 +81,19 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   await recordUsage({
     orgId: id,
     type: "USER_SEAT",
-    userId: actor.id,
+    userId: actor.user.id,
     subjectType: "USER",
     subjectId: user.id,
+  });
+  await recordAudit({
+    actor: actor.user,
+    consoleRole: actor.role,
+    action: "USER_CREATED",
+    targetType: "USER",
+    targetId: user.id,
+    orgId: id,
+    req,
+    meta: { email, role, passwordSet: Boolean(password) },
   });
   return NextResponse.json({ id: user.id, email: user.email, role: user.role, passwordSet: Boolean(password) });
 }

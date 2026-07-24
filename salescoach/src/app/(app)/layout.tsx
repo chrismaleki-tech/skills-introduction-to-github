@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
-import { currentUser, demoSwitcherAllowed, isManagerRole } from "@/lib/session";
-import { isPlatformAdminEmail } from "@/lib/config";
+import { currentUser, demoSwitcherAllowed, isManagerRole, impersonationInfo } from "@/lib/session";
+import { consoleActor } from "@/lib/platform-admin";
+import { ImpersonationBanner } from "@/components/admin/impersonation";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
 import { AssistantChat } from "@/components/assistant/chat";
@@ -9,6 +10,8 @@ import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
+  const impersonation = await impersonationInfo();
+  const console_ = impersonation ? null : await consoleActor();
   const users = await db.user.findMany({
     where: { orgId: user.orgId },
     orderBy: [{ role: "asc" }, { name: "asc" }],
@@ -41,11 +44,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           { href: "/settings", label: "Settings" },
         ]
       : []),
-    ...(isPlatformAdminEmail(user.email) ? [{ href: "/admin", label: "Platform Admin" }] : []),
+    ...(console_ ? [{ href: "/admin", label: "Platform Console" }] : []),
   ];
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col">
+      {impersonation && (
+        <ImpersonationBanner
+          orgName={impersonation.target.org.name}
+          targetName={impersonation.target.name}
+          adminName={impersonation.admin.name}
+          expiresAtMs={impersonation.expiresAtMs}
+        />
+      )}
+      <div className="flex flex-1">
       <aside className="hidden md:flex w-60 shrink-0 border-r border-line bg-surface flex-col">
         <div className="px-4 py-5 border-b border-line">
           <div className="font-semibold tracking-tight text-lg">
@@ -80,6 +92,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 max-w-6xl w-full mx-auto">{children}</main>
       </div>
       <AssistantChat />
+      </div>
     </div>
   );
 }

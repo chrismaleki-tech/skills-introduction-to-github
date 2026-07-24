@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { platformAdminOrNull } from "@/lib/platform-admin";
+import { requireConsole } from "@/lib/platform-admin";
 import { METHODOLOGY_PRESETS } from "@/lib/presets";
+import { recordAudit } from "@/lib/audit";
 
 /**
  * Global methodology presets live only in the demo seed script, which wipes
@@ -11,7 +12,7 @@ import { METHODOLOGY_PRESETS } from "@/lib/presets";
  */
 
 export async function GET() {
-  const actor = await platformAdminOrNull();
+  const actor = await requireConsole("SUPPORT");
   if (!actor) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const installed = await db.methodology.findMany({
@@ -29,8 +30,8 @@ export async function GET() {
 }
 
 /** POST /api/admin/presets — install any presets missing from the database. */
-export async function POST() {
-  const actor = await platformAdminOrNull();
+export async function POST(req: Request) {
+  const actor = await requireConsole("ADMIN");
   if (!actor) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const installed = await db.methodology.findMany({
@@ -51,6 +52,16 @@ export async function POST() {
       },
     });
     created.push(preset.name);
+  }
+  if (created.length) {
+    await recordAudit({
+      actor: actor.user,
+      consoleRole: actor.role,
+      action: "PRESETS_INSTALLED",
+      targetType: "METHODOLOGY",
+      req,
+      meta: { created },
+    });
   }
   return NextResponse.json({ ok: true, created });
 }

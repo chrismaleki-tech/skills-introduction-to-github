@@ -1266,6 +1266,32 @@ model Job {
   @@index([orgId, type, status])
 }
 
+// Append-only audit trail for platform-console actions (org creation, user
+// maintenance, impersonation, PII reveals, queue ops). The application exposes
+// no update or delete path for these rows — treat as immutable. orgId is a
+// plain string (no FK) so audit rows survive tenant deletion.
+model AuditEvent {
+  id          String  @id @default(cuid())
+  actorId     String?
+  actorEmail  String
+  consoleRole String  @default("")
+  // e.g. ORG_CREATED | USER_CREATED | USER_PASSWORD_RESET | USER_ROLE_CHANGED |
+  //      JOB_RETRIED | JOBS_DRAINED | PRESETS_INSTALLED | CONSOLE_ELEVATED |
+  //      CONSOLE_ELEVATION_DENIED | IMPERSONATION_STARTED | IMPERSONATION_ENDED |
+  //      PII_REVEALED
+  action     String
+  targetType String  @default("")
+  targetId   String?
+  orgId      String?
+  ip         String  @default("")
+  metaJson   String  @default("{}")
+  createdAt  DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([action, createdAt])
+  @@index([createdAt])
+}
+
 // Billable usage events for metering / future Stripe integration.
 model UsageEvent {
   id     String @id @default(cuid())

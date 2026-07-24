@@ -2,8 +2,10 @@ import { db } from "@/lib/db";
 import { PageHeader, Card, EmptyState } from "@/components/ui";
 import { METHODOLOGY_PRESETS } from "@/lib/presets";
 import { InstallPresetsButton } from "@/components/admin/install-presets-button";
+import { consoleActor } from "@/lib/platform-admin";
 
 export default async function AdminPresetsPage() {
+  const actor = await consoleActor();
   const installed = await db.methodology.findMany({
     where: { isPreset: true, orgId: null },
     select: { id: true, name: true, description: true, dimensionsJson: true, _count: { select: { grades: true } } },
@@ -17,7 +19,7 @@ export default async function AdminPresetsPage() {
       <PageHeader
         title="Methodology presets"
         subtitle="The global rubric library every tenant clones from. On a fresh production database, install these before onboarding the first customer."
-        actions={<InstallPresetsButton missingCount={missing.length} />}
+        actions={actor?.role === "ADMIN" ? <InstallPresetsButton missingCount={missing.length} /> : undefined}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -2,8 +2,11 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { PageHeader, Card, EmptyState, fmtDate } from "@/components/ui";
 import { CreateOrgForm } from "@/components/admin/org-forms";
+import { consoleActor } from "@/lib/platform-admin";
 
 export default async function AdminOrgsPage() {
+  const actor = await consoleActor();
+  const canManage = actor?.role === "ADMIN";
   const orgs = await db.org.findMany({
     orderBy: { createdAt: "asc" },
     select: {
@@ -52,9 +55,17 @@ export default async function AdminOrgsPage() {
           )}
         </Card>
 
-        <Card title="New organization">
-          <CreateOrgForm />
-        </Card>
+        {canManage ? (
+          <Card title="New organization">
+            <CreateOrgForm />
+          </Card>
+        ) : (
+          <Card title="New organization">
+            <p className="text-sm text-muted">
+              Support console access is read-only — only platform admins can create tenants.
+            </p>
+          </Card>
+        )}
       </div>
     </div>
   );

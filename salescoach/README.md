@@ -62,7 +62,16 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 
 **Phase 8 — Natural-language Ask.** Floating **Ask SalesCoach** chat on every page plus a full-page **Ask** workspace at `/ask`. Scope queries to **All systems**, **CRM**, **ERP**, or **Sales trainer**, then ask in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “Accept the Cascade quote”, “Who needs coaching?”, “Finance snapshot”, “Trial balance”, “Warehouse stock”. Answers include source badges and deep links into the matching module. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
 
-**Phase 10 — Platform admin console.** Cross-tenant maintenance UI at `/admin`, gated on the `PLATFORM_ADMIN_EMAILS` allowlist (org-level ADMINs manage only their own org via Settings). Overview tab shows environment/integration status, platform totals, job-queue health, and 30-day usage across all tenants. Organizations tab lists every tenant with a create-org form (one-time temporary admin password) and per-org drill-down: users (with role changes and password resets — fixing the "invited without a password" gap), invite-user form, and per-tenant usage. Jobs tab filters the durable queue with per-job retry and a "run pending now" drain. Presets tab installs the global methodology library onto a fresh production database without running the destructive demo seed.
+**Phase 10 — Platform admin console.** Cross-tenant maintenance UI at `/admin`, built as a separate control plane following back-office best practice:
+
+- **Two control planes.** Customer org admins stay in `/settings`; the console is workforce-only, can be pinned to a dedicated hostname (`ADMIN_HOST`) and network-restricted (`ADMIN_IP_ALLOWLIST`) at the middleware, so it can later be split into its own deployment without code changes.
+- **Workforce identity + step-up auth.** Console roles come from env allowlists — `PLATFORM_ADMIN_EMAILS` (full) and `PLATFORM_SUPPORT_EMAILS` (read + impersonate) — and every console session additionally requires re-entering your password at `/elevate`, minting a short-lived elevated cookie (`ADMIN_SESSION_MINUTES`, default 60). IdP SSO can replace the password step without changing the gate.
+- **Append-only audit.** Every console action (org/user changes, queue ops, preset installs, elevations, impersonations, PII reveals) is written to the `AuditEvent` table via `recordAudit`; there is no update/delete path. Browse it under the console's **Audit** tab.
+- **Impersonation done right.** "View as" any customer user for `IMPERSONATION_MINUTES` (default 30): read-only (all API mutations blocked at the middleware), persistent amber banner with time-left and exit, start/end audited, and customer-visible under the org's **Settings → Vendor staff access**.
+- **Least privilege.** SUPPORT sees everything masked and can impersonate; only ADMIN mutates. PII (emails) is masked by default with an audited "Reveal" action. Role changes require confirmation; one-time secrets (temp passwords) are never shown again.
+- **Observability stays external.** The console links out to your dashboards (`OBSERVABILITY_LINKS`) instead of rebuilding monitoring; the Jobs tab is a queue-maintenance convenience, not a metrics stack.
+
+Tabs: Overview (environment/integration status, platform totals, queue health, 30-day usage), Organizations (tenant list, create-org with one-time temp password, per-org users/usage/staff-access drill-down, invite user, reset password — fixing the "invited without a password" gap), Jobs (filter, retry, drain), Presets (install the global methodology library onto a fresh production DB without the destructive demo seed), Audit (filterable trail).
 
 **Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
 
@@ -107,7 +116,9 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 | Channel provider gating (SMTP/Twilio/OAuth env) | ✅ Demo vs live paths separated |
 | Usage metering events | ✅ Settings + `/api/admin/usage` |
 | Team invite / multi-org create | ✅ `/api/admin/users`, `/api/admin/orgs` |
-| Platform admin console | ✅ `/admin` — orgs, users, jobs, presets (needs `PLATFORM_ADMIN_EMAILS`) |
+| Platform admin console | ✅ `/admin` — separate control plane: allowlist roles + step-up elevation |
+| Append-only audit trail | ✅ `AuditEvent` — all console actions, impersonation, PII reveals |
+| Read-only impersonation | ✅ Time-boxed, banner, audited, customer-visible in Settings |
 | Health endpoint | ✅ `/api/health` |
 | Unit tests (`npm test`) | ✅ Sampling, PII, sessions, providers |
 

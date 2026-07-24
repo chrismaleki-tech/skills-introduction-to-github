@@ -42,7 +42,14 @@ export function UserActions({ userId, role }: { userId: string; role: string }) 
         <select
           value={role}
           disabled={busy}
-          onChange={(e) => void patch({ role: e.target.value }, "Role updated.")}
+          onChange={(e) => {
+            const next = e.target.value;
+            if (!window.confirm(`Change this user's role from ${role} to ${next}?`)) {
+              e.target.value = role;
+              return;
+            }
+            void patch({ role: next }, "Role updated.");
+          }}
           className="rounded-lg border border-line bg-surface-2 px-2 py-1 text-xs"
         >
           {ROLES.map((r) => (
