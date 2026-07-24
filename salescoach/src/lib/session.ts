@@ -81,5 +81,7 @@ export function isOrgAdminRole(role: string) {
 }
 
 export function userIsPlatformAdmin(user: { email: string; role: string }) {
-  return isPlatformAdminEmail(user.email) || user.role === "ADMIN";
+  // Strictly allowlist-based: org-level ADMINs manage their own org, but
+  // platform scope (creating orgs, cross-tenant views) needs PLATFORM_ADMIN_EMAILS.
+  return isPlatformAdminEmail(user.email);
 }

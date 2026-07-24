@@ -62,6 +62,8 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 
 **Phase 8 — Natural-language Ask.** Floating **Ask SalesCoach** chat on every page plus a full-page **Ask** workspace at `/ask`. Scope queries to **All systems**, **CRM**, **ERP**, or **Sales trainer**, then ask in plain English — e.g. “What's our pipeline?”, “Show Cascade”, “Accept the Cascade quote”, “Who needs coaching?”, “Finance snapshot”, “Trial balance”, “Warehouse stock”. Answers include source badges and deep links into the matching module. Demo mode uses a deterministic intent router; with `OPENAI_API_KEY` it uses LLM tool-calling against the same live tools (`src/lib/assistant.ts`, `POST /api/assistant/chat`).
 
+**Phase 10 — Platform admin console.** Cross-tenant maintenance UI at `/admin`, gated on the `PLATFORM_ADMIN_EMAILS` allowlist (org-level ADMINs manage only their own org via Settings). Overview tab shows environment/integration status, platform totals, job-queue health, and 30-day usage across all tenants. Organizations tab lists every tenant with a create-org form (one-time temporary admin password) and per-org drill-down: users (with role changes and password resets — fixing the "invited without a password" gap), invite-user form, and per-tenant usage. Jobs tab filters the durable queue with per-job retry and a "run pending now" drain. Presets tab installs the global methodology library onto a fresh production database without running the destructive demo seed.
+
 **Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
 
 ## Architecture notes
@@ -105,6 +107,7 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 | Channel provider gating (SMTP/Twilio/OAuth env) | ✅ Demo vs live paths separated |
 | Usage metering events | ✅ Settings + `/api/admin/usage` |
 | Team invite / multi-org create | ✅ `/api/admin/users`, `/api/admin/orgs` |
+| Platform admin console | ✅ `/admin` — orgs, users, jobs, presets (needs `PLATFORM_ADMIN_EMAILS`) |
 | Health endpoint | ✅ `/api/health` |
 | Unit tests (`npm test`) | ✅ Sampling, PII, sessions, providers |
 

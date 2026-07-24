@@ -40,6 +40,11 @@ export async function recordUsage(input: {
   }
 }
 
+/** Window helper for server components (react-hooks/purity bans Date.now in render). */
+export function sinceDaysAgo(days: number) {
+  return new Date(Date.now() - days * 86400000);
+}
+
 export async function usageSummary(orgId: string, since: Date) {
   const events = await db.usageEvent.groupBy({
     by: ["type"],

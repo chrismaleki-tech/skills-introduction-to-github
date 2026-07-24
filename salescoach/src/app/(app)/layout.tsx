@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { currentUser, demoSwitcherAllowed, isManagerRole } from "@/lib/session";
+import { isPlatformAdminEmail } from "@/lib/config";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
 import { AssistantChat } from "@/components/assistant/chat";
@@ -40,6 +41,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           { href: "/settings", label: "Settings" },
         ]
       : []),
+    ...(isPlatformAdminEmail(user.email) ? [{ href: "/admin", label: "Platform Admin" }] : []),
   ];
 
   return (
