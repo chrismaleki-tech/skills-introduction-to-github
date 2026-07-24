@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { rawSessionUserOrNull, verifyPassword } from "@/lib/session";
-import { consoleRoleForEmail, adminSessionMinutes } from "@/lib/config";
+import { consoleSessionUser, verifyPassword } from "@/lib/session";
+import { consoleRoleForUser, adminSessionMinutes } from "@/lib/config";
 import { mintScopedToken } from "@/lib/session-token";
 import { ELEVATION_COOKIE, ELEVATION_SCOPE } from "@/lib/platform-admin";
 import { recordAudit } from "@/lib/audit";
@@ -9,11 +9,11 @@ import { recordAudit } from "@/lib/audit";
 /**
  * Step-up authentication for the platform console: re-enter your password to
  * mint a short-lived elevated session (separate cookie from the product
- * session). Deliberately not covered by the demo-switcher fallback.
+ * session). The password check applies even to the demo fallback user.
  */
 export async function POST(req: Request) {
-  const user = await rawSessionUserOrNull();
-  const role = user ? consoleRoleForEmail(user.email) : null;
+  const user = await consoleSessionUser();
+  const role = user ? consoleRoleForUser(user) : null;
   if (!user || !role) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }

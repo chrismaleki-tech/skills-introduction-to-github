@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { rawSessionUserOrNull, impersonationInfo, IMPERSONATION_COOKIE } from "@/lib/session";
-import { consoleRoleForEmail } from "@/lib/config";
+import { consoleSessionUser, impersonationInfo, IMPERSONATION_COOKIE } from "@/lib/session";
+import { consoleRoleForUser } from "@/lib/config";
 import { recordAudit } from "@/lib/audit";
 
 /**
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   if (info) {
     await recordAudit({
       actor: { id: info.admin.id, email: info.admin.email },
-      consoleRole: consoleRoleForEmail(info.admin.email) ?? "",
+      consoleRole: consoleRoleForUser(info.admin) ?? "",
       action: "IMPERSONATION_ENDED",
       targetType: "USER",
       targetId: info.target.id,
@@ -29,11 +29,11 @@ export async function POST(req: Request) {
 
   // Cookie present but unverifiable (expired/foreign) — still clear it, and
   // attribute the exit to whoever holds the product session, if anyone.
-  const user = await rawSessionUserOrNull();
-  if (user && consoleRoleForEmail(user.email)) {
+  const user = await consoleSessionUser();
+  if (user && consoleRoleForUser(user)) {
     await recordAudit({
       actor: user,
-      consoleRole: consoleRoleForEmail(user.email) ?? "",
+      consoleRole: consoleRoleForUser(user) ?? "",
       action: "IMPERSONATION_ENDED",
       req,
       meta: { note: "expired or invalid impersonation token cleared" },

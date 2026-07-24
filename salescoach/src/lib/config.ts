@@ -40,6 +40,18 @@ export function objectStorageConfigured() {
   return Boolean(process.env.S3_BUCKET?.trim() && process.env.S3_ACCESS_KEY_ID?.trim());
 }
 
+/**
+ * Demo auth (cookie-less fallback user + user switcher) — defaults on outside
+ * production, and can be forced with ALLOW_DEMO_SWITCHER. Production asserts
+ * this is off (see assertProductionConfig).
+ */
+export function demoAuthAllowed() {
+  if (process.env.ALLOW_DEMO_SWITCHER != null) {
+    return process.env.ALLOW_DEMO_SWITCHER === "true" || process.env.ALLOW_DEMO_SWITCHER === "1";
+  }
+  return !isProduction();
+}
+
 function emailSet(raw: string | undefined): Set<string> {
   return new Set(
     (raw ?? "")
@@ -61,12 +73,37 @@ export function isPlatformAdminEmail(email: string) {
   return platformAdminEmails().has(email.trim().toLowerCase());
 }
 
+/** True once either workforce allowlist has been configured. */
+export function consoleAllowlistConfigured() {
+  return platformAdminEmails().size > 0 || platformSupportEmails().size > 0;
+}
+
 /** Console role for a workforce email: ADMIN (full), SUPPORT (read + impersonate), or null. */
 export type ConsoleRole = "ADMIN" | "SUPPORT";
 export function consoleRoleForEmail(email: string): ConsoleRole | null {
   const normalized = email.trim().toLowerCase();
   if (platformAdminEmails().has(normalized)) return "ADMIN";
   if (platformSupportEmails().has(normalized)) return "SUPPORT";
+  return null;
+}
+
+/**
+ * Console role for a user. Strictly the email allowlists — except in demo
+ * auth mode with NO allowlist configured, where seeded MANAGER/ADMIN users
+ * get full console access so /admin is explorable out of the box. Production
+ * always requires PLATFORM_ADMIN_EMAILS / PLATFORM_SUPPORT_EMAILS.
+ */
+export function consoleRoleForUser(user: { email: string; role: string }): ConsoleRole | null {
+  const byEmail = consoleRoleForEmail(user.email);
+  if (byEmail) return byEmail;
+  if (
+    !consoleAllowlistConfigured() &&
+    demoAuthAllowed() &&
+    !isProduction() &&
+    (user.role === "MANAGER" || user.role === "ADMIN")
+  ) {
+    return "ADMIN";
+  }
   return null;
 }
 

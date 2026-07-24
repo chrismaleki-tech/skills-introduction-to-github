@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
-import { rawSessionUserOrNull, impersonationInfo } from "./session";
-import { consoleRoleForEmail, type ConsoleRole } from "./config";
+import { rawSessionUserOrNull, consoleSessionUser, impersonationInfo } from "./session";
+import { consoleRoleForUser, type ConsoleRole } from "./config";
 import { verifyScopedToken, scopedTokenExpiry } from "./session-token";
 
 export const ELEVATION_COOKIE = "sc_admin";
@@ -18,13 +18,14 @@ export type ConsoleActor = {
 /**
  * Resolve the current console actor. The console is a separate control plane:
  * it requires (a) a product session belonging to a workforce-allowlisted email
- * and (b) a short-lived elevation token minted by step-up re-authentication.
+ * (or, in demo auth mode with no allowlists configured, the demo fallback
+ * user) and (b) a short-lived elevation token minted by step-up re-auth.
  * Uses the raw session so the actor stays the employee even mid-impersonation.
  */
 export async function consoleActor(): Promise<ConsoleActor | null> {
-  const user = await rawSessionUserOrNull().catch(() => null);
+  const user = await consoleSessionUser().catch(() => null);
   if (!user) return null;
-  const role = consoleRoleForEmail(user.email);
+  const role = consoleRoleForUser(user);
   if (!role) return null;
 
   const store = await cookies();

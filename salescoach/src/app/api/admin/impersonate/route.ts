@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { requireConsole } from "@/lib/platform-admin";
 import { IMPERSONATION_COOKIE, IMPERSONATION_SCOPE } from "@/lib/session";
 import { mintScopedToken } from "@/lib/session-token";
-import { consoleRoleForEmail, impersonationMinutes } from "@/lib/config";
+import { consoleRoleForUser, impersonationMinutes } from "@/lib/config";
 import { recordAudit } from "@/lib/audit";
 
 /**
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const target = await db.user.findUnique({ where: { id: body.userId }, include: { org: true } });
   if (!target) return NextResponse.json({ error: "User not found." }, { status: 404 });
-  if (target.id === actor.user.id || consoleRoleForEmail(target.email)) {
+  if (target.id === actor.user.id || consoleRoleForUser(target)) {
     return NextResponse.json({ error: "Cannot impersonate platform staff." }, { status: 400 });
   }
 

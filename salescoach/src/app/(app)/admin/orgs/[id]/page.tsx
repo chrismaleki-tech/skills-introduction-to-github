@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { PageHeader, Card, Stat, EmptyState, fmtDateTime } from "@/components/ui";
 import { sinceDaysAgo, usageSummary } from "@/lib/metering";
 import { consoleActor } from "@/lib/platform-admin";
-import { consoleRoleForEmail } from "@/lib/config";
+import { consoleRoleForUser } from "@/lib/config";
 import { maskEmail } from "@/lib/pii";
 import { InviteUserForm } from "@/components/admin/org-forms";
 import { OrgUsersCard, type ConsoleOrgUser } from "@/components/admin/org-users-card";
@@ -37,7 +37,7 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
     emailMasked: maskEmail(user.email),
     lastLogin: user.lastLoginAt ? fmtDateTime(user.lastLoginAt) : null,
     hasPassword: Boolean(user.passwordHash),
-    isStaff: Boolean(consoleRoleForEmail(user.email)),
+    isStaff: Boolean(consoleRoleForUser(user)),
   }));
 
   return (
