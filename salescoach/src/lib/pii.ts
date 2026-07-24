@@ -42,3 +42,17 @@ export function redactPii(text: string): string {
 export function redactSegments(segments: TranscriptSegment[]): TranscriptSegment[] {
   return segments.map((s) => ({ ...s, text: redactPii(s.text) }));
 }
+
+/** PII masking for the platform console: show shape, hide content. */
+export function maskEmail(email: string): string {
+  const at = email.indexOf("@");
+  if (at <= 0) return "•••";
+  const local = email.slice(0, at);
+  const domain = email.slice(at + 1);
+  const dot = domain.lastIndexOf(".");
+  const domainName = dot > 0 ? domain.slice(0, dot) : domain;
+  const tld = dot > 0 ? domain.slice(dot) : "";
+  return `${local[0]}${"•".repeat(Math.max(2, local.length - 1))}@${domainName[0] ?? ""}${"•".repeat(
+    Math.max(2, domainName.length - 1),
+  )}${tld}`;
+}

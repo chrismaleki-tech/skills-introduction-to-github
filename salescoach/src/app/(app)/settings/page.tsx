@@ -5,12 +5,48 @@ import { aiAvailable } from "@/lib/ai";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseIngestionPolicy } from "@/lib/types";
 import { parseRetentionPolicy } from "@/lib/pii";
+import { sinceDaysAgo } from "@/lib/metering";
 import { BandPill, Card, PageHeader } from "@/components/ui";
 import { OrgNameForm } from "@/components/settings/org-name-form";
 import { PolicyForm } from "@/components/settings/policy-form";
 import { WebhookCard } from "@/components/settings/webhook-card";
 import { RetentionForm, UnmatchedQueue } from "@/components/settings/compliance";
 import { TeamUsersPanel } from "@/components/settings/team-users";
+
+async function StaffAccessLog({ orgId }: { orgId: string }) {
+  const events = await db.auditEvent.findMany({
+    where: {
+      orgId,
+      action: { in: ["IMPERSONATION_STARTED", "IMPERSONATION_ENDED", "PII_REVEALED"] },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+  if (!events.length) {
+    return <p className="text-sm text-muted">No staff access recorded.</p>;
+  }
+  const labels: Record<string, string> = {
+    IMPERSONATION_STARTED: "Staff viewed your workspace",
+    IMPERSONATION_ENDED: "Staff session ended",
+    PII_REVEALED: "Staff revealed user emails",
+  };
+  return (
+    <ul className="space-y-2">
+      {events.map((event) => (
+        <li key={event.id} className="text-xs text-muted">
+          <span className="text-foreground">{labels[event.action] ?? event.action}</span>
+          {" · "}
+          {new Date(event.createdAt).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          })}
+        </li>
+      ))}
+    </ul>
+  );
+}
 
 const SCORE_BANDS = [
   { range: "90+", label: "Exceptional", sample: 95 },
@@ -30,7 +66,7 @@ export default async function SettingsPage() {
     ? await db.methodology.findUnique({ where: { id: org.activeMethodologyId } })
     : null;
 
-  const since = new Date(Date.now() - 30 * 86400000);
+  const since = sinceDaysAgo(30);
   const [unmatched, reps, usageEvents, teamUsers] = await Promise.all([
     db.unmatchedIngest.findMany({
       where: { orgId: org.id },
@@ -164,6 +200,14 @@ export default async function SettingsPage() {
 
         <Card title="Organization">
           <OrgNameForm name={org.name} />
+        </Card>
+
+        <Card title="Vendor staff access">
+          <p className="text-sm text-muted mb-3">
+            Transparency log: whenever SalesCoach staff view your workspace or reveal user emails, it is
+            recorded here.
+          </p>
+          <StaffAccessLog orgId={org.id} />
         </Card>
 
         <Card title="Score bands reference">

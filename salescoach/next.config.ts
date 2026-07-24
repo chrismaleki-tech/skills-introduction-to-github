@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     "localhost",
     "127.0.0.1",
     "*.trycloudflare.com",
+    "*.agent.cvm.dev",
   ],
 };
 

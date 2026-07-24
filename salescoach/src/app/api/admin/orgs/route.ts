@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { currentUser, hashPassword, userIsPlatformAdmin } from "@/lib/session";
+import { hashPassword } from "@/lib/session";
+import { requireConsole } from "@/lib/platform-admin";
+import { recordAudit } from "@/lib/audit";
 import { randomBytes } from "crypto";
 
 /**
- * Multi-org admin: platform admins can create additional tenants.
- * Set PLATFORM_ADMIN_EMAILS=you@company.com (comma-separated).
+ * Multi-org admin: platform console tenants list + creation.
+ * Reads admit SUPPORT; creation requires full ADMIN. All access is gated on
+ * the workforce allowlists + short-lived elevation (see lib/platform-admin).
  */
 export async function GET() {
-  const actor = await currentUser();
-  if (!userIsPlatformAdmin(actor)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
+  const actor = await requireConsole("SUPPORT");
+  if (!actor) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+
   const orgs = await db.org.findMany({
     select: {
       id: true,
@@ -25,10 +27,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const actor = await currentUser();
-  if (!userIsPlatformAdmin(actor)) {
-    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
-  }
+  const actor = await requireConsole("ADMIN");
+  if (!actor) return NextResponse.json({ error: "Forbidden." }, { status: 403 });
 
   const body = (await req.json().catch(() => ({}))) as {
     name?: string;
@@ -71,6 +71,17 @@ export async function POST(req: Request) {
       },
     },
     include: { users: true },
+  });
+
+  await recordAudit({
+    actor: actor.user,
+    consoleRole: actor.role,
+    action: "ORG_CREATED",
+    targetType: "ORG",
+    targetId: org.id,
+    orgId: org.id,
+    req,
+    meta: { name, adminEmail },
   });
 
   return NextResponse.json({
