@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser, hashPassword, isOrgAdminRole, isManagerRole } from "@/lib/session";
 import { recordUsage } from "@/lib/metering";
+import { recordAudit } from "@/lib/audit";
+import { planFor, seatLimitReached } from "@/lib/billing";
 
 const ROLES = new Set(["REP", "MANAGER", "TRAINER", "ADMIN"]);
 
@@ -44,6 +46,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "A user with that email already exists." }, { status: 409 });
   }
 
+  const plan = planFor(actor.org.plan);
+  const activeSeats = await db.user.count({ where: { orgId: actor.orgId, disabledAt: null } });
+  if (seatLimitReached(plan, activeSeats)) {
+    return NextResponse.json(
+      {
+        error: `The ${plan.name} plan is limited to ${plan.seatLimit} active seats. Upgrade the plan or deactivate a seat in the Back Office.`,
+      },
+      { status: 402 },
+    );
+  }
+
   const passwordHash = password ? await hashPassword(password) : "";
   const user = await db.user.create({
     data: {
@@ -62,6 +75,15 @@ export async function POST(req: Request) {
     userId: actor.id,
     subjectType: "USER",
     subjectId: user.id,
+  });
+  await recordAudit({
+    actor,
+    action: "USER_CREATED",
+    targetType: "USER",
+    targetId: user.id,
+    orgId: actor.orgId,
+    req,
+    meta: { email: user.email, role: user.role, passwordSet: Boolean(passwordHash) },
   });
 
   return NextResponse.json({

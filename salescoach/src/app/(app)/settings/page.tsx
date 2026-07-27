@@ -85,7 +85,7 @@ export default async function SettingsPage() {
       _count: true,
     }),
     db.user.findMany({
-      where: { orgId: org.id },
+      where: { orgId: org.id, disabledAt: null },
       select: { id: true, name: true, email: true, role: true, title: true, lastLoginAt: true },
       orderBy: { name: "asc" },
     }),
@@ -141,6 +141,10 @@ export default async function SettingsPage() {
         </Card>
 
         <Card title="Team seats">
+          <p className="text-xs text-muted mb-3">
+            Active seats. Full seat lifecycle — roles, password resets, deactivation, plan limits — lives in
+            the <Link href="/backoffice/team" className="text-accent-hover hover:underline">Back Office</Link>.
+          </p>
           <TeamUsersPanel users={teamUsers} />
         </Card>
 

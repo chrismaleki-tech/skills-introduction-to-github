@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { currentUser, demoSwitcherAllowed, isManagerRole, impersonationInfo } from "@/lib/session";
+import { isBackofficeRole } from "@/lib/backoffice";
 import { consoleActor } from "@/lib/platform-admin";
 import { ImpersonationBanner } from "@/components/admin/impersonation";
 import { NavLinks, type NavItem } from "@/components/nav";
@@ -13,7 +14,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const impersonation = await impersonationInfo();
   const console_ = impersonation ? null : await consoleActor();
   const users = await db.user.findMany({
-    where: { orgId: user.orgId },
+    where: { orgId: user.orgId, disabledAt: null },
     orderBy: [{ role: "asc" }, { name: "asc" }],
     select: { id: true, name: true, role: true, title: true },
   });
@@ -44,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           { href: "/settings", label: "Settings" },
         ]
       : []),
+    ...(isBackofficeRole(user.role) ? [{ href: "/backoffice", label: "Back Office" }] : []),
     ...(console_ ? [{ href: "/admin", label: "Platform Console" }] : []),
   ];
 

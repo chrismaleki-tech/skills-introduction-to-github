@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 // POST /api/settings/org — rename the org.
 
@@ -13,5 +14,14 @@ export async function POST(req: Request) {
   if (!name) return NextResponse.json({ error: "Team name cannot be empty." }, { status: 400 });
 
   await db.org.update({ where: { id: user.orgId }, data: { name: name.slice(0, 120) } });
+  await recordAudit({
+    actor: user,
+    action: "ORG_UPDATED",
+    targetType: "ORG",
+    targetId: user.orgId,
+    orgId: user.orgId,
+    req,
+    meta: { name: name.slice(0, 120) },
+  });
   return NextResponse.json({ ok: true });
 }
