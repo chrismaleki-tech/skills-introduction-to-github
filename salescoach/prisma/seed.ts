@@ -195,6 +195,8 @@ async function main() {
   const org = await db.org.create({
     data: {
       name: "Meridian Software",
+      plan: "growth",
+      billingEmail: "finance@meridian.demo",
       ingestionPolicyJson: JSON.stringify({
         minDurationSec: 60,
         sampleThreshold: 10,

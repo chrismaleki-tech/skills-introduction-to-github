@@ -1,16 +1,22 @@
 import { db } from "./db";
 
 /**
- * Append-only audit trail for platform-console actions.
+ * Append-only audit trail for platform-console and org back-office actions.
  * The app exposes no update/delete path for AuditEvent rows; writes must go
  * through recordAudit so every entry carries actor + target + tenant context.
  */
 
 export type AuditAction =
   | "ORG_CREATED"
+  | "ORG_UPDATED"
   | "USER_CREATED"
+  | "USER_UPDATED"
   | "USER_PASSWORD_RESET"
   | "USER_ROLE_CHANGED"
+  | "USER_DISABLED"
+  | "USER_ENABLED"
+  | "PLAN_CHANGED"
+  | "DATA_EXPORTED"
   | "JOB_RETRIED"
   | "JOBS_DRAINED"
   | "PRESETS_INSTALLED"

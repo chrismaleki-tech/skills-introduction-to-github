@@ -73,6 +73,13 @@ Deal pages show live ERP documents and a one-click quote builder. Grading prompt
 
 Tabs: Overview (environment/integration status, platform totals, queue health, 30-day usage), Organizations (tenant list, create-org with one-time temp password, per-org users/usage/staff-access drill-down, invite user, reset password — fixing the "invited without a password" gap), Jobs (filter, retry, drain), Presets (install the global methodology library onto a fresh production DB without the destructive demo seed), Audit (filterable trail).
 
+**Phase 11 — Business back office.** The customer org's own control plane at `/backoffice` (**Back Office** in the sidebar, MANAGER/ADMIN only) — the business side of the workspace, separate from operational Settings and from the vendor's `/admin` console:
+
+- **Team.** Full seat lifecycle: invite, change role (granting/revoking ADMIN and touching ADMIN seats require the org ADMIN role), reset password with a one-time temp password, deactivate/reactivate. Deactivated seats are signed out immediately, can't log in, don't count against the plan, and can't be the last active manager/admin.
+- **Plan & Billing.** Subscription plans (Trial/Starter/Growth/Scale in `src/lib/billing.ts`) with seat limits enforced on invite and reactivation, a month-to-date statement preview computed from `UsageEvent` metering (seats + overage beyond included volumes), and a billing contact. Payment collection (Stripe) stays out of band; statements are previews, not ledger entries.
+- **Audit.** The org-scoped slice of the append-only `AuditEvent` trail — seat changes, plan changes, exports, org renames, and vendor staff access — with action filters. Org-side mutations now write audit events too, not just console actions.
+- **Exports.** Audited CSV downloads (team, CRM accounts/contacts/deals, calls, grades, usage events, audit trail) with quoting and formula-injection hardening (`src/lib/csv.ts`). No lock-in.
+
 **Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
 
 ## Architecture notes

@@ -23,6 +23,10 @@ model Org {
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
 
+  // SaaS subscription plan (see PLANS in src/lib/billing.ts)
+  plan         String @default("trial") // trial | starter | growth | scale
+  billingEmail String @default("")
+
   // ERP org defaults
   baseCurrency   String @default("USD") // ISO 4217
   defaultTaxCode String @default("US-CA") // TaxCode.code
@@ -80,6 +84,8 @@ model User {
   role         String // REP | MANAGER | TRAINER | ADMIN
   title        String  @default("")
   lastLoginAt  DateTime?
+  // Set when an org admin deactivates the seat; blocks login and sessions.
+  disabledAt   DateTime?
 
   calls          Call[]            @relation("RepCalls")
   roleplays      RoleplaySession[]

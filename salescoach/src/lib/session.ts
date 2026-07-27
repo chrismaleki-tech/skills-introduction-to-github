@@ -40,14 +40,17 @@ export async function rawSessionUserOrNull() {
   const token = store.get(COOKIE)?.value;
   const id = verifySessionToken(token, { allowLegacyUnsigned: demoSwitcherAllowed() });
   if (!id) return null;
-  return db.user.findUnique({ where: { id }, include: { org: true } });
+  const user = await db.user.findUnique({ where: { id }, include: { org: true } });
+  // Deactivated seats lose their session immediately, not at next login.
+  if (user?.disabledAt) return null;
+  return user;
 }
 
 /** The cookie-less demo user (first seeded manager), when demo auth is on. */
 export async function demoFallbackUser() {
   if (!demoSwitcherAllowed()) return null;
   return db.user.findFirst({
-    where: { role: "MANAGER" },
+    where: { role: "MANAGER", disabledAt: null },
     include: { org: true },
     orderBy: { createdAt: "asc" },
   });
@@ -118,6 +121,9 @@ export async function loginWithPassword(email: string, password: string) {
   }
   const valid = await verifyPassword(password, matched.passwordHash);
   if (!valid) return { ok: false as const, error: "Invalid email or password." };
+  if (matched.disabledAt) {
+    return { ok: false as const, error: "This account has been deactivated. Contact your admin." };
+  }
   await setSessionUser(matched.id);
   await db.user.update({ where: { id: matched.id }, data: { lastLoginAt: new Date() } });
   return { ok: true as const, user: matched };
