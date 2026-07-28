@@ -96,6 +96,109 @@ def week_from_snapshot(snapshot_dir: str) -> dict:
     return out
 
 
+def week_from_archive(api_key: str, week: str) -> dict:
+    """Official per-round SG averages for every event completing on `week` (Sunday).
+
+    Merges all events that week (main + opposite field). Preferred over live capture
+    once Data Golf archives the event, since archived SG reflects their final revisions.
+    """
+    listing = requests.get(
+        "https://feeds.datagolf.com/historical-event-data/event-list",
+        params={"tour": "pga", "file_format": "json", "key": api_key}, timeout=30,
+    ).json()
+    out = {}
+    for ev in listing:
+        if ev.get("date") != week:
+            continue
+        detail = requests.get(
+            "https://feeds.datagolf.com/historical-raw-data/rounds",
+            params={"tour": "pga", "event_id": ev["event_id"], "year": ev["calendar_year"],
+                    "file_format": "json", "key": api_key}, timeout=30,
+        ).json()
+        for p in detail.get("scores", []):
+            rounds = [p[k] for k in ("round_1", "round_2", "round_3", "round_4")
+                      if isinstance(p.get(k), dict)]
+            rec = {}
+            for stat in ("sg_ott", "sg_app", "sg_arg", "sg_putt", "sg_total"):
+                vals = [r[stat] for r in rounds if r.get(stat) is not None]
+                if vals:
+                    rec[stat] = sum(vals) / len(vals)
+            if rec:
+                out[norm_name(p["player_name"])] = rec
+        print(f"  archive {week}: {ev['event_name']} -> {len(detail.get('scores', []))} players")
+    return out
+
+
+def fetch_dg_points_by_week(api_key: str, weeks: list) -> dict:
+    """dg_points per player for each week-ending Sunday, merging all events that week."""
+    listing = requests.get(
+        "https://feeds.datagolf.com/historical-event-data/event-list",
+        params={"tour": "pga", "file_format": "json", "key": api_key}, timeout=30,
+    ).json()
+    by_week = {}
+    for wk in weeks:
+        by_week[wk] = {}
+        for ev in listing:
+            if ev.get("date") == wk:
+                detail = requests.get(
+                    "https://feeds.datagolf.com/historical-event-data/events",
+                    params={"tour": "pga", "event_id": ev["event_id"], "year": ev["calendar_year"],
+                            "file_format": "json", "key": api_key}, timeout=30,
+                ).json()
+                for p in detail.get("event_stats", []):
+                    if p.get("dg_points") is not None:
+                        by_week[wk][norm_name(p["player_name"])] = round(float(p["dg_points"]), 2)
+                print(f"  dg_points {wk}: {ev['event_name']} -> {len(detail.get('event_stats', []))} players")
+    return by_week
+
+
+def fill_dg_points(ws, api_key: str) -> None:
+    """Fill any completely-empty week columns in the DG Points sheet from the archive."""
+    cols = date_columns(ws)
+    player_rows = [r for r in range(2, ws.max_row + 1) if ws.cell(row=r, column=1).value not in (None, "")]
+    empty = [(c, d) for c, d in cols
+             if all(ws.cell(row=r, column=c).value in (None, "") for r in player_rows)]
+    if not empty:
+        print("[ok] DG Points: no empty week columns")
+        return
+    weeks = [d.date().isoformat() for _, d in empty]
+    data = fetch_dg_points_by_week(api_key, weeks)
+    filled = 0
+    for c, d in empty:
+        wk = d.date().isoformat()
+        for r in player_rows:
+            v = data.get(wk, {}).get(norm_name(ws.cell(row=r, column=1).value))
+            if v is not None:
+                ws.cell(row=r, column=c).value = v
+                filled += 1
+    print(f"[ok] DG Points: filled {filled} cells across {len(empty)} week(s)")
+
+
+def fill_course_fit(ws, api_key: str, column_header: str = "T2Green") -> None:
+    """Write Data Golf's course-fit adjustment for the upcoming event into PGA Database."""
+    d = requests.get(
+        "https://feeds.datagolf.com/preds/player-decompositions",
+        params={"tour": "pga", "file_format": "json", "key": api_key}, timeout=30,
+    ).json()
+    fit = {norm_name(p["player_name"]): p.get("total_fit_adjustment") for p in d.get("players", [])}
+    print(f"course fit source: {d.get('event_name')} at {d.get('course_name')} ({len(fit)} players)")
+    col = next((c.column for c in ws[1] if str(c.value).strip() == column_header), None)
+    if col is None:
+        raise SystemExit(f"column {column_header!r} not found in {ws.title}")
+    hits = 0
+    for r in range(2, ws.max_row + 1):
+        name = ws.cell(row=r, column=1).value
+        if name in (None, ""):
+            continue
+        v = fit.get(norm_name(name))
+        if v is not None:
+            ws.cell(row=r, column=col).value = round(float(v), 2)
+            hits += 1
+        else:
+            ws.cell(row=r, column=col).value = None  # not in this week's field: clear stale fit
+    print(f"[ok] {ws.title}.{column_header}: course fit set for {hits} field players, others cleared")
+
+
 def date_columns(ws) -> list:
     """(column_index, datetime) pairs for the date headers in row 1."""
     cols = []
@@ -158,6 +261,12 @@ def main() -> int:
     parser.add_argument("--snapshot-date", help="Week (Sunday) YYYY-MM-DD for the snapshot event")
     parser.add_argument("--live", action="store_true", help="Fetch current event live from Data Golf")
     parser.add_argument("--live-date", help="Week (Sunday) YYYY-MM-DD for the live event")
+    parser.add_argument("--archive-date", action="append", default=[],
+                        help="Week (Sunday) YYYY-MM-DD to fill/refresh from the official archive (repeatable)")
+    parser.add_argument("--dg-points", action="store_true",
+                        help="Fill empty DG Points week columns from the historical archive (needs historical tier)")
+    parser.add_argument("--course-fit", action="store_true",
+                        help="Refresh PGA Database T2Green with course fit for the upcoming event")
     args = parser.parse_args()
 
     new_weeks = []
@@ -172,18 +281,26 @@ def main() -> int:
             print("ERROR: DATAGOLF_KEY not set", file=sys.stderr)
             return 2
         new_weeks.append((datetime.fromisoformat(args.live_date), week_from_live(os.environ["DATAGOLF_KEY"])))
-    if not new_weeks:
-        parser.error("nothing to do: pass --snapshot and/or --live")
+    for wk in args.archive_date:
+        new_weeks.append((datetime.fromisoformat(wk), week_from_archive(os.environ["DATAGOLF_KEY"], wk)))
+    if not new_weeks and not (args.dg_points or args.course_fit):
+        parser.error("nothing to do: pass --snapshot/--live and/or --dg-points/--course-fit")
     new_weeks.sort(key=lambda x: x[0])
 
     wb = openpyxl.load_workbook(args.workbook, data_only=False)
-    for sheet_name, stat in STAT_SHEETS.items():
-        if sheet_name not in wb.sheetnames:
-            print(f"[warn] sheet {sheet_name!r} not found, skipping")
-            continue
-        hits, misses = update_sheet(wb[sheet_name], new_weeks, stat)
-        note = "(window shifted, values need historical tier)" if stat is None else f"matched {hits} sheet players; {misses} DG players not in sheet"
-        print(f"[ok] {sheet_name}: {note}")
+    if new_weeks:
+        for sheet_name, stat in STAT_SHEETS.items():
+            if sheet_name not in wb.sheetnames:
+                print(f"[warn] sheet {sheet_name!r} not found, skipping")
+                continue
+            hits, misses = update_sheet(wb[sheet_name], new_weeks, stat)
+            note = "(window shifted)" if stat is None else f"matched {hits} sheet players; {misses} DG players not in sheet"
+            print(f"[ok] {sheet_name}: {note}")
+
+    if args.dg_points:
+        fill_dg_points(wb["DG Points"], os.environ["DATAGOLF_KEY"])
+    if args.course_fit:
+        fill_course_fit(wb["PGA Database"], os.environ["DATAGOLF_KEY"])
 
     wb.save(args.output)
     print(f"\nSaved: {args.output}")
