@@ -285,6 +285,10 @@ def main() -> int:
         new_weeks.append((datetime.fromisoformat(wk), week_from_archive(os.environ["DATAGOLF_KEY"], wk)))
     if not new_weeks and not (args.dg_points or args.course_fit):
         parser.error("nothing to do: pass --snapshot/--live and/or --dg-points/--course-fit")
+    empty = [d for d, v in new_weeks if not v]
+    for d in empty:
+        print(f"[skip] {d.date()}: no event data for that week (off week?) — not adding a column")
+    new_weeks = [(d, v) for d, v in new_weeks if v]
     new_weeks.sort(key=lambda x: x[0])
 
     wb = openpyxl.load_workbook(args.workbook, data_only=False)

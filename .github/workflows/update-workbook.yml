@@ -1,0 +1,72 @@
+name: Update StatCaddy Workbook
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Week-ending Sunday (YYYY-MM-DD); blank = most recent Sunday"
+        required: false
+  schedule:
+    # Tuesdays 09:00 UTC — after Data Golf archives Sunday's event and posts
+    # the upcoming event's course-fit decompositions.
+    - cron: "0 9 * * 2"
+
+permissions:
+  contents: write
+
+jobs:
+  update-workbook:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install requests pandas openpyxl
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends libreoffice-calc
+
+      - name: Compute target week
+        id: week
+        run: |
+          if [ -n "${{ github.event.inputs.week }}" ]; then
+            echo "sunday=${{ github.event.inputs.week }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sunday=$(date -d 'last sunday' +%F)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Update workbook from Data Golf
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+        run: |
+          python datagolf/update_workbook.py \
+            "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" \
+            /tmp/updated.xlsx \
+            --archive-date "${{ steps.week.outputs.sunday }}" \
+            --dg-points --course-fit
+
+      - name: Recalculate formulas
+        run: |
+          mkdir -p /tmp/recalced
+          soffice --headless --norestore \
+            --convert-to xlsx:"Calc MS Excel 2007 XML" --outdir /tmp/recalced /tmp/updated.xlsx
+
+      - name: Commit updated workbook
+        run: |
+          cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_latest.xlsx"
+          cp /tmp/recalced/updated.xlsx "datagolf/workbooks/archive/PGA_stat_caddy_${{ steps.week.outputs.sunday }}.xlsx"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add datagolf/workbooks/
+          if git diff --cached --quiet; then
+            echo "No changes."
+          else
+            git commit -m "chore: workbook update for week ending ${{ steps.week.outputs.sunday }} [skip ci]"
+            git push
+          fi
