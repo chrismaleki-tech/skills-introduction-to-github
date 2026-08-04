@@ -174,29 +174,41 @@ def fill_dg_points(ws, api_key: str) -> None:
     print(f"[ok] DG Points: filled {filled} cells across {len(empty)} week(s)")
 
 
-def fill_course_fit(ws, api_key: str, column_header: str = "T2Green") -> None:
-    """Write Data Golf's course-fit adjustment for the upcoming event into PGA Database."""
+# PGA Database column -> player-decompositions field. These are the two far-right
+# numbers on Data Golf's Course History tab (verified 149/149 and 147/149 against
+# the workbook's hand-entered Scottish Open values).
+COURSE_COLUMNS = {
+    "T2Green": "total_fit_adjustment",
+    "History": "total_course_history_adjustment",
+}
+
+
+def fill_course_fit(ws, api_key: str) -> None:
+    """Write Data Golf's course fit + course history for the upcoming event into PGA Database."""
     d = requests.get(
         "https://feeds.datagolf.com/preds/player-decompositions",
         params={"tour": "pga", "file_format": "json", "key": api_key}, timeout=30,
     ).json()
-    fit = {norm_name(p["player_name"]): p.get("total_fit_adjustment") for p in d.get("players", [])}
-    print(f"course fit source: {d.get('event_name')} at {d.get('course_name')} ({len(fit)} players)")
-    col = next((c.column for c in ws[1] if str(c.value).strip() == column_header), None)
-    if col is None:
-        raise SystemExit(f"column {column_header!r} not found in {ws.title}")
-    hits = 0
-    for r in range(2, ws.max_row + 1):
-        name = ws.cell(row=r, column=1).value
-        if name in (None, ""):
+    players = {norm_name(p["player_name"]): p for p in d.get("players", [])}
+    print(f"course fit/history source: {d.get('event_name')} at {d.get('course_name')} ({len(players)} players)")
+    for column_header, field in COURSE_COLUMNS.items():
+        col = next((c.column for c in ws[1] if str(c.value).strip() == column_header), None)
+        if col is None:
+            print(f"[warn] column {column_header!r} not found in {ws.title}, skipping")
             continue
-        v = fit.get(norm_name(name))
-        if v is not None:
-            ws.cell(row=r, column=col).value = round(float(v), 2)
-            hits += 1
-        else:
-            ws.cell(row=r, column=col).value = None  # not in this week's field: clear stale fit
-    print(f"[ok] {ws.title}.{column_header}: course fit set for {hits} field players, others cleared")
+        hits = 0
+        for r in range(2, ws.max_row + 1):
+            name = ws.cell(row=r, column=1).value
+            if name in (None, ""):
+                continue
+            rec = players.get(norm_name(name))
+            v = rec.get(field) if rec else None
+            if v is not None:
+                ws.cell(row=r, column=col).value = round(float(v), 2)
+                hits += 1
+            else:
+                ws.cell(row=r, column=col).value = None  # not in this week's field: clear stale value
+        print(f"[ok] {ws.title}.{column_header} <- {field}: set for {hits} field players, others cleared")
 
 
 def date_columns(ws) -> list:
