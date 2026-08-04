@@ -282,7 +282,12 @@ def main() -> int:
             return 2
         new_weeks.append((datetime.fromisoformat(args.live_date), week_from_live(os.environ["DATAGOLF_KEY"])))
     for wk in args.archive_date:
-        new_weeks.append((datetime.fromisoformat(wk), week_from_archive(os.environ["DATAGOLF_KEY"], wk)))
+        data = week_from_archive(os.environ["DATAGOLF_KEY"], wk)
+        if not data:
+            print(f"ERROR: archive has no events completing {wk} yet — aborting so the "
+                  f"workbook is not written with an empty week.", file=sys.stderr)
+            return 3
+        new_weeks.append((datetime.fromisoformat(wk), data))
     if not new_weeks and not (args.dg_points or args.course_fit):
         parser.error("nothing to do: pass --snapshot/--live and/or --dg-points/--course-fit")
     empty = [d for d, v in new_weeks if not v]
