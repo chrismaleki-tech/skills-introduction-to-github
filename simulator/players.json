@@ -1,15 +1,5 @@
 [
 {
-"name": "Aaron Baddeley",
-"ott": -1.312,
-"app": -0.656,
-"arg": 0.413,
-"putt": -0.482,
-"form": -2.58,
-"hist": 1.0,
-"pts": 0.0
-},
-{
 "name": "Aaron Rai",
 "ott": 0.415,
 "app": 0.642,
@@ -980,16 +970,6 @@
 "pts": 0.404
 },
 {
-"name": "Nate Lashley",
-"ott": -0.116,
-"app": 0.106,
-"arg": -0.034,
-"putt": -0.091,
-"form": 0.11,
-"hist": 1.0,
-"pts": 0.0
-},
-{
 "name": "Nick Dunlap",
 "ott": -0.784,
 "app": -0.02,
@@ -1250,7 +1230,7 @@
 "pts": 0.147
 },
 {
-"name": "Thorbju00f8rn Olesen",
+"name": "Thorbjorn Olesen",
 "ott": -0.228,
 "app": -0.08,
 "arg": -0.154,

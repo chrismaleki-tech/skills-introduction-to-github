@@ -17,6 +17,8 @@ permissions:
 jobs:
   update-workbook:
     runs-on: ubuntu-latest
+    env:
+      WP_URL: ${{ secrets.WP_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -60,14 +62,24 @@ jobs:
           cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_latest.xlsx"
           cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_updated_$(date +%Y-%m-%d).xlsx"
 
-      - name: Commit updated workbook
+      - name: Refresh public "Build Your Own Matchup Model" page
+        if: ${{ env.WP_URL != '' }}
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          python3 datagolf/build_public_simulator.py \
+            --workbook "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" --push
+
+      - name: Commit updated workbook + simulator data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add datagolf/workbooks/
+          git add datagolf/workbooks/ simulator/players.json simulator/wp-embed.html
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "chore: weekly StatCaddy workbook update (${{ steps.week.outputs.week }}) [skip ci]"
+            git commit -m "chore: weekly StatCaddy workbook + public simulator update (${{ steps.week.outputs.week }}) [skip ci]"
             git push
           fi
