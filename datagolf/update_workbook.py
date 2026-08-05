@@ -40,7 +40,7 @@ STAT_SHEETS = {
     "SG ARG": "sg_arg",
     "SG PUTT": "sg_putt",
     "Current Form": "sg_total",
-    "DG Points": None,  # no accessible source; window shifts, values stay blank
+    "Class": None,  # DG Points data (sheet labelled "Class"); window shifts, values from archive
 }
 
 
@@ -319,7 +319,7 @@ def main() -> int:
             print(f"[ok] {sheet_name}: {note}")
 
     if args.dg_points:
-        fill_dg_points(wb["DG Points"], os.environ["DATAGOLF_KEY"])
+        fill_dg_points(wb["Class"], os.environ["DATAGOLF_KEY"])
     if args.course_fit:
         fill_course_fit(wb["PGA Database"], os.environ["DATAGOLF_KEY"])
 
