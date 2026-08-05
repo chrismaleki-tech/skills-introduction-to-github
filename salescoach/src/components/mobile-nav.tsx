@@ -8,6 +8,7 @@ import { UserSwitcher } from "@/components/user-switcher";
 export function MobileNav({
   items,
   orgName,
+  brandName = null,
   users,
   currentId,
   role,
@@ -16,6 +17,8 @@ export function MobileNav({
 }: {
   items: NavItem[];
   orgName: string;
+  /** Vendor-provisioned tenant brand; null keeps the product default. */
+  brandName?: string | null;
   users: { id: string; name: string; role: string; title: string }[];
   currentId: string;
   role: string;
@@ -27,8 +30,14 @@ export function MobileNav({
   return (
     <div className="md:hidden border-b border-line bg-surface">
       <div className="flex items-center justify-between px-4 py-3">
-        <Link href="/ask" className="font-semibold tracking-tight">
-          <span className="text-accent-hover">Sales</span>Coach AI
+        <Link href="/" className="font-semibold tracking-tight">
+          {brandName ? (
+            <span className="text-accent-hover">{brandName}</span>
+          ) : (
+            <>
+              <span className="text-accent-hover">Sales</span>Coach AI
+            </>
+          )}
         </Link>
         <button
           type="button"

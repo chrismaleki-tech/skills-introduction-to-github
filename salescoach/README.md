@@ -80,6 +80,14 @@ Tabs: Overview (environment/integration status, platform totals, queue health, 3
 - **Audit.** The org-scoped slice of the append-only `AuditEvent` trail — seat changes, plan changes, exports, org renames, and vendor staff access — with action filters. Org-side mutations now write audit events too, not just console actions.
 - **Exports.** Audited CSV downloads (team, CRM accounts/contacts/deals, calls, grades, usage events, audit trail) with quoting and formula-injection hardening (`src/lib/csv.ts`). No lock-in.
 
+**Phase 12 — Vendor tenant provisioning.** The platform owner customizes each customer's workspace from the console's org drill-down (**Platform Console → Organizations → org → Platform customization**, console ADMIN + elevation) — the vendor-side equivalent of how Salesforce provisions editions and feature licenses per customer org:
+
+- **Branding.** Per-tenant brand name (replaces "SalesCoach AI" in the sidebar/mobile header) and accent color (overrides the theme's `--accent` CSS variables, hover shade derived automatically).
+- **Licensed modules.** Toggle Ask, CRM, ERP, conversations & channels, calls, role-play & scenarios, and coaching per tenant (`Org.customizationJson`, parsed by `src/lib/customization.ts`). Disabled modules disappear from the nav, their routes bounce home via per-section guards (`src/lib/module-guard.ts`), and the floating assistant unmounts. At least one module must stay licensed.
+- **Start page.** Where "/" lands for that tenant (role-based default, Ask, CRM pipeline, inbox, or My Performance) — rejected if it points into an unlicensed module.
+- **Editions.** Staff can move a tenant between plans from the same card, including downgrading an over-limit org (seats stay active; the limit bites on the next invite).
+- **Audited both ways.** `CUSTOMIZATION_CHANGED` / `PLAN_CHANGED` events carry the console role and land in the vendor trail *and* the customer's own Back Office audit, so tenants always see what the vendor changed.
+
 **Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
 
 ## Architecture notes

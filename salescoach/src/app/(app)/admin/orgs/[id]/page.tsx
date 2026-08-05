@@ -6,8 +6,11 @@ import { sinceDaysAgo, usageSummary } from "@/lib/metering";
 import { consoleActor } from "@/lib/platform-admin";
 import { consoleRoleForUser } from "@/lib/config";
 import { maskEmail } from "@/lib/pii";
+import { parseCustomization, MODULES } from "@/lib/customization";
+import { PLANS, PLAN_ORDER, planFor } from "@/lib/billing";
 import { InviteUserForm } from "@/components/admin/org-forms";
 import { OrgUsersCard, type ConsoleOrgUser } from "@/components/admin/org-users-card";
+import { TenantCustomizationForm } from "@/components/admin/customization-form";
 
 export default async function AdminOrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,6 +21,8 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
       id: true,
       name: true,
       createdAt: true,
+      plan: true,
+      customizationJson: true,
       users: {
         select: { id: true, name: true, email: true, role: true, title: true, lastLoginAt: true, passwordHash: true },
         orderBy: [{ role: "asc" }, { name: "asc" }],
@@ -29,6 +34,8 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
 
   const canManage = actor?.role === "ADMIN";
   const usage = await usageSummary(org.id, sinceDaysAgo(30));
+  const customization = parseCustomization(org.customizationJson);
+  const disabledModules = MODULES.filter((m) => !customization.modules[m.id]);
   const users: ConsoleOrgUser[] = org.users.map((user) => ({
     id: user.id,
     name: user.name,
@@ -58,6 +65,34 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
         <Stat label="Deals" value={org._count.deals} />
         <Stat label="Accounts" value={org._count.accounts} />
       </div>
+
+      <Card title="Platform customization" className="mb-6">
+        <p className="text-xs text-muted mb-4">
+          Provision this customer&apos;s workspace: brand, accent color, start page, licensed modules, and
+          edition. Changes apply on their next page load and are recorded in both audit trails.
+        </p>
+        {canManage ? (
+          <TenantCustomizationForm
+            orgId={org.id}
+            initial={customization}
+            currentPlan={planFor(org.plan).id}
+            plans={PLAN_ORDER.map((id) => ({
+              id,
+              name: PLANS[id].name,
+              seatLimit: PLANS[id].seatLimit,
+            }))}
+          />
+        ) : (
+          <div className="text-sm text-muted">
+            {planFor(org.plan).name} edition · brand {customization.brandName || "default"} · accent{" "}
+            {customization.accentColor || "default"} · start page {customization.startPage} ·{" "}
+            {disabledModules.length
+              ? `modules off: ${disabledModules.map((m) => m.label).join(", ")}`
+              : "all modules enabled"}
+            <span className="block mt-1 text-xs">Read-only: SUPPORT role cannot provision tenants.</span>
+          </div>
+        )}
+      </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card title={`Users (${org.users.length})`} className="lg:col-span-2">

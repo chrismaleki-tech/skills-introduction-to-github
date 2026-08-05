@@ -16,6 +16,7 @@ export type AuditAction =
   | "USER_DISABLED"
   | "USER_ENABLED"
   | "PLAN_CHANGED"
+  | "CUSTOMIZATION_CHANGED"
   | "DATA_EXPORTED"
   | "JOB_RETRIED"
   | "JOBS_DRAINED"

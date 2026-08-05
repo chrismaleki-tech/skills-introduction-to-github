@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { currentUser, demoSwitcherAllowed, isManagerRole, impersonationInfo } from "@/lib/session";
 import { isBackofficeRole } from "@/lib/backoffice";
 import { consoleActor } from "@/lib/platform-admin";
+import { parseCustomization, moduleForPath, lightenHex } from "@/lib/customization";
 import { ImpersonationBanner } from "@/components/admin/impersonation";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
@@ -19,8 +20,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     select: { id: true, name: true, role: true, title: true },
   });
 
+  // Vendor-provisioned tenant customization: brand, accent, licensed modules.
+  const customization = parseCustomization(user.org.customizationJson);
+  const brandName = customization.brandName || "SalesCoach AI";
+  const themeStyle = customization.accentColor
+    ? ({
+        "--accent": customization.accentColor,
+        "--accent-hover": lightenHex(customization.accentColor),
+      } as React.CSSProperties)
+    : undefined;
+
   const manager = isManagerRole(user.role);
-  const items: NavItem[] = [
+  const allItems: NavItem[] = [
     { href: "/ask", label: "Ask" },
     ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
     { href: "/me", label: "My Performance" },
@@ -48,9 +59,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ...(isBackofficeRole(user.role) ? [{ href: "/backoffice", label: "Back Office" }] : []),
     ...(console_ ? [{ href: "/admin", label: "Platform Console" }] : []),
   ];
+  const items = allItems.filter((item) => {
+    const owner = moduleForPath(item.href);
+    return !owner || customization.modules[owner];
+  });
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col" style={themeStyle}>
       {impersonation && (
         <ImpersonationBanner
           orgName={impersonation.target.org.name}
@@ -63,7 +78,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="hidden md:flex w-60 shrink-0 border-r border-line bg-surface flex-col">
         <div className="px-4 py-5 border-b border-line">
           <div className="font-semibold tracking-tight text-lg">
-            <span className="text-accent-hover">Sales</span>Coach AI
+            {customization.brandName ? (
+              <span className="text-accent-hover">{brandName}</span>
+            ) : (
+              <>
+                <span className="text-accent-hover">Sales</span>Coach AI
+              </>
+            )}
           </div>
           <div className="text-xs text-muted mt-0.5">{user.org.name}</div>
         </div>
@@ -85,6 +106,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <MobileNav
           items={items}
           orgName={user.org.name}
+          brandName={customization.brandName ? brandName : null}
           users={users}
           currentId={user.id}
           role={user.role}
@@ -93,7 +115,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         />
         <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 max-w-6xl w-full mx-auto">{children}</main>
       </div>
-      <AssistantChat />
+      {customization.modules.ask && <AssistantChat />}
       </div>
     </div>
   );

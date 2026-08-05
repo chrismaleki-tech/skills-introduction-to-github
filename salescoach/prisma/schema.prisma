@@ -27,6 +27,9 @@ model Org {
   plan         String @default("trial") // trial | starter | growth | scale
   billingEmail String @default("")
 
+  // Per-tenant platform customization (JSON: Customization in src/lib/customization.ts)
+  customizationJson String @default("{}")
+
   // ERP org defaults
   baseCurrency   String @default("USD") // ISO 4217
   defaultTaxCode String @default("US-CA") // TaxCode.code
