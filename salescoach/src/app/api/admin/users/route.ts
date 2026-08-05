@@ -4,6 +4,7 @@ import { currentUser, hashPassword, isOrgAdminRole, isManagerRole } from "@/lib/
 import { recordUsage } from "@/lib/metering";
 import { recordAudit } from "@/lib/audit";
 import { planFor, seatLimitReached } from "@/lib/billing";
+import { syncTenantToVendorCrm } from "@/lib/vendor-crm";
 
 const ROLES = new Set(["REP", "MANAGER", "TRAINER", "ADMIN"]);
 
@@ -85,6 +86,8 @@ export async function POST(req: Request) {
     req,
     meta: { email: user.email, role: user.role, passwordSet: Boolean(passwordHash) },
   });
+
+  await syncTenantToVendorCrm(actor.orgId);
 
   return NextResponse.json({
     id: user.id,

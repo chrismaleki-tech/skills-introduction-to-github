@@ -9,6 +9,7 @@ import { db } from "../src/lib/db";
 import { hashPassword } from "../src/lib/password";
 import { METHODOLOGY_PRESETS } from "../src/lib/presets";
 import { ingestCall, gradeRoleplay } from "../src/lib/pipeline";
+import { syncTenantToVendorCrm, logVendorActivity } from "../src/lib/vendor-crm";
 import type { CompanyProfile, RoleplayMessage, ScenarioPersona } from "../src/lib/types";
 
 const COMPANY: CompanyProfile = {
@@ -1217,6 +1218,38 @@ async function main() {
   await receivePurchaseOrder(po2.id, org.id, manager.id);
 
   await postMonthlyPayrollJournal(org.id, manager.id);
+
+  // ---------- Vendor workspace: the platform owner dogfoods SalesCoach ----------
+  // Created last so the demo fallback user stays the customer org's manager.
+  await db.org.create({
+    data: {
+      name: "SalesCoach HQ",
+      kind: "vendor",
+      plan: "scale",
+      billingEmail: "billing@salescoach.dev",
+      users: {
+        create: [
+          {
+            name: "Avery Kim",
+            email: "avery@salescoach.dev",
+            role: "ADMIN",
+            title: "Platform Operations",
+            passwordHash,
+          },
+          {
+            name: "Sam Torres",
+            email: "sam@salescoach.dev",
+            role: "MANAGER",
+            title: "Customer Success",
+            passwordHash,
+          },
+        ],
+      },
+    },
+  });
+  // Mirror the demo customer into the vendor CRM (account + subscription deal).
+  await syncTenantToVendorCrm(org.id);
+  await logVendorActivity(org.id, "Tenant created", "Seeded demo customer Meridian Software.");
 
   const counts = {
     calls: await db.call.count(),

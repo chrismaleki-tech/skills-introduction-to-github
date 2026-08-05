@@ -184,3 +184,8 @@ export function buildStatement(input: {
 export function fmtUsd(amount: number): string {
   return amount.toLocaleString("en-US", { style: "currency", currency: "USD" });
 }
+
+/** Committed monthly seat revenue for a tenant (usage overage excluded). */
+export function monthlyRunRate(plan: Plan, activeSeats: number): number {
+  return Math.round(activeSeats * plan.seatPriceMonthly * 100) / 100;
+}

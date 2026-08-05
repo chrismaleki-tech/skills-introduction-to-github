@@ -3,6 +3,12 @@ import { db } from "@/lib/db";
 import { PageHeader, Card, EmptyState, fmtDate } from "@/components/ui";
 import { CreateOrgForm } from "@/components/admin/org-forms";
 import { consoleActor } from "@/lib/platform-admin";
+import { planFor } from "@/lib/billing";
+
+const KIND_BADGE: Record<string, { label: string; className: string }> = {
+  vendor: { label: "Vendor HQ", className: "border-accent/50 text-accent-hover" },
+  sandbox: { label: "Sandbox", className: "border-amber-400/40 text-amber-300" },
+};
 
 export default async function AdminOrgsPage() {
   const actor = await consoleActor();
@@ -12,6 +18,8 @@ export default async function AdminOrgsPage() {
     select: {
       id: true,
       name: true,
+      kind: true,
+      plan: true,
       createdAt: true,
       _count: { select: { users: true, calls: true, deals: true } },
     },
@@ -30,6 +38,7 @@ export default async function AdminOrgsPage() {
               <thead>
                 <tr className="text-left text-xs text-muted uppercase tracking-wider border-b border-line">
                   <th className="pb-2 font-medium">Organization</th>
+                  <th className="pb-2 font-medium">Edition</th>
                   <th className="pb-2 font-medium text-right">Users</th>
                   <th className="pb-2 font-medium text-right">Calls</th>
                   <th className="pb-2 font-medium text-right">Deals</th>
@@ -43,7 +52,15 @@ export default async function AdminOrgsPage() {
                       <Link href={`/admin/orgs/${org.id}`} className="font-medium text-accent-hover hover:underline">
                         {org.name}
                       </Link>
+                      {KIND_BADGE[org.kind] && (
+                        <span
+                          className={`ml-2 rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wider ${KIND_BADGE[org.kind].className}`}
+                        >
+                          {KIND_BADGE[org.kind].label}
+                        </span>
+                      )}
                     </td>
+                    <td className="py-2.5 text-muted">{planFor(org.plan).name}</td>
                     <td className="py-2.5 text-right tabular-nums">{org._count.users}</td>
                     <td className="py-2.5 text-right tabular-nums">{org._count.calls}</td>
                     <td className="py-2.5 text-right tabular-nums">{org._count.deals}</td>
