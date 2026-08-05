@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { NewAccountForm } from "@/components/crm/forms";
 
 export default async function AccountsPage() {
   const user = await currentUser();
+  const t = industryConfigOf(parseCustomization(user.org.customizationJson)).terms;
   const accounts = await db.account.findMany({
     where: isManagerRole(user.role) ? { orgId: user.orgId } : { orgId: user.orgId, ownerId: user.id },
     include: {
@@ -18,25 +20,28 @@ export default async function AccountsPage() {
   return (
     <div>
       <PageHeader
-        title="Accounts"
-        subtitle="Companies in your CRM. Deals and SalesCoach calls hang off these accounts."
-        actions={<NewAccountForm />}
+        title={t.accounts}
+        subtitle={`${t.accounts} in your CRM. ${t.deals} and SalesCoach calls hang off these.`}
+        actions={<NewAccountForm accountNoun={t.account} />}
       />
 
       {accounts.length === 0 ? (
         <Card>
-          <EmptyState title="No accounts yet" hint="Create an account to attach contacts and deals." />
+          <EmptyState
+            title={`No ${t.accounts.toLowerCase()} yet`}
+            hint={`Create a ${t.account.toLowerCase()} to attach ${t.contacts.toLowerCase()} and ${t.deals.toLowerCase()}.`}
+          />
         </Card>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full text-sm">
             <thead className="bg-surface-2 text-xs uppercase tracking-wider text-muted">
               <tr>
-                <th className="text-left font-medium px-4 py-3">Account</th>
+                <th className="text-left font-medium px-4 py-3">{t.account}</th>
                 <th className="text-left font-medium px-4 py-3">Industry</th>
                 <th className="text-left font-medium px-4 py-3">Owner</th>
-                <th className="text-right font-medium px-4 py-3">Contacts</th>
-                <th className="text-right font-medium px-4 py-3">Deals</th>
+                <th className="text-right font-medium px-4 py-3">{t.contacts}</th>
+                <th className="text-right font-medium px-4 py-3">{t.deals}</th>
                 <th className="text-right font-medium px-4 py-3">Calls</th>
               </tr>
             </thead>

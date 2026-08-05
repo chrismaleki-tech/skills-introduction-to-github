@@ -28,7 +28,17 @@ type DealCard = {
   callCount: number;
 };
 
-export function PipelineBoard({ initialDeals }: { initialDeals: DealCard[] }) {
+type StageOpt = { key: string; label: string };
+const GENERIC_COLUMNS: StageOpt[] = DEAL_STAGES.map((s) => ({ key: s.key, label: s.label }));
+
+export function PipelineBoard({
+  initialDeals,
+  stages = GENERIC_COLUMNS,
+}: {
+  initialDeals: DealCard[];
+  /** The org's industry-pack stages; defaults to the generic set. */
+  stages?: StageOpt[];
+}) {
   const router = useRouter();
   const [deals, setDeals] = useState(initialDeals);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -36,11 +46,18 @@ export function PipelineBoard({ initialDeals }: { initialDeals: DealCard[] }) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   const byStage = useMemo(() => {
-    return DEAL_STAGES.map((stage) => ({
+    const known = new Set(stages.map((s) => s.key));
+    const columns = stages.map((stage) => ({
       ...stage,
       deals: deals.filter((d) => d.stage === stage.key),
     }));
-  }, [deals]);
+    // Deals whose stage predates an industry-pack switch land in a visible
+    // "Legacy" column so nothing silently disappears; drag them into a real
+    // stage to migrate.
+    const orphans = deals.filter((d) => !known.has(d.stage));
+    if (orphans.length) columns.push({ key: "__legacy", label: "Legacy stages", deals: orphans });
+    return columns;
+  }, [deals, stages]);
 
   const activeDeal = deals.find((d) => d.id === activeId) ?? null;
 
@@ -54,11 +71,11 @@ export function PipelineBoard({ initialDeals }: { initialDeals: DealCard[] }) {
     const overId = e.over?.id ? String(e.over.id) : null;
     if (!overId) return;
 
-    const stageKeys = DEAL_STAGES.map((s) => s.key as string);
+    const stageKeys = stages.map((s) => s.key);
     let nextStage: string | undefined = stageKeys.includes(overId)
       ? overId
       : deals.find((d) => d.id === overId)?.stage;
-    if (!nextStage) return;
+    if (!nextStage || nextStage === "__legacy") return;
 
     const current = deals.find((d) => d.id === dealId);
     if (!current || current.stage === nextStage) return;

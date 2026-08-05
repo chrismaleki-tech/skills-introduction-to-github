@@ -68,6 +68,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         brandName: normalized.brandName || "(default)",
         accentColor: normalized.accentColor || "(default)",
         startPage: normalized.startPage,
+        industry: normalized.industry,
         modulesOff: Object.entries(normalized.modules)
           .filter(([, on]) => !on)
           .map(([m]) => m),

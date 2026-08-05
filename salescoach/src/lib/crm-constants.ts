@@ -21,7 +21,8 @@ export const OPEN_STAGES: DealStage[] = DEAL_STAGES.filter(
 ).map((s) => s.key);
 
 export function stageLabel(stage: string): string {
-  return DEAL_STAGES.find((s) => s.key === stage)?.label ?? stage;
+  // Industry packs introduce org-specific keys; prettify unknown ones.
+  return DEAL_STAGES.find((s) => s.key === stage)?.label ?? stage.replaceAll("_", " ");
 }
 
 export function stageMeta(stage: string) {

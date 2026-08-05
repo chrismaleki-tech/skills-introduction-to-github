@@ -1,11 +1,13 @@
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
 import { Card, EmptyState, PageHeader } from "@/components/ui";
 import { NewContactForm } from "@/components/crm/forms";
 import Link from "next/link";
 
 export default async function ContactsPage() {
   const user = await currentUser();
+  const t = industryConfigOf(parseCustomization(user.org.customizationJson)).terms;
   const [contacts, accounts] = await Promise.all([
     db.contact.findMany({
       where: isManagerRole(user.role) ? { orgId: user.orgId } : { orgId: user.orgId, ownerId: user.id },
@@ -26,22 +28,25 @@ export default async function ContactsPage() {
   return (
     <div>
       <PageHeader
-        title="Contacts"
-        subtitle="People at your accounts. Link them to deals and SalesCoach calls."
-        actions={<NewContactForm accounts={accounts} />}
+        title={t.contacts}
+        subtitle={`People on your ${t.accounts.toLowerCase()}. Link them to ${t.deals.toLowerCase()} and SalesCoach calls.`}
+        actions={<NewContactForm accounts={accounts} contactNoun={t.contact} accountNoun={t.account} />}
       />
 
       {contacts.length === 0 ? (
         <Card>
-          <EmptyState title="No contacts yet" hint="Add a contact and attach them to an account." />
+          <EmptyState
+            title={`No ${t.contacts.toLowerCase()} yet`}
+            hint={`Add a ${t.contact.toLowerCase()} and attach them to a ${t.account.toLowerCase()}.`}
+          />
         </Card>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-line">
           <table className="w-full text-sm">
             <thead className="bg-surface-2 text-xs uppercase tracking-wider text-muted">
               <tr>
-                <th className="text-left font-medium px-4 py-3">Contact</th>
-                <th className="text-left font-medium px-4 py-3">Account</th>
+                <th className="text-left font-medium px-4 py-3">{t.contact}</th>
+                <th className="text-left font-medium px-4 py-3">{t.account}</th>
                 <th className="text-left font-medium px-4 py-3">Email</th>
                 <th className="text-left font-medium px-4 py-3">Owner</th>
                 <th className="text-right font-medium px-4 py-3">Deals</th>

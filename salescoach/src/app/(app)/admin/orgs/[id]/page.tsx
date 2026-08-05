@@ -91,8 +91,9 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
           />
         ) : (
           <div className="text-sm text-muted">
-            {planFor(org.plan).name} edition · brand {customization.brandName || "default"} · accent{" "}
-            {customization.accentColor || "default"} · start page {customization.startPage} ·{" "}
+            {planFor(org.plan).name} edition · {customization.industry} industry pack · brand{" "}
+            {customization.brandName || "default"} · accent {customization.accentColor || "default"} · start page{" "}
+            {customization.startPage} ·{" "}
             {disabledModules.length
               ? `modules off: ${disabledModules.map((m) => m.label).join(", ")}`
               : "all modules enabled"}

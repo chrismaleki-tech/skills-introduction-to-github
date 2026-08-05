@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { DEAL_STAGES, type DealStage } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
+import { stageMetaIn, sanitizeCustomValues } from "@/lib/industry";
 
 export async function GET() {
   const user = await currentUser();
@@ -9,6 +10,7 @@ export async function GET() {
     ? { orgId: user.orgId }
     : { orgId: user.orgId, ownerId: user.id };
 
+  const industry = industryConfigOf(parseCustomization(user.org.customizationJson));
   const deals = await db.deal.findMany({
     where,
     include: {
@@ -19,7 +21,7 @@ export async function GET() {
     },
     orderBy: [{ updatedAt: "desc" }],
   });
-  return NextResponse.json({ deals, stages: DEAL_STAGES });
+  return NextResponse.json({ deals, stages: industry.stages });
 }
 
 export async function POST(req: Request) {
@@ -36,6 +38,7 @@ export async function POST(req: Request) {
     contactId?: string | null;
     ownerId?: string | null;
     closeDate?: string | null;
+    custom?: Record<string, unknown>;
   } | null;
 
   const name = body?.name?.trim();
@@ -43,22 +46,27 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "name is required." }, { status: 400 });
   }
 
-  const stage = (body?.stage ?? "lead") as DealStage;
-  if (!DEAL_STAGES.some((s) => s.key === stage)) {
+  const industry = industryConfigOf(parseCustomization(user.org.customizationJson));
+  const stage = body?.stage ?? industry.stages[0].key;
+  if (!industry.stages.some((s) => s.key === stage)) {
     return NextResponse.json({ error: "Invalid stage." }, { status: 400 });
   }
+
+  const customCheck = sanitizeCustomValues(industry.dealFields, body?.custom);
+  if (!customCheck.ok) return NextResponse.json({ error: customCheck.error }, { status: 400 });
 
   const amount = Math.max(0, Math.round(Number(body?.amount ?? 0)) || 0);
   const probability =
     body?.probability != null
       ? Math.min(100, Math.max(0, Math.round(Number(body.probability))))
-      : (DEAL_STAGES.find((s) => s.key === stage)?.probability ?? 10);
+      : stageMetaIn(industry.stages, stage).probability;
 
   const deal = await db.deal.create({
     data: {
       orgId: user.orgId,
       name,
       stage,
+      customJson: JSON.stringify(customCheck.values),
       amount,
       product: body?.product?.trim() ?? "",
       probability,

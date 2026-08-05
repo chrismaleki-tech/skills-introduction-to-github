@@ -1219,6 +1219,117 @@ async function main() {
 
   await postMonthlyPayrollJournal(org.id, manager.id);
 
+  // ---------- Second customer: a real-estate tenant on the industry pack ----------
+  // Shows the same platform reshaped per industry: Listings/Properties/Clients,
+  // transaction stages, and pack-specific custom fields.
+  const realty = await db.org.create({
+    data: {
+      name: "Harborview Realty",
+      plan: "starter",
+      billingEmail: "office@harborview.demo",
+      customizationJson: JSON.stringify({
+        brandName: "Harborview Realty",
+        accentColor: "#f59e0b",
+        startPage: "/crm",
+        industry: "real_estate",
+        modules: { erp: false, roleplay: false, coaching: false },
+      }),
+    },
+  });
+  const mkRealtyUser = (name: string, email: string, role: string, title: string) =>
+    db.user.create({ data: { orgId: realty.id, name, email, role, title, passwordHash } });
+  const broker = await mkRealtyUser("Dana Brooks", "dana@harborview.demo", "MANAGER", "Managing Broker");
+  const agent1 = await mkRealtyUser("Leo Tran", "leo@harborview.demo", "REP", "Listing Agent");
+  const agent2 = await mkRealtyUser("Mia Flores", "mia@harborview.demo", "REP", "Buyer's Agent");
+
+  const mkProperty = (
+    name: string,
+    ownerId: string,
+    custom: Record<string, string | number>,
+    notes: string,
+  ) =>
+    db.account.create({
+      data: {
+        orgId: realty.id,
+        ownerId,
+        name,
+        industry: "Residential",
+        notes,
+        customJson: JSON.stringify(custom),
+      },
+    });
+  const prop1 = await mkProperty(
+    "48 Bayshore Drive",
+    agent1.id,
+    { property_type: "Single family", bedrooms: 4, square_feet: 2650, year_built: 1998 },
+    "Waterfront, dock rights, motivated seller.",
+  );
+  const prop2 = await mkProperty(
+    "12 Cannery Row #304",
+    agent2.id,
+    { property_type: "Condo", bedrooms: 2, square_feet: 1140, year_built: 2015 },
+    "Corner unit, HOA covers exterior.",
+  );
+  const prop3 = await mkProperty(
+    "780 Orchard Lane",
+    agent1.id,
+    { property_type: "Multi-family", bedrooms: 6, square_feet: 3900, year_built: 1972 },
+    "Duplex, both units tenanted.",
+  );
+
+  const client1 = await db.contact.create({
+    data: { orgId: realty.id, accountId: prop1.id, ownerId: agent1.id, name: "The Okafors", email: "okafors@example.demo", phone: "+1 555 0141" },
+  });
+  const client2 = await db.contact.create({
+    data: { orgId: realty.id, accountId: prop2.id, ownerId: agent2.id, name: "Jamie Chen", email: "jamie.chen@example.demo", phone: "+1 555 0142" },
+  });
+
+  const mkListing = (
+    name: string,
+    stage: string,
+    probability: number,
+    amount: number,
+    accountId: string,
+    contactId: string | null,
+    ownerId: string,
+    custom: Record<string, string | number>,
+  ) =>
+    db.deal.create({
+      data: {
+        orgId: realty.id,
+        name,
+        stage,
+        probability,
+        amount,
+        accountId,
+        contactId,
+        ownerId,
+        customJson: JSON.stringify(custom),
+        nextStep: stage === "closed_won" ? "" : "Schedule next walkthrough",
+      },
+    });
+  await mkListing("48 Bayshore Drive — sale", "under_contract", 75, 985000, prop1.id, client1.id, agent1.id, {
+    listing_price: 985000,
+    address: "48 Bayshore Dr, Harborview",
+    commission_pct: 2.5,
+  });
+  await mkListing("12 Cannery Row #304 — sale", "showing", 30, 512000, prop2.id, client2.id, agent2.id, {
+    listing_price: 512000,
+    address: "12 Cannery Row #304, Harborview",
+    commission_pct: 3,
+  });
+  await mkListing("780 Orchard Lane — sale", "offer", 55, 749000, prop3.id, null, agent1.id, {
+    listing_price: 749000,
+    address: "780 Orchard Ln, Harborview",
+    commission_pct: 2.5,
+  });
+  await mkListing("31 Foghorn Court — sale", "closed_won", 100, 430000, prop2.id, client2.id, agent2.id, {
+    listing_price: 442000,
+    address: "31 Foghorn Ct, Harborview",
+    commission_pct: 3,
+  });
+  void broker;
+
   // ---------- Vendor workspace: the platform owner dogfoods SalesCoach ----------
   // Created last so the demo fallback user stays the customer org's manager.
   await db.org.create({
@@ -1247,9 +1358,11 @@ async function main() {
       },
     },
   });
-  // Mirror the demo customer into the vendor CRM (account + subscription deal).
+  // Mirror the demo customers into the vendor CRM (accounts + subscription deals).
   await syncTenantToVendorCrm(org.id);
   await logVendorActivity(org.id, "Tenant created", "Seeded demo customer Meridian Software.");
+  await syncTenantToVendorCrm(realty.id);
+  await logVendorActivity(realty.id, "Tenant created", "Seeded demo customer Harborview Realty (real-estate pack).");
 
   const counts = {
     calls: await db.call.count(),

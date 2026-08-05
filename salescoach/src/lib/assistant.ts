@@ -1,7 +1,15 @@
 import OpenAI from "openai";
 import { db } from "./db";
 import { aiAvailable, AI_MODEL } from "./ai";
-import { DEAL_STAGES, fmtMoney, OPEN_STAGES, stageLabel } from "./crm";
+import { fmtMoney, stageLabel } from "./crm";
+import { parseCustomization, industryConfigOf } from "./customization";
+import { openStagesIn, type StageDef } from "./industry";
+
+/** The org's industry-configured pipeline stages. */
+async function orgStages(orgId: string): Promise<StageDef[]> {
+  const org = await db.org.findUnique({ where: { id: orgId }, select: { customizationJson: true } });
+  return industryConfigOf(parseCustomization(org?.customizationJson ?? "{}")).stages;
+}
 import {
   acceptQuote,
   confirmOrder,
@@ -222,8 +230,9 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     description: "Summarize open CRM pipeline value, deal counts by stage, and deals with coaching.",
     parameters: { type: "object", properties: {} },
     async run(_args, ctx) {
+      const stages = await orgStages(ctx.orgId);
       const deals = await db.deal.findMany({
-        where: { orgId: ctx.orgId, stage: { in: [...OPEN_STAGES] }, ...dealOwnerFilter(ctx) },
+        where: { orgId: ctx.orgId, stage: { notIn: ["closed_won", "closed_lost"] }, ...dealOwnerFilter(ctx) },
         include: {
           account: { select: { name: true } },
           owner: { select: { name: true } },
@@ -242,7 +251,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       const coached = new Set(withGrades.map((c) => c.dealId));
       const total = deals.reduce((s, d) => s + d.amount, 0);
       const weighted = deals.reduce((s, d) => s + (d.amount * d.probability) / 100, 0);
-      const stageRows = DEAL_STAGES.filter((s) => OPEN_STAGES.includes(s.key)).map((s) => {
+      const stageRows = openStagesIn(stages).map((s) => {
         const list = deals.filter((d) => d.stage === s.key);
         return {
           label: s.label,
@@ -1193,7 +1202,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
         query: { type: "string" },
         stage: {
           type: "string",
-          description: "lead|qualified|discovery|demo|proposal|negotiation|closed_won|closed_lost",
+          description: "A pipeline stage key or label from this workspace's configured stage set.",
         },
       },
       required: ["query", "stage"],
@@ -1204,11 +1213,14 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       if (!ctx.isManager && deal.ownerId !== ctx.userId) {
         return { text: "You can only update deals you own." };
       }
+      const stages = await orgStages(ctx.orgId);
       const stageRaw = q(args.stage).toLowerCase().replace(/\s+/g, "_");
-      const stage = DEAL_STAGES.find(
+      const stage = stages.find(
         (s) => s.key === stageRaw || s.label.toLowerCase() === q(args.stage).toLowerCase(),
       );
-      if (!stage) return { text: `Unknown stage "${q(args.stage)}".` };
+      if (!stage) {
+        return { text: `Unknown stage "${q(args.stage)}". This workspace uses: ${stages.map((s) => s.label).join(", ")}.` };
+      }
       const updated = await db.deal.update({
         where: { id: deal.id },
         data: { stage: stage.key, probability: stage.probability },
@@ -1645,17 +1657,18 @@ export function routeDemoIntent(
     return [{ name: "coaching_summary", args: { rep: namedRep || "" } }];
   }
 
-  // Move deal stage
+  // Move deal stage (stage names vary by industry pack; the tool validates
+  // against the org's configured stages by key or label).
   if (allowCrm && /\b(move|set|update|change)\b.*\b(stage|to)\b|\bstage\b.*\b(to|as)\b/.test(lower)) {
-    const stageMatch = m.match(
-      /\b(lead|qualified|discovery|demo|proposal|negotiation|closed[_\s]?won|closed[_\s]?lost)\b/i,
-    );
+    const stageMatch =
+      m.match(/\bto\s+([a-z][a-z\s_&/-]{1,30}?)\s*$/i) ||
+      m.match(/\b(lead|qualified|discovery|demo|proposal|negotiation|closed[_\s]?won|closed[_\s]?lost)\b/i);
     return [
       {
         name: "update_deal_stage",
         args: {
           query: namedAccount || m,
-          stage: (stageMatch?.[1] || "").replace(/\s+/g, "_"),
+          stage: (stageMatch?.[1] || "").trim().replace(/\s+/g, "_"),
         },
       },
     ];

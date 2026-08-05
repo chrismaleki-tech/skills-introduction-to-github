@@ -95,6 +95,14 @@ Tabs: Overview (environment/integration status, platform totals, queue health, 3
 - **Sandboxes.** From an org's console page, clone its *configuration* (customization, policies, methodologies, company context, scenarios — deliberately no customer data) into a `kind = "sandbox"` workspace with a one-time admin credential, so risky changes get rehearsed before touching the live tenant. Audited as `SANDBOX_CREATED`.
 - **Security activity.** Successful sign-ins are audited (`USER_LOGIN`) and visible in the customer's Back Office audit alongside exports, permission changes, and vendor access.
 
+**Phase 14 — Industry-configurable CRM.** The CRM reshapes itself per customer from the owner's console (Platform customization → **CRM industry pack**):
+
+- **Industry packs** (`src/lib/industry.ts`): General B2B, SaaS, Real Estate, Insurance, Wholesale & Distribution, Staffing & Recruiting. Each pack defines terminology (what a deal/account/contact is called — Listings/Properties/Clients, Policies/Households/Policyholders…), a pipeline stage set with probabilities, and typed custom fields for deals and accounts. Every pack ends in the stable `closed_won`/`closed_lost` keys so win/loss logic (ERP nudges, vendor CRM, matching) is industry-agnostic.
+- **Owner tweaks per tenant.** Rename any term and add extra typed fields (text/number/date/select) from the console; validation lives in `normalizeCustomization` + `sanitizeFieldDefs`.
+- **Tenant enforcement.** Nav labels, page headers, create forms, the Kanban board (columns from the org's stages, plus a visible "Legacy" column for deals whose stage predates a pack switch), stage validation in the deals API, ERP stage nudges by probability (`stageNearProbability`), and the Ask assistant's pipeline/stage tools all follow the org's pack.
+- **Custom data** stored as JSON maps (`Deal.customJson`, `Account.customJson`), validated against the org's field defs, editable on deal/account detail pages.
+- **Demo:** Meridian Software stays General B2B; the seed adds **Harborview Realty** (sign in `dana@harborview.demo` / `password123`) on the Real Estate pack — amber branding, Transactions board with showing/offer/under-contract stages, properties with bedrooms/square-feet fields, and ERP/role-play modules unlicensed.
+
 **Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
 
 ## Architecture notes

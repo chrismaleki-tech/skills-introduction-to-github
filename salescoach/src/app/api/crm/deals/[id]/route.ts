@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { DEAL_STAGES, type DealStage } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
+import { stageMetaIn, stageLabelIn, parseCustomValues, sanitizeCustomValues } from "@/lib/industry";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,10 +51,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     contactId?: string | null;
     ownerId?: string | null;
     closeDate?: string | null;
+    custom?: Record<string, unknown>;
   } | null;
   if (!body) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
+
+  const industry = industryConfigOf(parseCustomization(user.org.customizationJson));
 
   const data: Record<string, unknown> = {};
   if (typeof body.name === "string" && body.name.trim()) data.name = body.name.trim();
@@ -71,14 +75,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     data.closeDate = body.closeDate ? new Date(body.closeDate) : null;
   }
   if (body.stage) {
-    const stage = body.stage as DealStage;
-    if (!DEAL_STAGES.some((s) => s.key === stage)) {
+    const stage = body.stage;
+    if (!industry.stages.some((s) => s.key === stage)) {
       return NextResponse.json({ error: "Invalid stage." }, { status: 400 });
     }
     data.stage = stage;
     if (body.probability == null) {
-      data.probability = DEAL_STAGES.find((s) => s.key === stage)?.probability ?? existing.probability;
+      data.probability = stageMetaIn(industry.stages, stage).probability;
     }
+  }
+  if (body.custom !== undefined) {
+    const customCheck = sanitizeCustomValues(industry.dealFields, body.custom);
+    if (!customCheck.ok) return NextResponse.json({ error: customCheck.error }, { status: 400 });
+    data.customJson = JSON.stringify({ ...parseCustomValues(existing.customJson), ...customCheck.values });
   }
 
   const deal = await db.deal.update({ where: { id }, data });
@@ -92,8 +101,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         contactId: deal.contactId,
         ownerId: user.id,
         type: "NOTE",
-        subject: `Stage → ${body.stage.replaceAll("_", " ")}`,
-        body: `Moved from ${existing.stage.replaceAll("_", " ")} to ${body.stage.replaceAll("_", " ")}.`,
+        subject: `Stage → ${stageLabelIn(industry.stages, body.stage)}`,
+        body: `Moved from ${stageLabelIn(industry.stages, existing.stage)} to ${stageLabelIn(industry.stages, body.stage)}.`,
       },
     });
   }

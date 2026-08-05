@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { fmtMoney, stageLabel } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
+import { parseCustomValues } from "@/lib/industry";
+import { CustomFieldsCard } from "@/components/crm/custom-fields";
 import { Card, EmptyState, PageHeader, ScoreBadge, fmtDateTime } from "@/components/ui";
 
 export default async function AccountDetailPage({
@@ -13,6 +16,7 @@ export default async function AccountDetailPage({
   const { id } = await params;
   const user = await currentUser();
   const manager = isManagerRole(user.role);
+  const industry = industryConfigOf(parseCustomization(user.org.customizationJson));
 
   const account = await db.account.findFirst({
     where: { id, orgId: user.orgId },
@@ -41,7 +45,7 @@ export default async function AccountDetailPage({
     <div>
       <PageHeader
         title={account.name}
-        subtitle={[account.industry, account.size, account.domain].filter(Boolean).join(" · ") || "Account"}
+        subtitle={[account.industry, account.size, account.domain].filter(Boolean).join(" · ") || industry.terms.account}
       />
 
       <div className="grid gap-6 lg:grid-cols-3 mb-8">
@@ -57,6 +61,18 @@ export default async function AccountDetailPage({
             </div>
           </dl>
           {account.notes && <p className="mt-4 text-sm text-muted border-t border-line pt-4">{account.notes}</p>}
+          {industry.accountFields.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <div className="text-xs text-muted uppercase tracking-wider mb-3">
+                {industry.packName} details
+              </div>
+              <CustomFieldsCard
+                endpoint={`/api/crm/accounts/${account.id}`}
+                fields={industry.accountFields}
+                values={parseCustomValues(account.customJson)}
+              />
+            </div>
+          )}
         </Card>
         <Card title="Coaching on this account">
           {account.activities.length === 0 ? (
