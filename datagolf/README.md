@@ -104,6 +104,26 @@ Environment variables:
 - `WP_USERNAME` — WordPress username
 - `WP_APP_PASSWORD` — an Application Password (Users -> Profile -> Application Passwords)
 
+## Workbook field sheets (Scottish Open Field / Wyndham Field)
+
+`update_workbook.py` can build an event field sheet in the same layout as the
+hand-built **Scottish Open Field** tab (`Player, SG OTT, Points, Approach,
+Putting, Around Green, T2Green, Form, History, Tournament, Tour`):
+
+```bash
+python datagolf/update_workbook.py \
+  datagolf/workbooks/PGA_stat_caddy_latest.xlsx \
+  datagolf/workbooks/PGA_stat_caddy_updated_YYYY-MM-DD.xlsx \
+  --course-fit \
+  --field-sheet "Wyndham Field" \
+  --tournament "Wyndham Championship" \
+  --export-field-csv datagolf/workbooks/StatCaddy_Wyndham_Field_YYYY-MM-DD.csv
+```
+
+Players with a non-null `T2Green` on **PGA Database** are the current field.
+The field sheet uses the same cross-sheet formulas as Scottish Open Field;
+LibreOffice headless recalc (when installed) restores cached values after save.
+
 ## Scheduling
 
 `.github/workflows/update-datagolf-csv.yml` runs the script daily and commits
