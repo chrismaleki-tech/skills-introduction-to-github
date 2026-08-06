@@ -124,6 +124,21 @@ Players with a non-null `T2Green` on **PGA Database** are the current field.
 The field sheet uses the same cross-sheet formulas as Scottish Open Field;
 LibreOffice headless recalc (when installed) restores cached values after save.
 
+## Logged-in Simulators dropdown
+
+`ensure_simulator_menu.py` upserts the public `/simulator/` page (WordPress
+page id `4952` by default) into the **Logged In Menu → Simulators** picklist,
+using the page's current title as the menu label (e.g. "Matchup Simulator
+(Admin Preview)").
+
+```bash
+python datagolf/ensure_simulator_menu.py           # create/update the menu link
+python datagolf/ensure_simulator_menu.py --dry-run # preview only
+```
+
+Requires `WP_URL` / `WP_USERNAME` / `WP_APP_PASSWORD`. Optional overrides:
+`WP_SIMULATOR_PAGE_ID`, `WP_SIMULATORS_MENU_ID`, `WP_SIMULATORS_PARENT_ITEM_ID`.
+
 ## Scheduling
 
 `.github/workflows/update-datagolf-csv.yml` runs the script daily and commits
