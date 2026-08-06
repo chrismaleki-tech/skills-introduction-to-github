@@ -3,9 +3,12 @@
 Ensure the public /simulator/ page appears in the logged-in Simulators dropdown.
 
 The Logged In Menu (id 25) has a top-level "Simulators" item whose children are
-the member-facing tools (1v1, Multi-Player, …). This script upserts a child link
-to WordPress page WP_SIMULATOR_PAGE_ID (default 4952, slug /simulator/), using
-that page's current title as the menu label.
+the member-facing tools (1v1, Multi-Player, …). This script:
+
+  1. Publishes the WordPress simulator page if it is still private (private pages
+     are stripped from nav menus for anyone without read_private_pages).
+  2. Upserts a custom-link child under "Simulators", labeled with the page title
+     and pointing at /simulator/ (custom links are not capability-filtered).
 
 Env:
   WP_URL, WP_USERNAME, WP_APP_PASSWORD   (required)
@@ -55,12 +58,33 @@ def main() -> int:
 
     base, auth = _auth()
 
-    page = requests.get(f"{base}/wp-json/wp/v2/pages/{args.page_id}", auth=auth, params={"context": "edit"}, timeout=30)
+    page = requests.get(
+        f"{base}/wp-json/wp/v2/pages/{args.page_id}",
+        auth=auth,
+        params={"context": "edit"},
+        timeout=30,
+    )
     page.raise_for_status()
     pdata = page.json()
     title = pdata["title"].get("raw") or pdata["title"]["rendered"]
     link = pdata["link"]
     print(f"page {args.page_id}: title={title!r} status={pdata['status']} link={link}")
+
+    if pdata["status"] != "publish":
+        print(f"page is {pdata['status']!r} — must be publish to appear for members")
+        if args.dry_run:
+            print("would publish page")
+        else:
+            r = requests.post(
+                f"{base}/wp-json/wp/v2/pages/{args.page_id}",
+                auth=auth,
+                json={"status": "publish"},
+                timeout=30,
+            )
+            r.raise_for_status()
+            pdata = r.json()
+            link = pdata["link"]
+            print(f"[ok] published page {args.page_id} -> {link}")
 
     items = requests.get(
         f"{base}/wp-json/wp/v2/menu-items",
@@ -79,6 +103,7 @@ def main() -> int:
             and (
                 str(it.get("object_id")) == str(args.page_id)
                 or (it.get("url") or "").rstrip("/").endswith("/simulator")
+                or (it.get("title", {}).get("raw") or it.get("title", {}).get("rendered") or "") == title
             )
         ),
         None,
@@ -87,31 +112,41 @@ def main() -> int:
     siblings = [it for it in menu_items if it.get("parent") == args.parent_item_id]
     next_order = max((it.get("menu_order") or 0 for it in siblings), default=1) + 1
 
+    desired = {
+        "title": title,
+        "type": "custom",
+        "url": link,
+        "parent": args.parent_item_id,
+        "menus": args.menu_id,
+        "status": "publish",
+    }
+
     if existing:
-        need_title = (existing.get("title", {}).get("raw") or existing.get("title", {}).get("rendered")) != title
-        need_parent = existing.get("parent") != args.parent_item_id
-        if not need_title and not need_parent:
+        cur_title = existing.get("title", {}).get("raw") or existing.get("title", {}).get("rendered")
+        needs = (
+            cur_title != title
+            or existing.get("parent") != args.parent_item_id
+            or existing.get("type") != "custom"
+            or (existing.get("url") or "").rstrip("/") != link.rstrip("/")
+        )
+        if not needs:
             print(f"[ok] already listed as {title!r} (menu-item {existing['id']})")
             return 0
-        payload = {"title": title, "parent": args.parent_item_id, "menus": args.menu_id}
+        payload = {**desired, "menu_order": existing.get("menu_order") or next_order}
         print(f"would update menu-item {existing['id']}: {payload}" if args.dry_run else f"updating menu-item {existing['id']}")
         if args.dry_run:
             return 0
-        r = requests.post(f"{base}/wp-json/wp/v2/menu-items/{existing['id']}", auth=auth, json=payload, timeout=30)
+        r = requests.post(
+            f"{base}/wp-json/wp/v2/menu-items/{existing['id']}",
+            auth=auth,
+            json=payload,
+            timeout=30,
+        )
         r.raise_for_status()
         print(f"[ok] updated menu-item {r.json()['id']} -> {r.json().get('url')}")
         return 0
 
-    payload = {
-        "title": title,
-        "type": "post_type",
-        "object": "page",
-        "object_id": args.page_id,
-        "parent": args.parent_item_id,
-        "menus": args.menu_id,
-        "status": "publish",
-        "menu_order": next_order,
-    }
+    payload = {**desired, "menu_order": next_order}
     print(f"would create menu item: {payload}" if args.dry_run else f"creating menu item under parent {args.parent_item_id}")
     if args.dry_run:
         return 0

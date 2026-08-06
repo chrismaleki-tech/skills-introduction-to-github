@@ -126,13 +126,14 @@ LibreOffice headless recalc (when installed) restores cached values after save.
 
 ## Logged-in Simulators dropdown
 
-`ensure_simulator_menu.py` upserts the public `/simulator/` page (WordPress
-page id `4952` by default) into the **Logged In Menu → Simulators** picklist,
-using the page's current title as the menu label (e.g. "Matchup Simulator
-(Admin Preview)").
+`ensure_simulator_menu.py` publishes the public `/simulator/` page (WordPress
+page id `4952` by default) if needed and upserts it into the **Logged In Menu →
+Simulators** picklist as a custom link, using the page's current title as the
+menu label (e.g. "Matchup Simulator (Admin Preview)"). Private pages are hidden
+from that dropdown for non-admins, so the script keeps the page published.
 
 ```bash
-python datagolf/ensure_simulator_menu.py           # create/update the menu link
+python datagolf/ensure_simulator_menu.py           # publish page + create/update menu link
 python datagolf/ensure_simulator_menu.py --dry-run # preview only
 ```
 
