@@ -89,7 +89,17 @@ def build_embed(players: list) -> str:
     else:
         markup = f'<div id="sc-sim"><style>{style}</style>{markup}</div>'
     data = json.dumps(players, separators=(",", ":"))
-    return (f'{markup}'
+    # Hide the theme's duplicate page H1 and clear the sticky header so the
+    # embed title isn't clipped on the classic (non-Elementor) page template.
+    page_chrome = (
+        "<style>"
+        "body.page-id-4952 .page-header,body.postid-4952 .page-header{display:none!important;}"
+        "body.page-id-4952 #content.site-main,body.postid-4952 #content.site-main{"
+        "padding-top:28px!important;overflow:visible!important;}"
+        "body.page-id-4952 .page-content,body.postid-4952 .page-content{overflow:visible!important;}"
+        "</style>"
+    )
+    return (f'{page_chrome}{markup}'
             f'<script type="application/json" id="embedded-data">{data}</script>'
             f'<script>eval(atob("{base64.b64encode(js.encode()).decode()}"));</script>')
 
