@@ -142,13 +142,45 @@ def build_field(key, workbook, tour):
     return event, players
 
 
+FIELD_HEADER = ["Player", "SG OTT", "Points", "Approach", "Putting", "Around Green", "T2Green", "Form", "History", "Tournament", "Tour"]
+
+
+def _field_rows(event, players):
+    return [[p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"], p["form"], p["hist"], event, "PGA Tour"] for p in players]
+
+
 def write_field_csv(event, players, path):
     import csv
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["Player", "SG OTT", "Points", "Approach", "Putting", "Around Green", "T2Green", "Form", "History", "Tournament", "Tour"])
-        for p in players:
-            w.writerow([p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"], p["form"], p["hist"], event, "PGA Tour"])
+        w.writerow(FIELD_HEADER)
+        w.writerows(_field_rows(event, players))
+
+
+def write_field_sheet(event, players, out_dir):
+    """Write the week's downloadable field-stat sheet as CSV + XLSX (a stable 'latest' plus
+    an event/date-stamped copy) so it can be grabbed each week from the repo."""
+    import csv
+    from datetime import date
+    os.makedirs(out_dir, exist_ok=True)
+    slug = re.sub(r"[^A-Za-z0-9]+", "_", event).strip("_")
+    stamp = date.today().isoformat()
+    rows = _field_rows(event, players)
+    targets = [
+        os.path.join(out_dir, "StatCaddy_Field_latest.csv"),
+        os.path.join(out_dir, f"StatCaddy_{slug}_Field_{stamp}.csv"),
+    ]
+    for t in targets:
+        with open(t, "w", newline="") as f:
+            w = csv.writer(f); w.writerow(FIELD_HEADER); w.writerows(rows)
+    for xlsx in [os.path.join(out_dir, "StatCaddy_Field_latest.xlsx"),
+                 os.path.join(out_dir, f"StatCaddy_{slug}_Field_{stamp}.xlsx")]:
+        wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Field"
+        ws.append(FIELD_HEADER)
+        for r in rows:
+            ws.append(r)
+        wb.save(xlsx)
+    log(f"field-stat sheet written: {len(players)} players -> {out_dir}/StatCaddy_Field_latest.(csv|xlsx) (+ dated)")
 
 
 # ── WordPress deployment (browser-driven) ─────────────────────────────────────
@@ -306,6 +338,8 @@ def main():
     ap.add_argument("--workbook", default=os.path.join(os.path.dirname(__file__), "workbooks", "PGA_stat_caddy_latest.xlsx"))
     ap.add_argument("--tour", default=os.environ.get("TOUR", "pga"))
     ap.add_argument("--out-dir", default="/tmp")
+    ap.add_argument("--field-dir", default=os.path.join(os.path.dirname(__file__), "workbooks"),
+                    help="Where to save the downloadable weekly field-stat sheet (CSV + XLSX).")
     args = ap.parse_args()
 
     key = os.environ.get("DATAGOLF_KEY")
@@ -319,6 +353,8 @@ def main():
         log("ERROR: fewer than 2 simulatable players — aborting"); return 3
     field_csv = os.path.join(args.out_dir, "deploy_field.csv")
     write_field_csv(event, players, field_csv)
+    # always publish the downloadable weekly field-stat sheet (CSV + XLSX)
+    write_field_sheet(event, players, args.field_dir)
 
     if dry:
         log(f"[dry-run] built {len(players)} players for '{event}'. Skipping WordPress writes.")
