@@ -82,21 +82,25 @@ def build_embed(players: list) -> str:
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
     markup = re.sub(r"<script.*?</script>", "", body, flags=re.S)
-    markup = re.sub(r"\n\s*\n+", "\n", markup).strip()
+    # Minify markup so wpautop cannot inject <br>/<p> between flex/grid children.
+    markup = re.sub(r">\s+<", "><", markup)
+    markup = re.sub(r"\s+", " ", markup).strip()
     # Template already wraps content in #sc-sim — inject <style> as its first child.
     if markup.startswith('<div id="sc-sim">'):
         markup = '<div id="sc-sim">' + f"<style>{style}</style>" + markup[len('<div id="sc-sim">'):]
     else:
         markup = f'<div id="sc-sim"><style>{style}</style>{markup}</div>'
     data = json.dumps(players, separators=(",", ":"))
-    # Hide the theme's duplicate page H1 and clear the sticky header so the
-    # embed title isn't clipped on the classic (non-Elementor) page template.
+    # Hide the theme's duplicate page H1 and clear space under the sticky header.
+    # Also neutralize any leftover wpautop breaks inside the embed.
     page_chrome = (
         "<style>"
         "body.page-id-4952 .page-header,body.postid-4952 .page-header{display:none!important;}"
         "body.page-id-4952 #content.site-main,body.postid-4952 #content.site-main{"
-        "padding-top:28px!important;overflow:visible!important;}"
+        "padding-top:96px!important;overflow:visible!important;}"
         "body.page-id-4952 .page-content,body.postid-4952 .page-content{overflow:visible!important;}"
+        "#sc-sim br{display:none!important;}"
+        "#sc-sim p{display:contents!important;margin:0!important;}"
         "</style>"
     )
     return (f'{page_chrome}{markup}'

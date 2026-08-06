@@ -15,8 +15,8 @@
     color: var(--ink);
     width: 100%;
     max-width: 1100px;
-    margin: 24px auto 0;
-    padding: 12px 20px 40px;
+    margin: 0 auto;
+    padding: 8px 20px 40px;
     line-height: 1.45;
     overflow: visible;
     position: relative;
@@ -69,9 +69,11 @@
   #sc-sim .presets {
     display: flex;
     flex-wrap: nowrap;
+    align-items: stretch;
     gap: 8px;
     width: 100%;
   }
+  #sc-sim .presets br { display: none !important; }
   #sc-sim .presets button {
     border: 1.5px solid var(--green-2);
     background: #fff;
@@ -84,6 +86,7 @@
     font-weight: 600;
     flex: 1 1 0;
     min-width: 0;
+    max-width: none;
     text-align: center;
     line-height: 1.2;
     white-space: nowrap;
@@ -144,12 +147,7 @@
   <div class="card">
     <div class="weights-head">
       <h2>Your stat weights</h2>
-      <div class="presets">
-        <button type="button" data-preset="balanced">Balanced</button>
-        <button type="button" data-preset="ballstriking">Ball-Striking</button>
-        <button type="button" data-preset="shortgame">Short Game</button>
-        <button type="button" data-preset="hotform">Hot Form</button>
-      </div>
+      <div class="presets"><button type="button" data-preset="balanced">Balanced</button><button type="button" data-preset="ballstriking">Ball-Striking</button><button type="button" data-preset="shortgame">Short Game</button><button type="button" data-preset="hotform">Hot Form</button></div>
     </div>
     <div id="weights"></div>
     <div class="total">Weights auto-normalize — currently sum to <b id="wsum" class="ok">100%</b></div>
