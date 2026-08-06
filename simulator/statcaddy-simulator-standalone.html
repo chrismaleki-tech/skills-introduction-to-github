@@ -74,14 +74,15 @@
     background: #fff;
     color: var(--green-2);
     border-radius: 8px;
-    padding: 8px 10px;
+    padding: 8px 6px;
     margin: 0;
     cursor: pointer;
-    font-size: .82rem;
+    font-size: clamp(.72rem, 1.6vw, .82rem);
     font-weight: 600;
     width: 100%;
     text-align: center;
     line-height: 1.2;
+    white-space: nowrap;
   }
   #sc-sim .presets button:hover { background: var(--light); }
   #sc-sim .w-row {
@@ -110,11 +111,12 @@
   #sc-sim .breakdown th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
   #sc-sim .breakdown td.win { color: var(--fairway); font-weight: 700; }
   #sc-sim .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
-  @media (max-width: 720px) {
+  @media (max-width: 560px) {
     #sc-sim { padding: 20px 14px 32px; }
     #sc-sim .players { grid-template-columns: 1fr; gap: 10px; }
     #sc-sim .vs { padding: 0; }
     #sc-sim .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    #sc-sim .presets button { white-space: normal; }
     #sc-sim .w-row { grid-template-columns: 1fr; gap: 4px; }
     #sc-sim .pct { text-align: left; }
   }
