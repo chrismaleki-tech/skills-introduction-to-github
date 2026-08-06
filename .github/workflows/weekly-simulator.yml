@@ -1,0 +1,91 @@
+name: Weekly Simulator Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      week:
+        description: "Completed week (Sunday) YYYY-MM-DD to fold into the workbook. Blank = most recent Sunday."
+        default: ""
+      dry_run:
+        description: "Build field/CSVs but make NO changes to the live site (true/false)."
+        default: "false"
+  schedule:
+    # Monday 13:00 UTC = 6:00 AM Pacific during Daylight Time (Mar-Nov).
+    # NOTE: GitHub cron is UTC-only; in Standard Time (Nov-Mar) this is 5:00 AM Pacific.
+    - cron: "0 13 * * 1"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: weekly-simulator
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install openpyxl pandas requests scipy playwright
+          python -m playwright install --with-deps chromium
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends libreoffice-calc
+
+      - name: Determine completed week
+        id: week
+        run: |
+          WEEK="${{ github.event.inputs.week }}"
+          if [ -z "$WEEK" ]; then
+            WEEK=$(python3 -c "from datetime import date, timedelta; t=date.today(); print(t - timedelta(days=(t.weekday()+1)%7 or 7))")
+          fi
+          echo "week=$WEEK" >> "$GITHUB_OUTPUT"
+          echo "Completed week: $WEEK"
+
+      - name: Refresh workbook (stats, DG points, course fit)
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+        run: |
+          python3 datagolf/update_workbook.py \
+            "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" /tmp/updated.xlsx \
+            --archive-date "${{ steps.week.outputs.week }}" --dg-points --course-fit \
+          || echo "workbook archive not ready for ${{ steps.week.outputs.week }} (continuing with existing workbook)"
+          if [ -f /tmp/updated.xlsx ]; then
+            mkdir -p /tmp/recalced /tmp/lo_profile
+            soffice --headless --norestore -env:UserInstallation=file:///tmp/lo_profile \
+              --convert-to xlsx:"Calc MS Excel 2007 XML" --outdir /tmp/recalced /tmp/updated.xlsx
+            cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_latest.xlsx"
+            cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_updated_$(date +%Y-%m-%d).xlsx"
+          fi
+
+      - name: Deploy simulator to statcaddygolf.com
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+        run: |
+          python3 datagolf/deploy_simulator.py \
+            --workbook "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" --out-dir /tmp
+
+      - name: Commit refreshed workbook
+        if: ${{ always() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add datagolf/workbooks/ || true
+          if git diff --cached --quiet; then
+            echo "No workbook changes to commit."
+          else
+            git commit -m "chore: weekly simulator deploy (${{ steps.week.outputs.week }}) [skip ci]"
+            git push
+          fi
