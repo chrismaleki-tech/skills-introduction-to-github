@@ -97,10 +97,12 @@ def build_embed(players: list) -> str:
         "<style>"
         "body.page-id-4952 .page-header,body.postid-4952 .page-header{display:none!important;}"
         "body.page-id-4952 #content.site-main,body.postid-4952 #content.site-main{"
-        "padding-top:96px!important;overflow:visible!important;}"
+        "padding-top:140px!important;overflow:visible!important;}"
         "body.page-id-4952 .page-content,body.postid-4952 .page-content{overflow:visible!important;}"
         "#sc-sim br{display:none!important;}"
         "#sc-sim p{display:contents!important;margin:0!important;}"
+        "#sc-sim .presets{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;width:100%!important;}"
+        "#sc-sim .presets button{flex:1 1 0!important;width:auto!important;max-width:none!important;min-width:0!important;}"
         "</style>"
     )
     return (f'{page_chrome}{markup}'
