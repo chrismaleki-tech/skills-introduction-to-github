@@ -4,6 +4,7 @@ import { requireConsole } from "@/lib/platform-admin";
 import { recordAudit } from "@/lib/audit";
 import { normalizeCustomization, parseCustomization } from "@/lib/customization";
 import { PLANS, isPlanId } from "@/lib/billing";
+import { syncTenantToVendorCrm, logVendorActivity } from "@/lib/vendor-crm";
 
 /**
  * POST /api/admin/orgs/[id]/customization — vendor-side tenant provisioning:
@@ -67,6 +68,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         brandName: normalized.brandName || "(default)",
         accentColor: normalized.accentColor || "(default)",
         startPage: normalized.startPage,
+        industry: normalized.industry,
         modulesOff: Object.entries(normalized.modules)
           .filter(([, on]) => !on)
           .map(([m]) => m),
@@ -84,6 +86,24 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       req,
       meta: { org: org.name, from: org.plan, to: data.plan },
     });
+  }
+
+  // Dogfooding: mirror the provisioning change onto the vendor CRM timeline.
+  await syncTenantToVendorCrm(org.id);
+  if (data.plan) {
+    await logVendorActivity(org.id, "Edition changed", `Moved from ${org.plan} to ${data.plan} by vendor staff.`);
+  }
+  if (data.customizationJson) {
+    const off = Object.entries(normalized.modules)
+      .filter(([, on]) => !on)
+      .map(([m]) => m);
+    await logVendorActivity(
+      org.id,
+      "Workspace provisioned",
+      `Brand "${normalized.brandName || "default"}", accent ${normalized.accentColor || "default"}, start ${
+        normalized.startPage
+      }, modules off: ${off.join(", ") || "none"}.`,
+    );
   }
 
   return NextResponse.json({ ok: true, changed: true });

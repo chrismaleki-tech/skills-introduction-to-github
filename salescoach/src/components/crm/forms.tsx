@@ -5,12 +5,18 @@ import { useState, useTransition } from "react";
 import { DEAL_STAGES } from "@/lib/crm-constants";
 import { Button } from "@/components/ui";
 
+/** Industry-configurable stage option shape (defaults to the generic pack). */
+type StageOption = { key: string; label: string; probability?: number };
+const GENERIC: StageOption[] = DEAL_STAGES.map((s) => ({ key: s.key, label: s.label }));
+
 export function DealStageSelect({
   dealId,
   stage,
+  stages = GENERIC,
 }: {
   dealId: string;
   stage: string;
+  stages?: StageOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -42,11 +48,14 @@ export function DealStageSelect({
         onChange={(e) => onChange(e.target.value)}
         className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
       >
-        {DEAL_STAGES.map((s) => (
+        {stages.map((s) => (
           <option key={s.key} value={s.key}>
             {s.label}
           </option>
         ))}
+        {!stages.some((s) => s.key === stage) && (
+          <option value={stage}>{stage.replaceAll("_", " ")} (legacy)</option>
+        )}
       </select>
       {error && <p className="text-xs text-rose-400">{error}</p>}
     </div>
@@ -58,12 +67,22 @@ export function NewDealForm({
   contacts,
   owners,
   defaultOwnerId,
+  stages = GENERIC,
+  dealNoun = "deal",
+  accountNoun = "account",
+  contactNoun = "contact",
 }: {
   accounts: { id: string; name: string }[];
   contacts: { id: string; name: string; accountId: string | null }[];
   owners: { id: string; name: string }[];
   defaultOwnerId: string;
+  stages?: StageOption[];
+  dealNoun?: string;
+  accountNoun?: string;
+  contactNoun?: string;
 }) {
+  const openStages = stages.filter((s) => !s.key.startsWith("closed"));
+  const defaultStage = openStages[1]?.key ?? openStages[0]?.key ?? "lead";
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -75,7 +94,7 @@ export function NewDealForm({
     const fd = new FormData(e.currentTarget);
     const payload = {
       name: String(fd.get("name") ?? ""),
-      stage: String(fd.get("stage") ?? "lead"),
+      stage: String(fd.get("stage") ?? defaultStage),
       amount: Number(fd.get("amount") ?? 0),
       product: String(fd.get("product") ?? ""),
       nextStep: String(fd.get("nextStep") ?? ""),
@@ -90,7 +109,7 @@ export function NewDealForm({
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error ?? "Failed to create deal.");
+      setError(data.error ?? `Failed to create ${dealNoun.toLowerCase()}.`);
       return;
     }
     setOpen(false);
@@ -103,7 +122,7 @@ export function NewDealForm({
   if (!open) {
     return (
       <Button type="button" onClick={() => setOpen(true)}>
-        New deal
+        New {dealNoun.toLowerCase()}
       </Button>
     );
   }
@@ -113,16 +132,16 @@ export function NewDealForm({
       onSubmit={onSubmit}
       className="w-full max-w-md space-y-3 rounded-xl border border-line bg-surface p-4"
     >
-      <div className="text-sm font-medium">Create deal</div>
+      <div className="text-sm font-medium">Create {dealNoun.toLowerCase()}</div>
       <input
         name="name"
         required
-        placeholder="Deal name"
+        placeholder={`${dealNoun} name`}
         className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
       />
       <div className="grid grid-cols-2 gap-2">
-        <select name="stage" defaultValue="qualified" className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm">
-          {DEAL_STAGES.filter((s) => !s.key.startsWith("closed")).map((s) => (
+        <select name="stage" defaultValue={defaultStage} className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm">
+          {openStages.map((s) => (
             <option key={s.key} value={s.key}>
               {s.label}
             </option>
@@ -142,7 +161,7 @@ export function NewDealForm({
         className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm"
       />
       <select name="accountId" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm">
-        <option value="">No account</option>
+        <option value="">No {accountNoun.toLowerCase()}</option>
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>
             {a.name}
@@ -150,7 +169,7 @@ export function NewDealForm({
         ))}
       </select>
       <select name="contactId" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm">
-        <option value="">No contact</option>
+        <option value="">No {contactNoun.toLowerCase()}</option>
         {contacts.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}
@@ -186,7 +205,7 @@ export function NewDealForm({
   );
 }
 
-export function NewAccountForm() {
+export function NewAccountForm({ accountNoun = "account" }: { accountNoun?: string } = {}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -209,7 +228,7 @@ export function NewAccountForm() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error ?? "Failed to create account.");
+      setError(data.error ?? `Failed to create ${accountNoun.toLowerCase()}.`);
       return;
     }
     setOpen(false);
@@ -222,14 +241,14 @@ export function NewAccountForm() {
   if (!open) {
     return (
       <Button type="button" onClick={() => setOpen(true)}>
-        New account
+        New {accountNoun.toLowerCase()}
       </Button>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="w-full max-w-md space-y-3 rounded-xl border border-line bg-surface p-4">
-      <div className="text-sm font-medium">Create account</div>
+      <div className="text-sm font-medium">Create {accountNoun.toLowerCase()}</div>
       <input name="name" required placeholder="Company name" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" />
       <input name="domain" placeholder="Domain" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" />
       <div className="grid grid-cols-2 gap-2">
@@ -248,8 +267,12 @@ export function NewAccountForm() {
 
 export function NewContactForm({
   accounts,
+  contactNoun = "contact",
+  accountNoun = "account",
 }: {
   accounts: { id: string; name: string }[];
+  contactNoun?: string;
+  accountNoun?: string;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -273,7 +296,7 @@ export function NewContactForm({
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(data.error ?? "Failed to create contact.");
+      setError(data.error ?? `Failed to create ${contactNoun.toLowerCase()}.`);
       return;
     }
     setOpen(false);
@@ -283,20 +306,20 @@ export function NewContactForm({
   if (!open) {
     return (
       <Button type="button" onClick={() => setOpen(true)}>
-        New contact
+        New {contactNoun.toLowerCase()}
       </Button>
     );
   }
 
   return (
     <form onSubmit={onSubmit} className="w-full max-w-md space-y-3 rounded-xl border border-line bg-surface p-4">
-      <div className="text-sm font-medium">Create contact</div>
+      <div className="text-sm font-medium">Create {contactNoun.toLowerCase()}</div>
       <input name="name" required placeholder="Full name" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" />
       <input name="title" placeholder="Title" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" />
       <input name="email" type="email" placeholder="Email" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" />
       <input name="phone" placeholder="Phone" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm" />
       <select name="accountId" className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm">
-        <option value="">No account</option>
+        <option value="">No {accountNoun.toLowerCase()}</option>
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>{a.name}</option>
         ))}

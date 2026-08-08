@@ -88,6 +88,21 @@ Tabs: Overview (environment/integration status, platform totals, queue health, 3
 - **Editions.** Staff can move a tenant between plans from the same card, including downgrading an over-limit org (seats stay active; the limit bites on the next invite).
 - **Audited both ways.** `CUSTOMIZATION_CHANGED` / `PLAN_CHANGED` events carry the console role and land in the vendor trail *and* the customer's own Back Office audit, so tenants always see what the vendor changed.
 
+**Phase 13 — Vendor super-admin back office (HubSpot-style internals).** The rest of the machinery a SaaS company runs behind its product:
+
+- **Dogfooding — SalesCoach runs on SalesCoach.** The seed creates a vendor workspace (**SalesCoach HQ**, `Org.kind = "vendor"`, sign in as `avery@salescoach.dev` / `password123`). Every customer tenant is mirrored into its CRM by `src/lib/vendor-crm.ts`: an Account (seats, edition, billing contact) plus a subscription Deal (amount = annual run rate, trial → `demo` stage, paid → `closed_won`), with provisioning events (tenant created, edition moved, workspace customized) logged as timeline Activities. Sync fires from org creation, plan changes (both planes), provisioning, and seat changes — best-effort, never failing the admin action.
+- **Billing engine view.** Console **Billing** tab: every paying customer's edition, active seats, committed MRR (`monthlyRunRate`), and month-to-date metered statement, with platform-wide rollups. Vendor and sandbox workspaces never bill.
+- **Sandboxes.** From an org's console page, clone its *configuration* (customization, policies, methodologies, company context, scenarios — deliberately no customer data) into a `kind = "sandbox"` workspace with a one-time admin credential, so risky changes get rehearsed before touching the live tenant. Audited as `SANDBOX_CREATED`.
+- **Security activity.** Successful sign-ins are audited (`USER_LOGIN`) and visible in the customer's Back Office audit alongside exports, permission changes, and vendor access.
+
+**Phase 14 — Industry-configurable CRM.** The CRM reshapes itself per customer from the owner's console (Platform customization → **CRM industry pack**):
+
+- **Industry packs** (`src/lib/industry.ts`): General B2B, SaaS, Real Estate, Insurance, Wholesale & Distribution, Staffing & Recruiting. Each pack defines terminology (what a deal/account/contact is called — Listings/Properties/Clients, Policies/Households/Policyholders…), a pipeline stage set with probabilities, and typed custom fields for deals and accounts. Every pack ends in the stable `closed_won`/`closed_lost` keys so win/loss logic (ERP nudges, vendor CRM, matching) is industry-agnostic.
+- **Owner tweaks per tenant.** Rename any term and add extra typed fields (text/number/date/select) from the console; validation lives in `normalizeCustomization` + `sanitizeFieldDefs`.
+- **Tenant enforcement.** Nav labels, page headers, create forms, the Kanban board (columns from the org's stages, plus a visible "Legacy" column for deals whose stage predates a pack switch), stage validation in the deals API, ERP stage nudges by probability (`stageNearProbability`), and the Ask assistant's pipeline/stage tools all follow the org's pack.
+- **Custom data** stored as JSON maps (`Deal.customJson`, `Account.customJson`), validated against the org's field defs, editable on deal/account detail pages.
+- **Demo:** Meridian Software stays General B2B; the seed adds **Harborview Realty** (sign in `dana@harborview.demo` / `password123`) on the Real Estate pack — amber branding, Transactions board with showing/offer/under-contract stages, properties with bedrooms/square-feet fields, and ERP/role-play modules unlicensed.
+
 **Phase 9 — Pre-production hardening.** Password login at `/login` (demo password `password123`), middleware route protection, unmatched-rep webhook queue, CRM auto-match by email/phone/name, PII redaction + retention sweeps, durable job queue for grading, outbound email coaching, manager calibration dashboard, drag-and-drop pipeline, contact detail outreach, and voice role-play start (demo completes without Vapi).
 
 ## Architecture notes

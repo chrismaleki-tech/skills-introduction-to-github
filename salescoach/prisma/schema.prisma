@@ -30,6 +30,13 @@ model Org {
   // Per-tenant platform customization (JSON: Customization in src/lib/customization.ts)
   customizationJson String @default("{}")
 
+  // Workspace kind: "customer" (billable tenant), "vendor" (the platform
+  // owner's own dogfooded workspace), or "sandbox" (config clone for testing).
+  kind String @default("customer")
+  // Dogfooding links: this tenant's Account/Deal in the vendor org's CRM.
+  vendorAccountId String?
+  vendorDealId    String?
+
   // ERP org defaults
   baseCurrency   String @default("USD") // ISO 4217
   defaultTaxCode String @default("US-CA") // TaxCode.code
@@ -209,6 +216,8 @@ model Account {
   size     String  @default("") // e.g. "50-200"
   website  String  @default("")
   notes    String  @default("")
+  // Industry/custom field values (JSON map, defs from the org's pack)
+  customJson String @default("{}")
 
   contacts   Contact[]
   deals      Deal[]
@@ -267,8 +276,11 @@ model Deal {
   owner     User?   @relation("DealOwner", fields: [ownerId], references: [id])
 
   name   String
-  // lead | qualified | discovery | demo | proposal | negotiation | closed_won | closed_lost
+  // Stage keys come from the org's industry pack (src/lib/industry.ts);
+  // closed_won / closed_lost are stable across every pack.
   stage  String @default("lead")
+  // Industry/custom field values (JSON map, defs from the org's pack)
+  customJson String @default("{}")
   amount Int    @default(0) // USD cents avoided — store whole dollars for demo simplicity
   // Product / line the deal is about (feeds coaching context)
   product     String @default("")

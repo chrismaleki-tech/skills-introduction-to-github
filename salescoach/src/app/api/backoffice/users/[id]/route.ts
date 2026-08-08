@@ -5,6 +5,7 @@ import { hashPassword } from "@/lib/session";
 import { backofficeActor } from "@/lib/backoffice";
 import { recordAudit } from "@/lib/audit";
 import { planFor, seatLimitReached } from "@/lib/billing";
+import { syncTenantToVendorCrm } from "@/lib/vendor-crm";
 
 const ROLES = new Set(["REP", "MANAGER", "TRAINER", "ADMIN"]);
 
@@ -142,6 +143,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         meta: { email: target.email },
       });
     }
+  }
+
+  if (body.disabled != null) {
+    // Seat counts changed: refresh the vendor CRM mirror.
+    await syncTenantToVendorCrm(target.orgId);
   }
 
   return NextResponse.json({ ok: true, oneTimePassword });

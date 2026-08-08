@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { isManagerRole, loginWithPassword } from "@/lib/session";
+import { recordAudit } from "@/lib/audit";
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as { email?: string; password?: string } | null;
@@ -12,6 +13,15 @@ export async function POST(req: Request) {
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 401 });
   }
+  // Security activity log: successful sign-ins are org-visible audit events.
+  await recordAudit({
+    actor: result.user,
+    action: "USER_LOGIN",
+    targetType: "USER",
+    targetId: result.user.id,
+    orgId: result.user.orgId,
+    req,
+  });
   return NextResponse.json({
     userId: result.user.id,
     name: result.user.name,

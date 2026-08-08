@@ -8,6 +8,15 @@
  * guard lives in module-guard.ts.
  */
 
+import {
+  INDUSTRY_IDS,
+  resolveIndustry,
+  sanitizeFieldDefs,
+  type FieldDef,
+  type IndustryConfig,
+  type Terminology,
+} from "./industry";
+
 export type ModuleId = "ask" | "crm" | "erp" | "conversations" | "calls" | "roleplay" | "coaching";
 
 export const MODULES: { id: ModuleId; label: string; blurb: string }[] = [
@@ -58,6 +67,13 @@ export type Customization = {
   startPage: string;
   /** Module toggles; missing keys default to enabled. */
   modules: Record<ModuleId, boolean>;
+  /** Industry pack id (see INDUSTRY_PACKS in industry.ts). */
+  industry: string;
+  /** Owner overrides for the pack's CRM terminology. */
+  terminology: Partial<Terminology>;
+  /** Owner-added custom fields, merged over the pack's. */
+  customDealFields: FieldDef[];
+  customAccountFields: FieldDef[];
 };
 
 export const DEFAULT_CUSTOMIZATION: Customization = {
@@ -65,6 +81,10 @@ export const DEFAULT_CUSTOMIZATION: Customization = {
   accentColor: "",
   startPage: "default",
   modules: { ask: true, crm: true, erp: true, conversations: true, calls: true, roleplay: true, coaching: true },
+  industry: "generic",
+  terminology: {},
+  customDealFields: [],
+  customAccountFields: [],
 };
 
 export function isValidAccentColor(value: string): boolean {
@@ -97,7 +117,32 @@ export function parseCustomization(json: string | null | undefined): Customizati
       ? raw.startPage
       : "default";
 
-  return { brandName, accentColor, startPage, modules };
+  const industry =
+    typeof raw.industry === "string" && INDUSTRY_IDS.includes(raw.industry) ? raw.industry : "generic";
+  const terminology: Partial<Terminology> = {};
+  if (raw.terminology && typeof raw.terminology === "object") {
+    for (const [k, v] of Object.entries(raw.terminology as Record<string, unknown>)) {
+      if (typeof v === "string" && v.trim()) terminology[k as keyof Terminology] = v.trim().slice(0, 30);
+    }
+  }
+  const dealFields = sanitizeFieldDefs(raw.customDealFields);
+  const accountFields = sanitizeFieldDefs(raw.customAccountFields);
+
+  return {
+    brandName,
+    accentColor,
+    startPage,
+    modules,
+    industry,
+    terminology,
+    customDealFields: dealFields.ok ? dealFields.fields : [],
+    customAccountFields: accountFields.ok ? accountFields.fields : [],
+  };
+}
+
+/** The org's resolved CRM shape (pack + owner tweaks). */
+export function industryConfigOf(customization: Customization): IndustryConfig {
+  return resolveIndustry(customization);
 }
 
 /**
@@ -114,6 +159,13 @@ export function normalizeCustomization(input: unknown): { ok: true; value: Custo
   if (raw.startPage != null && !START_PAGES.some((p) => p.value === raw.startPage)) {
     return { ok: false, error: "Unknown start page." };
   }
+  if (raw.industry != null && !INDUSTRY_IDS.includes(String(raw.industry))) {
+    return { ok: false, error: `Unknown industry pack. Use: ${INDUSTRY_IDS.join(", ")}.` };
+  }
+  const dealFieldCheck = sanitizeFieldDefs(raw.customDealFields);
+  if (!dealFieldCheck.ok) return { ok: false, error: `Deal fields: ${dealFieldCheck.error}` };
+  const accountFieldCheck = sanitizeFieldDefs(raw.customAccountFields);
+  if (!accountFieldCheck.ok) return { ok: false, error: `Account fields: ${accountFieldCheck.error}` };
 
   const value = parseCustomization(JSON.stringify(raw));
   if (MODULE_IDS.every((id) => !value.modules[id])) {

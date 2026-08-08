@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { fmtMoney, stageLabel } from "@/lib/crm";
+import { fmtMoney } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
+import { stageLabelIn, parseCustomValues } from "@/lib/industry";
+import { CustomFieldsCard } from "@/components/crm/custom-fields";
 import {
   BandPill,
   Card,
@@ -26,6 +29,8 @@ export default async function DealDetailPage({
   const { id } = await params;
   const user = await currentUser();
   const manager = isManagerRole(user.role);
+  const industry = industryConfigOf(parseCustomization(user.org.customizationJson));
+  const t = industry.terms;
 
   const deal = await db.deal.findFirst({
     where: { id, orgId: user.orgId },
@@ -90,16 +95,16 @@ export default async function DealDetailPage({
     <div>
       <PageHeader
         title={deal.name}
-        subtitle={`${stageLabel(deal.stage)} · ${fmtMoney(deal.amount)} · ${deal.probability}% · ${deal.product || "No product"}`}
+        subtitle={`${stageLabelIn(industry.stages, deal.stage)} · ${fmtMoney(deal.amount)} · ${deal.probability}% · ${deal.product || "No product"}`}
       />
 
       <div className="grid gap-6 lg:grid-cols-3 mb-8">
-        <Card title="Deal" className="lg:col-span-2">
+        <Card title={t.deal} className="lg:col-span-2">
           <dl className="grid sm:grid-cols-2 gap-4 text-sm">
             <div>
               <dt className="text-xs text-muted uppercase tracking-wider">Stage</dt>
               <dd className="mt-1">
-                <DealStageSelect dealId={deal.id} stage={deal.stage} />
+                <DealStageSelect dealId={deal.id} stage={deal.stage} stages={industry.stages} />
               </dd>
             </div>
             <div>
@@ -107,7 +112,7 @@ export default async function DealDetailPage({
               <dd className="mt-1">{deal.owner?.name ?? "Unassigned"}</dd>
             </div>
             <div>
-              <dt className="text-xs text-muted uppercase tracking-wider">Account</dt>
+              <dt className="text-xs text-muted uppercase tracking-wider">{t.account}</dt>
               <dd className="mt-1">
                 {deal.account ? (
                   <Link href={`/crm/accounts/${deal.account.id}`} className="text-accent-hover hover:underline">
@@ -119,7 +124,7 @@ export default async function DealDetailPage({
               </dd>
             </div>
             <div>
-              <dt className="text-xs text-muted uppercase tracking-wider">Contact</dt>
+              <dt className="text-xs text-muted uppercase tracking-wider">{t.contact}</dt>
               <dd className="mt-1">
                 {deal.contact ? (
                   <>
@@ -145,6 +150,18 @@ export default async function DealDetailPage({
           </dl>
           {deal.notes && (
             <p className="mt-4 text-sm text-muted border-t border-line pt-4 whitespace-pre-wrap">{deal.notes}</p>
+          )}
+          {industry.dealFields.length > 0 && (
+            <div className="mt-4 border-t border-line pt-4">
+              <div className="text-xs text-muted uppercase tracking-wider mb-3">
+                {industry.packName} details
+              </div>
+              <CustomFieldsCard
+                endpoint={`/api/crm/deals/${deal.id}`}
+                fields={industry.dealFields}
+                values={parseCustomValues(deal.customJson)}
+              />
+            </div>
           )}
         </Card>
 

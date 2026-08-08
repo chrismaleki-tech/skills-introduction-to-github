@@ -1,5 +1,4 @@
 import { db } from "./db";
-import { OPEN_STAGES } from "./crm";
 
 function normEmail(e: string) {
   return e.trim().toLowerCase();
@@ -85,7 +84,9 @@ export async function autoMatchCallToCrm(input: {
     const deal = await db.deal.findFirst({
       where: {
         orgId: input.orgId,
-        stage: { in: [...OPEN_STAGES] },
+        // Prefer open deals; stage keys vary per industry pack, but the
+        // closed keys are stable across all of them.
+        stage: { notIn: ["closed_won", "closed_lost"] },
         ...(contactId ? { contactId } : { accountId: accountId! }),
         ...(input.preferOwnerId ? { ownerId: input.preferOwnerId } : {}),
       },

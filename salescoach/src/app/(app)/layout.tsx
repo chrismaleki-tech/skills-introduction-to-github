@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { currentUser, demoSwitcherAllowed, isManagerRole, impersonationInfo } from "@/lib/session";
 import { isBackofficeRole } from "@/lib/backoffice";
 import { consoleActor } from "@/lib/platform-admin";
-import { parseCustomization, moduleForPath, lightenHex } from "@/lib/customization";
+import { parseCustomization, industryConfigOf, moduleForPath, lightenHex } from "@/lib/customization";
 import { ImpersonationBanner } from "@/components/admin/impersonation";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
@@ -20,8 +20,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     select: { id: true, name: true, role: true, title: true },
   });
 
-  // Vendor-provisioned tenant customization: brand, accent, licensed modules.
+  // Vendor-provisioned tenant customization: brand, accent, licensed modules,
+  // and industry terminology for the CRM nav.
   const customization = parseCustomization(user.org.customizationJson);
+  const t = industryConfigOf(customization).terms;
   const brandName = customization.brandName || "SalesCoach AI";
   const themeStyle = customization.accentColor
     ? ({
@@ -35,9 +37,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/ask", label: "Ask" },
     ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
     { href: "/me", label: "My Performance" },
-    { href: "/crm", label: "Pipeline" },
-    { href: "/crm/accounts", label: "Accounts" },
-    { href: "/crm/contacts", label: "Contacts" },
+    { href: "/crm", label: t.pipeline },
+    { href: "/crm/accounts", label: t.accounts },
+    { href: "/crm/contacts", label: t.contacts },
     { href: "/erp", label: "ERP" },
     { href: "/erp/quotes", label: "Quotes" },
     { href: "/erp/orders", label: "Orders" },

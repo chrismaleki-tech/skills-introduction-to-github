@@ -1,5 +1,13 @@
 import { db } from "./db";
-import { fmtMoney, stageMeta } from "./crm";
+import { fmtMoney } from "./crm";
+import { parseCustomization, industryConfigOf } from "./customization";
+import { stageNearProbability, stageMetaIn, isClosedStage, type StageDef } from "./industry";
+
+/** The org's industry-configured pipeline stages (for ERP deal nudges). */
+async function orgStagesFor(orgId: string): Promise<StageDef[]> {
+  const org = await db.org.findUnique({ where: { id: orgId }, select: { customizationJson: true } });
+  return industryConfigOf(parseCustomization(org?.customizationJson ?? "{}")).stages;
+}
 
 export const QUOTE_STATUSES = [
   { key: "draft", label: "Draft" },
@@ -216,13 +224,21 @@ export async function createQuote(input: {
     include: { lines: true },
   });
 
-  // Nudge deal toward proposal when a quote is drafted from an earlier stage.
-  if (input.dealId && dealStage && ["lead", "qualified", "discovery", "demo"].includes(dealStage)) {
+  // Nudge deal toward its org's "proposal-like" stage (~65%) on quote draft.
+  const draftStages = input.dealId ? await orgStagesFor(input.orgId) : [];
+  const proposalish = draftStages.length ? stageNearProbability(draftStages, 65) : null;
+  if (
+    input.dealId &&
+    dealStage &&
+    proposalish &&
+    !isClosedStage(dealStage) &&
+    stageMetaIn(draftStages, dealStage).probability < proposalish.probability
+  ) {
     await db.deal.update({
       where: { id: input.dealId },
       data: {
-        stage: "proposal",
-        probability: stageMeta("proposal").probability,
+        stage: proposalish.key,
+        probability: proposalish.probability,
         amount: Math.max(totals.total, 0),
         nextStep: `Review quote ${number} with prospect`,
       },
@@ -263,11 +279,13 @@ export async function sendQuote(quoteId: string, orgId: string, userId: string) 
   });
 
   if (updated.dealId) {
+    const stages = await orgStagesFor(orgId);
+    const target = stageNearProbability(stages, 65);
     await db.deal.update({
       where: { id: updated.dealId },
       data: {
-        stage: "proposal",
-        probability: stageMeta("proposal").probability,
+        stage: target.key,
+        probability: target.probability,
         amount: updated.total,
         nextStep: `Awaiting decision on quote ${updated.number}`,
       },
@@ -310,11 +328,13 @@ export async function acceptQuote(quoteId: string, orgId: string, userId: string
   });
 
   if (updated.dealId) {
+    const stages = await orgStagesFor(orgId);
+    const target = stageNearProbability(stages, 80);
     await db.deal.update({
       where: { id: updated.dealId },
       data: {
-        stage: "negotiation",
-        probability: stageMeta("negotiation").probability,
+        stage: target.key,
+        probability: target.probability,
         amount: updated.total,
         nextStep: `Convert quote ${updated.number} to sales order`,
       },
@@ -402,11 +422,13 @@ export async function createOrderFromQuote(quoteId: string, orgId: string, userI
   });
 
   if (order.dealId) {
+    const stages = await orgStagesFor(orgId);
+    const target = stageNearProbability(stages, 80);
     await db.deal.update({
       where: { id: order.dealId },
       data: {
-        stage: "negotiation",
-        probability: stageMeta("negotiation").probability,
+        stage: target.key,
+        probability: target.probability,
         amount: order.total,
         nextStep: `Confirm sales order ${order.number}`,
       },

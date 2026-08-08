@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { backofficeActor } from "@/lib/backoffice";
 import { recordAudit } from "@/lib/audit";
 import { PLANS, isPlanId } from "@/lib/billing";
+import { syncTenantToVendorCrm, logVendorActivity } from "@/lib/vendor-crm";
 
 /**
  * POST /api/backoffice/plan — change the org's subscription plan and/or
@@ -74,6 +75,11 @@ export async function POST(req: Request) {
       req,
       meta: { billingEmail: data.billingEmail },
     });
+  }
+
+  await syncTenantToVendorCrm(org.id);
+  if (data.plan) {
+    await logVendorActivity(org.id, "Edition changed", `Customer self-served a move from ${org.plan} to ${data.plan}.`);
   }
 
   return NextResponse.json({ ok: true, changed: true, plan: data.plan ?? org.plan });

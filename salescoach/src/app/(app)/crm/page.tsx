@@ -1,6 +1,8 @@
 import { db } from "@/lib/db";
-import { fmtMoney, OPEN_STAGES } from "@/lib/crm";
+import { fmtMoney } from "@/lib/crm";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { parseCustomization, industryConfigOf } from "@/lib/customization";
+import { isClosedStage } from "@/lib/industry";
 import { Card, EmptyState, PageHeader, Stat } from "@/components/ui";
 import { NewDealForm } from "@/components/crm/forms";
 import { PipelineBoard } from "@/components/crm/pipeline-board";
@@ -8,6 +10,8 @@ import { PipelineBoard } from "@/components/crm/pipeline-board";
 export default async function CrmPipelinePage() {
   const user = await currentUser();
   const manager = isManagerRole(user.role);
+  const industry = industryConfigOf(parseCustomization(user.org.customizationJson));
+  const t = industry.terms;
   const dealWhere = manager ? { orgId: user.orgId } : { orgId: user.orgId, ownerId: user.id };
 
   const [deals, accounts, contacts, owners] = await Promise.all([
@@ -44,7 +48,7 @@ export default async function CrmPipelinePage() {
     }),
   ]);
 
-  const openDeals = deals.filter((d) => OPEN_STAGES.includes(d.stage as (typeof OPEN_STAGES)[number]));
+  const openDeals = deals.filter((d) => !isClosedStage(d.stage));
   const pipelineValue = openDeals.reduce((s, d) => s + d.amount, 0);
   const weighted = openDeals.reduce((s, d) => s + (d.amount * d.probability) / 100, 0);
   const coached = deals.filter((d) => d.activities.length > 0).length;
@@ -63,25 +67,36 @@ export default async function CrmPipelinePage() {
   return (
     <div>
       <PageHeader
-        title="Pipeline"
-        subtitle="Drag deals across stages. Graded calls write coaching scorecards onto each deal timeline."
-        actions={<NewDealForm accounts={accounts} contacts={contacts} owners={owners} defaultOwnerId={user.id} />}
+        title={t.pipeline}
+        subtitle={`Drag ${t.deals.toLowerCase()} across stages. Graded calls write coaching scorecards onto each ${t.deal.toLowerCase()} timeline.`}
+        actions={
+          <NewDealForm
+            accounts={accounts}
+            contacts={contacts}
+            owners={owners}
+            defaultOwnerId={user.id}
+            stages={industry.stages}
+            dealNoun={t.deal}
+            accountNoun={t.account}
+            contactNoun={t.contact}
+          />
+        }
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-        <Stat label="Open deals" value={openDeals.length} />
-        <Stat label="Pipeline" value={fmtMoney(pipelineValue)} />
+        <Stat label={`Open ${t.deals.toLowerCase()}`} value={openDeals.length} />
+        <Stat label="Pipeline value" value={fmtMoney(pipelineValue)} />
         <Stat label="Weighted" value={fmtMoney(Math.round(weighted))} sub="× probability" />
-        <Stat label="With coaching" value={coached} sub="deals with a graded call" />
+        <Stat label="With coaching" value={coached} sub={`${t.deals.toLowerCase()} with a graded call`} />
       </div>
 
-      <PipelineBoard initialDeals={boardDeals} />
+      <PipelineBoard initialDeals={boardDeals} stages={industry.stages} />
 
       {deals.length === 0 && (
         <Card className="mt-4">
           <EmptyState
-            title="No deals yet"
-            hint="Create a deal to start the pipeline. Link SalesCoach calls to write coaching scorecards back here."
+            title={`No ${t.deals.toLowerCase()} yet`}
+            hint={`Create a ${t.deal.toLowerCase()} to start the ${t.pipeline.toLowerCase()}. Link SalesCoach calls to write coaching scorecards back here.`}
           />
         </Card>
       )}

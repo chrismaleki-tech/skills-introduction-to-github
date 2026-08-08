@@ -11,6 +11,7 @@ import { PLANS, PLAN_ORDER, planFor } from "@/lib/billing";
 import { InviteUserForm } from "@/components/admin/org-forms";
 import { OrgUsersCard, type ConsoleOrgUser } from "@/components/admin/org-users-card";
 import { TenantCustomizationForm } from "@/components/admin/customization-form";
+import { CreateSandboxButton } from "@/components/admin/sandbox-button";
 
 export default async function AdminOrgDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -22,6 +23,8 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
       name: true,
       createdAt: true,
       plan: true,
+      kind: true,
+      vendorAccountId: true,
       customizationJson: true,
       users: {
         select: { id: true, name: true, email: true, role: true, title: true, lastLoginAt: true, passwordHash: true },
@@ -51,7 +54,11 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
     <div>
       <PageHeader
         title={org.name}
-        subtitle={`Tenant since ${fmtDateTime(org.createdAt)}`}
+        subtitle={`${
+          org.kind === "vendor" ? "Your own workspace (dogfooding)" : org.kind === "sandbox" ? "Sandbox workspace" : "Tenant"
+        } since ${fmtDateTime(org.createdAt)}${
+          org.kind === "customer" && org.vendorAccountId ? " · tracked in your vendor CRM" : ""
+        }`}
         actions={
           <Link href="/admin/orgs" className="text-sm text-muted hover:text-foreground">
             ← All organizations
@@ -84,8 +91,9 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
           />
         ) : (
           <div className="text-sm text-muted">
-            {planFor(org.plan).name} edition · brand {customization.brandName || "default"} · accent{" "}
-            {customization.accentColor || "default"} · start page {customization.startPage} ·{" "}
+            {planFor(org.plan).name} edition · {customization.industry} industry pack · brand{" "}
+            {customization.brandName || "default"} · accent {customization.accentColor || "default"} · start page{" "}
+            {customization.startPage} ·{" "}
             {disabledModules.length
               ? `modules off: ${disabledModules.map((m) => m.label).join(", ")}`
               : "all modules enabled"}
@@ -126,6 +134,16 @@ export default async function AdminOrgDetailPage({ params }: { params: Promise<{
               </table>
             )}
           </Card>
+
+          {canManage && org.kind !== "sandbox" && (
+            <Card title="Sandbox">
+              <p className="text-xs text-muted mb-3">
+                Rehearse changes safely: clone this tenant&apos;s configuration (customization, policies,
+                methodologies, scenarios) into a sandbox workspace with no customer data.
+              </p>
+              <CreateSandboxButton orgId={org.id} />
+            </Card>
+          )}
 
           <Card title="Staff access · last 90 days">
             <StaffAccess orgId={org.id} />

@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/session";
 import { requireConsole } from "@/lib/platform-admin";
 import { recordAudit } from "@/lib/audit";
+import { syncTenantToVendorCrm, logVendorActivity } from "@/lib/vendor-crm";
 import { randomBytes } from "crypto";
 
 /**
@@ -18,6 +19,8 @@ export async function GET() {
     select: {
       id: true,
       name: true,
+      kind: true,
+      plan: true,
       createdAt: true,
       _count: { select: { users: true, calls: true, deals: true } },
     },
@@ -83,6 +86,10 @@ export async function POST(req: Request) {
     req,
     meta: { name, adminEmail },
   });
+
+  // Dogfooding: new tenants appear in the vendor CRM immediately.
+  await syncTenantToVendorCrm(org.id);
+  await logVendorActivity(org.id, "Tenant created", `Provisioned by ${actor.user.email} with admin ${adminEmail}.`);
 
   return NextResponse.json({
     orgId: org.id,

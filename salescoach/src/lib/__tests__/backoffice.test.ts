@@ -7,6 +7,7 @@ import {
   seatLimitReached,
   buildStatement,
   currentPeriodStart,
+  monthlyRunRate,
 } from "../billing.ts";
 import { toCsv } from "../csv.ts";
 
@@ -23,6 +24,11 @@ describe("plans", () => {
     assert.equal(seatLimitReached(PLANS.trial, 5), true);
     assert.equal(seatLimitReached(PLANS.trial, 4), false);
     assert.equal(seatLimitReached(PLANS.scale, 10_000), false);
+  });
+
+  it("computes committed monthly run rate from seats", () => {
+    assert.equal(monthlyRunRate(PLANS.growth, 8), 8 * 49);
+    assert.equal(monthlyRunRate(PLANS.trial, 5), 0);
   });
 });
 
