@@ -92,15 +92,16 @@ const STATS = [
   { key:"app",  label:"SG: Approach" },
   { key:"arg",  label:"SG: Around Green" },
   { key:"putt", label:"SG: Putting" },
+  { key:"fit",  label:"Course Fit" },
   { key:"form", label:"Current Form" },
   { key:"hist", label:"Course History" },
   { key:"pts",  label:"DG Points" },
 ];
 const PRESETS = {
-  balanced:     {ott:15, app:20, arg:12, putt:15, form:18, hist:10, pts:10},
-  ballstriking: {ott:30, app:32, arg:8,  putt:8,  form:12, hist:5,  pts:5},
-  shortgame:    {ott:8,  app:12, arg:28, putt:30, form:12, hist:5,  pts:5},
-  hotform:      {ott:10, app:12, arg:8,  putt:10, form:40, hist:10, pts:10},
+  balanced:     {ott:12, app:18, arg:10, putt:12, fit:15, form:15, hist:8,  pts:10},
+  ballstriking: {ott:25, app:28, arg:6,  putt:6,  fit:15, form:10, hist:5,  pts:5},
+  shortgame:    {ott:6,  app:10, arg:24, putt:26, fit:14, form:10, hist:5,  pts:5},
+  hotform:      {ott:8,  app:10, arg:6,  putt:8,  fit:15, form:35, hist:8,  pts:10},
 };
 const WEIGHT_KEYS = STATS.map(s => s.key);
 const LS_SESSION = "scSimSessionWeights";
@@ -114,7 +115,10 @@ const $ = id => document.getElementById(id);
 
 function cloneWeights(w) {
   const out = {};
-  WEIGHT_KEYS.forEach(k => { out[k] = +((w && w[k]) != null ? w[k] : 0); });
+  WEIGHT_KEYS.forEach(k => {
+    if (w && w[k] != null && w[k] !== "") out[k] = +w[k];
+    else out[k] = +(PRESETS.balanced[k] || 0);
+  });
   return out;
 }
 

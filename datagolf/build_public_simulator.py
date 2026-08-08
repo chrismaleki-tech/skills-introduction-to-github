@@ -35,7 +35,7 @@ TEMPLATE = os.path.join(SIM_DIR, "statcaddy-simulator-standalone.html")
 # PGA Database column header -> widget stat key
 COLMAP = {
     "SG OTT": "ott", "Approach": "app", "Around Green": "arg", "Putting": "putt",
-    "Form": "form", "History": "hist", "Points": "pts",
+    "T2Green": "fit", "Form": "form", "History": "hist", "Points": "pts",
 }
 
 
