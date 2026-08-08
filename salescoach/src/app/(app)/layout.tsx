@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { currentUser, demoSwitcherAllowed, isManagerRole, impersonationInfo } from "@/lib/session";
+import { shortNameToken } from "@/lib/assistant";
 import { consoleActor } from "@/lib/platform-admin";
 import { ImpersonationBanner } from "@/components/admin/impersonation";
 import { NavLinks, type NavItem } from "@/components/nav";
@@ -17,6 +18,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     orderBy: [{ role: "asc" }, { name: "asc" }],
     select: { id: true, name: true, role: true, title: true },
   });
+  const firstAccount = await db.account.findFirst({
+    where: { orgId: user.orgId },
+    orderBy: { createdAt: "asc" },
+    select: { name: true },
+  });
+  const exampleAccount = shortNameToken(firstAccount?.name);
+  const exampleRep = shortNameToken(users.find((u) => u.role === "REP")?.name);
 
   const manager = isManagerRole(user.role);
   const items: NavItem[] = [
@@ -91,7 +99,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         />
         <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 sm:py-8 max-w-6xl w-full mx-auto">{children}</main>
       </div>
-      <AssistantChat />
+      <AssistantChat exampleAccount={exampleAccount} exampleRep={exampleRep} />
       </div>
     </div>
   );

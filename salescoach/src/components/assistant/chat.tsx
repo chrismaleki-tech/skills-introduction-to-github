@@ -13,15 +13,21 @@ import {
 } from "./reply";
 import { streamAssistantChat, useAskSession } from "./use-ask-session";
 
-const SUGGESTIONS = [
-  "What's our pipeline look like?",
-  "Show me the Cascade deal",
-  "List open quotes",
-  "Who needs coaching?",
-  "What was Alex's last Cascade call score?",
-];
-
-export function AssistantChat() {
+export function AssistantChat({
+  exampleAccount = null,
+  exampleRep = null,
+}: {
+  /** Short tenant-derived tokens so suggestions reference THIS workspace's data. */
+  exampleAccount?: string | null;
+  exampleRep?: string | null;
+}) {
+  const suggestions = [
+    "What's our pipeline look like?",
+    exampleAccount ? `Show me the ${exampleAccount} deal` : "Show recent role-plays",
+    "List open quotes",
+    "Who needs coaching?",
+    exampleRep && exampleAccount ? `What was ${exampleRep}'s last ${exampleAccount} call score?` : "Finance snapshot",
+  ];
   const pathname = usePathname();
   const hideOnAsk = pathname === "/ask" || pathname.startsWith("/ask/");
   const { domain, setDomain, messages, setMessages, uid } = useAskSession();
@@ -198,7 +204,7 @@ export function AssistantChat() {
 
           {showWelcome && (
             <div className="px-3 pb-2 flex flex-wrap gap-1.5">
-              {SUGGESTIONS.map((s) => (
+              {suggestions.map((s) => (
                 <button
                   key={s}
                   type="button"
@@ -225,7 +231,9 @@ export function AssistantChat() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={2}
-              placeholder="Ask about Cascade, quotes, call scores…"
+              placeholder={
+                exampleAccount ? `Ask about ${exampleAccount}, quotes, call scores…` : "Ask about deals, quotes, call scores…"
+              }
               className="flex-1 resize-none rounded-xl border border-line bg-background px-3 py-2 text-sm outline-none focus:border-accent/50"
             />
             <button

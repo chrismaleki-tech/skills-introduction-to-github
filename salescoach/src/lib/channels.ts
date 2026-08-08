@@ -163,7 +163,7 @@ function demoProspectCallReply(repNotes: string): string {
   if (repNotes.toLowerCase().includes("cfo") || repNotes.toLowerCase().includes("next step")) {
     return "Prospect agreed to a follow-up with the CFO and asked for a written payback model.";
   }
-  return "Prospect acknowledged the inventory pain, asked about rollout risk, and requested a follow-up email.";
+  return "Prospect acknowledged the pain point, asked about next steps and risk, and requested a follow-up email.";
 }
 
 async function deliverOutboundEmail(input: {
@@ -542,11 +542,13 @@ export async function placeCrmCall(input: {
     };
   }
 
+  const org = await db.org.findUnique({ where: { id: input.orgId }, select: { name: true } });
+  const orgName = org?.name || "our team";
   const defaultTranscript =
     input.transcript?.trim() ||
-    `REP: Hi${contact?.name ? ` ${contact.name.split(" ")[0]}` : ""}, calling from Meridian — do you have a couple minutes?
+    `REP: Hi${contact?.name ? ` ${contact.name.split(" ")[0]}` : ""}, calling from ${orgName} — do you have a couple minutes?
 PROSPECT: Sure, what's up?
-REP: ${notes || "Wanted to follow up on inventory accuracy across your warehouses and see if a short discovery would help."}
+REP: ${notes || "Wanted to follow up on our last conversation and see whether a short next step makes sense."}
 PROSPECT: ${demoProspectCallReply(notes)}
 REP: Great — I'll send a recap and proposed next step by email.`;
 

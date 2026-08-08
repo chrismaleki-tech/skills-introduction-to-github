@@ -21,7 +21,7 @@ export default async function CatalogPage() {
       />
       <Card>
         {products.length === 0 ? (
-          <EmptyState title="No products yet" hint="Add Meridian Core / Forecast SKUs to start quoting." />
+          <EmptyState title="No products yet" hint="Add your first SKUs to start quoting." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

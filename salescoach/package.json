@@ -11,7 +11,9 @@
     "jobs:worker": "tsx scripts/worker.ts",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts"
+    "db:seed:customers": "tsx prisma/demo/run.ts",
+    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:demo": "prisma db push --force-reset && tsx prisma/seed.ts && tsx prisma/demo/run.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
