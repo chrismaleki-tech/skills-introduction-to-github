@@ -423,7 +423,7 @@ export async function seedDemoTenant(spec: DemoTenantSpec): Promise<{ orgId: str
       contactId: deal.contactId ?? undefined,
       title: quote.title,
       notes: quote.notes ?? "",
-      taxCode: "US-CA",
+      taxCode: quote.taxCode ?? "US-EXEMPT",
       validUntil: new Date(now.getTime() + (quote.validInDays ?? 30) * 86400000),
       lines: quote.lines.map((line) => {
         const product = productBySku.get(line.sku)!;
@@ -453,6 +453,23 @@ export async function seedDemoTenant(spec: DemoTenantSpec): Promise<{ orgId: str
         reference: `ACH-${slug.toUpperCase().slice(0, 12)}-1`,
       });
     }
+  }
+
+  // Re-apply the authored deal fields last: the production quote/order flows
+  // deliberately move stages, overwrite nextStep/amount, and reset closeDate,
+  // which would contradict the spec's curated story (emails, notes, amounts).
+  for (const deal of spec.deals) {
+    const row = dealByRef.get(deal.ref)!;
+    await db.deal.update({
+      where: { id: row.id },
+      data: {
+        stage: deal.stage,
+        amount: deal.amount,
+        probability: deal.probability,
+        nextStep: deal.nextStep ?? "",
+        closeDate: deal.closeInDays != null ? new Date(now.getTime() + deal.closeInDays * 86400000) : undefined,
+      },
+    });
   }
 
   const counts = {

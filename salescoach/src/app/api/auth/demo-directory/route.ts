@@ -12,6 +12,7 @@ export async function GET() {
 
   const orgs = await db.org.findMany({
     orderBy: { createdAt: "asc" },
+    take: 12,
     select: {
       name: true,
       users: {

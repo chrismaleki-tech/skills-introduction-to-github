@@ -62,7 +62,7 @@ export function NewProductForm() {
     <form onSubmit={onSubmit} className="bg-surface border border-line rounded-xl p-4 space-y-3 w-full max-w-lg">
       <div className="grid sm:grid-cols-2 gap-3">
         <Field label="SKU" name="sku" required placeholder="CORE-SEAT" />
-        <Field label="Name" name="name" required placeholder="Meridian Core" />
+        <Field label="Name" name="name" required placeholder="Product name" />
         <Field label="List price" name="listPrice" type="number" defaultValue="0" />
         <Field label="Cost" name="cost" type="number" defaultValue="0" />
         <Field label="Unit" name="unit" defaultValue="seat" />
@@ -233,7 +233,7 @@ export function NewQuoteForm({
   return (
     <form onSubmit={onSubmit} className="bg-surface border border-line rounded-xl p-4 space-y-4 w-full">
       <div className="grid sm:grid-cols-2 gap-3">
-        <Field label="Title" name="title" placeholder="Cascade Core rollout" />
+        <Field label="Title" name="title" placeholder="Proposal title" />
         <label className="text-sm">
           <span className="text-xs text-muted uppercase tracking-wider">Deal</span>
           <select

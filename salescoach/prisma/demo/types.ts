@@ -126,6 +126,8 @@ export interface DemoQuoteSpec {
   lines: DemoQuoteLineSpec[];
   /** draft → nothing else; sent → sendQuote; accepted → full quote→order→invoice→50% payment path. */
   status: "draft" | "sent" | "accepted";
+  /** US-CA (retail sales tax) or US-EXEMPT (e.g. wholesale for resale). Default US-EXEMPT. */
+  taxCode?: "US-CA" | "US-EXEMPT";
   validInDays?: number;
 }
 

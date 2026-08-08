@@ -45,7 +45,7 @@ const MID_CALL = `REP: Hi, is this Derek? This is Kenji over at Lexus of West Lo
 PROSPECT: Yeah, hi. I was looking at the RX pretty casually.
 REP: Great choice. So the RX comes in the RX 350, the RX 350h hybrid, the RX 450h+ plug-in, and the RX 500h F SPORT Performance. Then within those you have Premium, Premium Plus, and Luxury packages, and the F SPORT models get adaptive variable suspension, twenty-one inch wheels, and the F SPORT steering wheel.
 PROSPECT: That is a lot of versions.
-REP: There is more — you can add the Technology package, panoramic roof, mark Levinson audio, the convenience package with the digital key. The 500h makes 366 horsepower. The interior got a full redesign with the Tazuna cockpit concept.
+REP: There is more — you can add the Technology package, panoramic roof, Mark Levinson audio, the convenience package with the digital key. The 500h makes 366 horsepower. The interior got a full redesign with the Tazuna cockpit concept.
 PROSPECT: Okay. I am really just comparing it against the BMW X5 on payment.
 REP: Oh, the RX definitely competes with the X5. Our lease programs change monthly but they are usually strong. Do you know what payment you are looking for?
 PROSPECT: I would have to see numbers on both.
@@ -70,29 +70,29 @@ PROSPECT: I have to go.`;
 
 const DEMO_CALL = `REP: Adaeze, thanks for making time this evening — I know the drive back from the test drive ran long. Quick recap of where we are, then the numbers, and you tell me where I have anything wrong. Sound good?
 PROSPECT: Go ahead, Gabriel.
-REP: On Saturday you and Emeka drove the GX 550 Overtrail. You told me the must-haves were three rows for the kids, real ground clearance for the Topanga fire roads on weekends, and enough tow rating for the small camper. The GX checks all three — and you said the third row actually fit your oldest, which the 4Runner never did.
+REP: On Saturday you and Emeka drove the GX 550 Luxury+. You told me the must-haves were three rows for the kids, real ground clearance for the Topanga fire roads on weekends, and enough tow rating for the small camper. The GX checks all three — and you said the third row actually fit your oldest, which the 4Runner never did.
 PROSPECT: That is all accurate. The sticking point is the trade. Carvana quoted me thirty-one two for the 4Runner and your appraisal came in at twenty-nine eight. That is fourteen hundred dollars, Gabriel.
 REP: You are right, and I am not going to wave that away. Two things, and then a proposal. First, here is our appraisal report itself — every deduction is itemized: the two tires at three millimeters, the windshield chip, the rear bumper scuff. Nothing in there is a mystery number. Second, Carvana's online quote is conditional — it gets finalized at pickup after their inspection, and quotes routinely come down at that step for exactly the items on this sheet.
 PROSPECT: So you are saying their thirty-one two is not real.
 REP: I am saying it is not final. Here is my proposal: if they hand you a firm written offer at thirty-one two after inspecting the truck, bring it to me and I will match it. And if you would rather not spend a Saturday on that, I will take this appraisal back to our used-car manager tonight with the service records you brought and ask him to sharpen it. Either way you should not pay the fourteen hundred.
 PROSPECT: Okay. That is a fair way to handle it. Walk me through the rest of the numbers.
-REP: One sheet, top to bottom. Overtrail at MSRP, seventy-nine nine fifty — no market adjustment, we do not do those. Roof cross bars and all-weather mats, six ninety. The extended protection plan we discussed for the fire-road use, thirty-four ninety-five, and that one is optional — I will show the total both with and without it. Trade at twenty-nine eight pending what we just agreed, and your payoff is zero since you own it. Doc and registration fees are printed there, nothing added at signing.
+REP: One sheet, top to bottom. Luxury+ at MSRP, seventy-nine nine fifty — no market adjustment, we do not do those. Roof cross bars and all-weather mats, six ninety. The extended protection plan we discussed for the fire-road use, thirty-four ninety-five, and that one is optional — I will show the total both with and without it. Trade at twenty-nine eight pending what we just agreed, and your payoff is zero since you own it. Doc and registration fees are printed there, nothing added at signing.
 PROSPECT: What does that do to the monthly on the sixty-month finance we discussed?
 REP: With the protection plan it lands at eleven forty-two a month at the rate you were pre-approved for; without it, ten eighty-six. If the trade number improves, every additional thousand takes it down about seventeen dollars a month.
 PROSPECT: And if we wanted the camper hitch wiring done before delivery?
 REP: We can have our shop do the seven-pin wiring before you take it — I will fold it into the sheet at cost tomorrow so you see it before you decide anything.
 PROSPECT: Alright. Get me the sharpened trade number and the wiring line by tomorrow, and Emeka and I will decide this week.
-REP: Done. I will call you by six tomorrow evening with the revised sheet, and I will hold the Overtrail with a stock note through Friday so nobody sells it out from under you — no deposit needed. Fair?
+REP: Done. I will call you by six tomorrow evening with the revised sheet, and I will hold the GX with a stock note through Friday so nobody sells it out from under you — no deposit needed. Fair?
 PROSPECT: Fair. Talk tomorrow, Gabriel.
 REP: Thank you, Adaeze. Say hi to Emeka for me.`;
 
 const FOLLOWUP_TRADE = `REP: Adaeze, Gabriel at Lexus of West LA — is now still a good time for the five-minute update I promised?
 PROSPECT: It is. Did your manager move on the trade?
 REP: He did. With the service records you sent over, he re-scored the 4Runner's condition and the new written number is thirty thousand six hundred — up eight hundred from Saturday. And the offer to match a firm, post-inspection Carvana number still stands on top of that.
-PROSPECT: Thirty-six is still six hundred short of their quote.
+PROSPECT: That is still six hundred short of their quote.
 REP: Correct, against their conditional quote. If they inspect the truck and put thirty-one two in writing, I match it that day. But I did not want to hold your decision hostage to their schedule, so I also had the seven-pin trailer wiring quoted at our cost like I promised — two hundred forty installed, on the sheet, before delivery.
 PROSPECT: That is what the trailer shop quoted me just for parts. Alright, that helps.
-REP: So the revised sheet is in your inbox now: Overtrail at MSRP, wiring at cost, trade at thirty-six with the match commitment written on it, and the protection plan shown both in and out. What would you and Emeka need from me to make a decision by Friday?
+REP: So the revised sheet is in your inbox now: GX at MSRP, wiring at cost, trade at thirty thousand six hundred with the match commitment written on it, and the protection plan shown both in and out. What would you and Emeka need from me to make a decision by Friday?
 PROSPECT: Nothing more, honestly. We will talk tonight and I will call you tomorrow.
 REP: Perfect. I have the truck flagged as held through Friday close of business. Talk tomorrow, Adaeze.
 PROSPECT: Thanks, Gabriel. You have been straight with us — it is noticed.
@@ -131,7 +131,7 @@ export const spec: DemoTenantSpec = {
         description:
           "The two-row flagship SUV as a hybrid: about 37 mpg in stop-and-go traffic, AWD standard, Premium through Luxury trims.",
         differentiators: [
-          "Roughly double the city fuel economy of a BMW X5 or Mercedes GLE at a comparable payment",
+          "Dramatically better city fuel economy than a comparable BMW X5 or Mercedes GLE — 37 mpg vs. their low twenties",
           "Ten-year / 150,000-mile hybrid battery warranty",
           "Strongest resale values in the midsize luxury SUV segment",
         ],
@@ -152,9 +152,9 @@ export const spec: DemoTenantSpec = {
       {
         name: "GX 550 / TX 350 family and adventure line",
         description:
-          "Three-row body-on-frame capability (GX 550, including the Overtrail off-road trim) and three-row road-trip comfort (TX 350) for larger households and small fleets.",
+          "Three-row body-on-frame capability (GX 550 Premium and Luxury trims) and three-row road-trip comfort (TX 350) for larger households and small fleets.",
         differentiators: [
-          "GX 550 Overtrail: real off-road hardware (locking rear diff, crawl control) with a valet-friendly interior",
+          "GX 550: real body-on-frame capability (full-time 4WD, crawl control) with a valet-friendly interior",
           "TX 350: a genuinely adult-usable third row — the studio-shuttle favorite on the Westside",
           "Both tow-rated for campers and trailers common in weekend Topanga/Sierra trips",
         ],
@@ -277,7 +277,7 @@ export const spec: DemoTenantSpec = {
   users: [
     { name: "Diane Castellanos", email: "diane@lexuswla.demo", role: "MANAGER", title: "General Sales Manager" },
     { name: "Marcus Osei", email: "marcus@lexuswla.demo", role: "TRAINER", title: "Guest Experience Training Lead" },
-    { name: "Priya Raman", email: "priya@lexuswla.demo", role: "ADMIN", title: "Sales Operations Administrator" },
+    { name: "Rosa Delgado", email: "rosa@lexuswla.demo", role: "ADMIN", title: "Sales Operations Administrator" },
     { name: "Gabriel Fuentes", email: "gabriel@lexuswla.demo", role: "REP", title: "Senior Sales Consultant", highVolume: true },
     { name: "Aisha Thompson", email: "aisha@lexuswla.demo", role: "REP", title: "Sales Consultant", highVolume: true },
     { name: "Kenji Watanabe", email: "kenji@lexuswla.demo", role: "REP", title: "Sales Consultant" },
@@ -346,7 +346,7 @@ export const spec: DemoTenantSpec = {
       ],
     },
     {
-      title: "Trade-in value objection on a GX 550 Overtrail",
+      title: "Trade-in value objection on a GX 550 Luxury+",
       callType: "negotiation",
       difficulty: "hard",
       persona: {
@@ -365,7 +365,7 @@ export const spec: DemoTenantSpec = {
           "Your trade-in offer is lower than what Carvana quoted me.",
           "I need to think about it — Emeka and I decide together, and we do not decide in showrooms.",
         ],
-        budget: "Approved for the GX 550 Overtrail around $80k; the sticking point is the $1,400 trade gap, not the price of the truck.",
+        budget: "Approved for the GX 550 Luxury+ around $80k; the sticking point is the $1,400 trade gap, not the price of the truck.",
         notes:
           "Post-test-drive negotiation. A strong rep walks the itemized appraisal line by line, explains that online quotes are conditional until post-inspection, offers a written match commitment, takes the appraisal back for sharpening, and sets a specific follow-up — respecting the joint decision instead of pushing for a same-day close.",
       },
@@ -457,7 +457,7 @@ export const spec: DemoTenantSpec = {
       name: "The Okonkwo Household",
       industry: "Consumer — luxury auto",
       size: "Household",
-      notes: "Family of five upgrading from a 2019 4Runner to a GX 550 Overtrail. Joint decision (Adaeze + Emeka). Trade gap vs. Carvana is the deal's center of gravity.",
+      notes: "Family of five upgrading from a 2019 4Runner to a GX 550 Luxury+. Joint decision (Adaeze + Emeka). Trade gap vs. Carvana is the deal's center of gravity.",
     },
     {
       ref: "harborlight",
@@ -576,10 +576,10 @@ export const spec: DemoTenantSpec = {
       accountRef: "okonkwo",
       contactRef: "adaeze",
       ownerEmail: "gabriel@lexuswla.demo",
-      name: "Okonkwo · GX 550 Overtrail",
+      name: "Okonkwo · GX 550 Luxury+",
       stage: "proposal",
       amount: 84650,
-      product: "GX 550 Overtrail",
+      product: "GX 550 Luxury+",
       probability: 60,
       nextStep: "Deliver sharpened trade number + seven-pin wiring line by 6 PM; decision with Emeka by Friday",
       closeInDays: 10,
@@ -661,9 +661,9 @@ export const spec: DemoTenantSpec = {
       initialStock: 5,
     },
     {
-      sku: "GX550-OT",
-      name: "GX 550 Overtrail",
-      description: "Three-row body-on-frame 4x4, twin-turbo V6, locking rear differential, crawl control, 33-inch all-terrains. Tow rated 9,000 lbs.",
+      sku: "GX550-LP",
+      name: "GX 550 Luxury+",
+      description: "Three-row body-on-frame 4x4, twin-turbo V6, adaptive variable suspension, full-time 4WD with crawl control. Tow rated 9,000 lbs.",
       category: "Vehicle — SUV",
       listPrice: 79950,
       cost: 74100,
@@ -686,8 +686,8 @@ export const spec: DemoTenantSpec = {
     },
     {
       sku: "FSPORT-PKG",
-      name: "F SPORT appearance package",
-      description: "F SPORT styling and handling upgrade: 21-inch wheels, adaptive variable suspension tune, F SPORT wheel, seats, and badging.",
+      name: "F SPORT styling accessory set",
+      description: "Dealer-installed F SPORT styling: 21-inch alloy wheels, F SPORT steering wheel and pedal set, and badging.",
       category: "Upgrade package",
       listPrice: 4150,
       cost: 2600,
@@ -719,6 +719,7 @@ export const spec: DemoTenantSpec = {
       title: "Cho · RX 350h F SPORT — itemized",
       notes: "One sheet as promised: MSRP, no market adjustment, options shown so the total works with or without the protection plan. Side-by-side vs. the X5 lease offer attached at the appointment.",
       status: "sent",
+      taxCode: "US-CA",
       validInDays: 10,
       lines: [
         { sku: "RX350H-PREM", description: "RX 350h Premium AWD — Iridium / black interior", quantity: 1 },
@@ -732,6 +733,7 @@ export const spec: DemoTenantSpec = {
       title: "Harbor Light · TX 350 shuttle fleet (3 units) — fleet pricing",
       notes: "Fleet pricing per GSM approval: three matching TX 350 Luxury AWD, delivery first week of September. Includes fleet service concierge with pickup and loaners. Own-vs-lease comparison presented Thursday.",
       status: "draft",
+      taxCode: "US-CA",
       validInDays: 21,
       lines: [
         { sku: "TX350-LUX", description: "TX 350 Luxury AWD — matching spec, fleet price", quantity: 3, unitPrice: 58000 },
@@ -744,6 +746,7 @@ export const spec: DemoTenantSpec = {
       title: "Vasquez · RX 350h Premium — delivered",
       notes: "Final signed sheet: RX 350h Premium AWD in Iridium plus extended protection. Trade and fees itemized on the delivery copy.",
       status: "accepted",
+      taxCode: "US-CA",
       validInDays: 30,
       lines: [
         { sku: "RX350H-PREM", description: "RX 350h Premium AWD — Iridium / rioja red interior", quantity: 1, unitPrice: 59750 },
@@ -802,7 +805,7 @@ Fleet & Corporate Sales, Lexus of West Los Angeles`,
       contactRef: "adaeze",
       dealRef: "deal-okonkwo-gx",
       notes:
-        "Promised 6 PM update delivered: used-car manager re-scored the 4Runner trade to $30,600 with the service records; written Carvana match commitment reiterated; seven-pin trailer wiring added to the sheet at cost ($240 installed). Revised itemized sheet emailed during the call. Adaeze and Emeka deciding tonight, callback expected tomorrow. Overtrail held via stock note through Friday.",
+        "Promised 6 PM update delivered: used-car manager re-scored the 4Runner trade to $30,600 with the service records; written Carvana match commitment reiterated; seven-pin trailer wiring added to the sheet at cost ($240 installed). Revised itemized sheet emailed during the call. Adaeze and Emeka deciding tonight, callback expected tomorrow. GX held via stock note through Friday.",
       durationSec: 380,
       callType: "negotiation",
     },
@@ -829,7 +832,7 @@ Fleet & Corporate Sales, Lexus of West Los Angeles`,
     },
     {
       repEmail: "aisha@lexuswla.demo",
-      scenarioTitle: "Trade-in value objection on a GX 550 Overtrail",
+      scenarioTitle: "Trade-in value objection on a GX 550 Luxury+",
       type: "ROLEPLAY",
       targetCount: 2,
       doneCount: 0,

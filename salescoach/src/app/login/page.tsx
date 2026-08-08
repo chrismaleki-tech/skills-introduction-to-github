@@ -28,19 +28,24 @@ export default function LoginPage() {
   async function login(asEmail: string, asPassword: string) {
     setPending(true);
     setError(null);
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: asEmail, password: asPassword }),
-    });
-    const data = await res.json().catch(() => ({}));
-    setPending(false);
-    if (!res.ok) {
-      setError(data.error ?? "Login failed.");
-      return;
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: asEmail, password: asPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Login failed.");
+        return;
+      }
+      router.push(data.redirect || "/dashboard");
+      router.refresh();
+    } catch {
+      setError("Could not reach the server — try again.");
+    } finally {
+      setPending(false);
     }
-    router.push(data.redirect || "/dashboard");
-    router.refresh();
   }
 
   async function onSubmit(e: React.FormEvent) {

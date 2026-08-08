@@ -80,6 +80,9 @@ export function validateDemoSpec(spec: DemoTenantSpec): string[] {
     if (quote.status === "accepted" && deal && deal.stage !== "closed_won") {
       p(`quote "${quote.title}": accepted quotes must target a closed_won deal (confirming closes the deal)`);
     }
+    if (quote.status !== "accepted" && deal && deal.stage.startsWith("closed")) {
+      p(`quote "${quote.title}": open quotes cannot target the closed deal "${deal.ref}"`);
+    }
     if (!quote.lines.length) p(`quote "${quote.title}": no lines`);
     for (const line of quote.lines) {
       if (!skus.has(line.sku)) p(`quote "${quote.title}": unknown sku "${line.sku}"`);
