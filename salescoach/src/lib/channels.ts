@@ -163,7 +163,7 @@ function demoProspectCallReply(repNotes: string): string {
   if (repNotes.toLowerCase().includes("cfo") || repNotes.toLowerCase().includes("next step")) {
     return "Prospect agreed to a follow-up with the CFO and asked for a written payback model.";
   }
-  return "Prospect acknowledged the inventory pain, asked about rollout risk, and requested a follow-up email.";
+  return "Prospect acknowledged the pain point, asked about next steps and risk, and requested a follow-up email.";
 }
 
 async function deliverOutboundEmail(input: {

@@ -13,34 +13,49 @@ import {
 } from "./reply";
 import { streamAssistantChat, useAskSession } from "./use-ask-session";
 
-const EXAMPLES: Record<AssistantDomain, { label: string; query: string }[]> = {
-  all: [
-    { label: "Pipeline health", query: "What's our pipeline look like?" },
-    { label: "Cascade deal", query: "Show me the Cascade deal" },
-    { label: "Open quotes", query: "List open quotes" },
-    { label: "Finance", query: "Finance snapshot" },
-    { label: "Coaching queue", query: "Who needs coaching?" },
-    { label: "Call score", query: "What was Alex's last Cascade call score?" },
-  ],
-  crm: [
-    { label: "Pipeline", query: "What's our pipeline look like?" },
-    { label: "Cascade", query: "Show me the Cascade deal" },
-    { label: "Move stage", query: "Move Cascade to negotiation" },
-    { label: "Timeline", query: "Show Cascade activity timeline" },
-  ],
-  erp: [
-    { label: "Finance", query: "Finance snapshot" },
-    { label: "Quotes", query: "List open quotes" },
-    { label: "Quote detail", query: "Show details for Q-1001" },
-    { label: "Purchase orders", query: "Show purchase orders" },
-  ],
-  trainer: [
-    { label: "Needs coaching", query: "Who needs coaching?" },
-    { label: "My performance", query: "How am I doing?" },
-    { label: "Call score", query: "What was Alex's last Cascade call score?" },
-    { label: "Scenarios", query: "List scenarios" },
-  ],
-};
+/** Example chips reference the tenant's own account/rep when provided. */
+function buildExamples(
+  account: string | null,
+  rep: string | null,
+): Record<AssistantDomain, { label: string; query: string }[]> {
+  const acct = account ?? null;
+  const callScore =
+    rep && acct
+      ? { label: "Call score", query: `What was ${rep}'s last ${acct} call score?` }
+      : { label: "Role-plays", query: "Show recent role-plays" };
+  return {
+    all: [
+      { label: "Pipeline health", query: "What's our pipeline look like?" },
+      ...(acct ? [{ label: `${acct} deal`, query: `Show me the ${acct} deal` }] : []),
+      { label: "Open quotes", query: "List open quotes" },
+      { label: "Finance", query: "Finance snapshot" },
+      { label: "Coaching queue", query: "Who needs coaching?" },
+      callScore,
+    ],
+    crm: [
+      { label: "Pipeline", query: "What's our pipeline look like?" },
+      ...(acct
+        ? [
+            { label: acct, query: `Show me the ${acct} deal` },
+            { label: "Move stage", query: `Move ${acct} to negotiation` },
+            { label: "Timeline", query: `Show ${acct} activity timeline` },
+          ]
+        : [{ label: "Accounts", query: "List accounts" }]),
+    ],
+    erp: [
+      { label: "Finance", query: "Finance snapshot" },
+      { label: "Quotes", query: "List open quotes" },
+      { label: "Quote detail", query: "Show details for Q-1001" },
+      { label: "Purchase orders", query: "Show purchase orders" },
+    ],
+    trainer: [
+      { label: "Needs coaching", query: "Who needs coaching?" },
+      { label: "My performance", query: "How am I doing?" },
+      callScore,
+      { label: "Scenarios", query: "List scenarios" },
+    ],
+  };
+}
 
 const DOMAIN_COPY: Record<AssistantDomain, { title: string; blurb: string }> = {
   all: {
@@ -61,7 +76,13 @@ const DOMAIN_COPY: Record<AssistantDomain, { title: string; blurb: string }> = {
   },
 };
 
-export function QueryWorkspace() {
+export function QueryWorkspace({
+  exampleAccount = null,
+  exampleRep = null,
+}: {
+  exampleAccount?: string | null;
+  exampleRep?: string | null;
+}) {
   const { hydrated, domain, setDomain, messages, setMessages, clear, uid } = useAskSession();
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
@@ -150,7 +171,7 @@ export function QueryWorkspace() {
   }
 
   const copy = DOMAIN_COPY[domain];
-  const examples = EXAMPLES[domain];
+  const examples = buildExamples(exampleAccount, exampleRep)[domain];
   const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant" && !m.pending);
   const followUps = lastAssistant?.followUps?.length
     ? lastAssistant.followUps
@@ -210,7 +231,7 @@ export function QueryWorkspace() {
                   rows={started ? 2 : 3}
                   placeholder={
                     domain === "crm"
-                      ? "e.g. Move Cascade to negotiation…"
+                      ? `e.g. Move ${exampleAccount ?? "a deal"} to negotiation…`
                       : domain === "erp"
                         ? "e.g. Show details for Q-1001…"
                         : domain === "trainer"

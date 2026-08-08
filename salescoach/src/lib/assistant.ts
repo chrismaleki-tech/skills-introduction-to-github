@@ -63,9 +63,51 @@ const TOOL_SOURCES: Record<string, AssistantSource[]> = {
   help: ["crm", "erp", "trainer"],
 };
 
+// Fallback vocabulary (matches the Meridian seed) used when no tenant vocab
+// is supplied — e.g. in unit tests that call routeDemoIntent directly.
 const ACCOUNT_TOKENS = "Cascade|BlueRidge|Blue Ridge|Summit|Harbor|Northwind|Harbor Parts";
 const REP_TOKENS = "Alex|Casey|Jordan|Morgan|Riley|Sarah";
 const CONTACT_TOKENS = "Dana|Marta|Priya|Tom|Ellis";
+
+/** Per-tenant name vocabulary so the demo intent router works in every workspace. */
+export type DemoVocab = { accounts: string[]; reps: string[]; contacts: string[] };
+
+function escapeRe(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Strip a leading article and return a short display/match token for a name. */
+export function shortNameToken(name: string | null | undefined): string | null {
+  const cleaned = (name ?? "").trim().replace(/^the\s+/i, "");
+  const first = cleaned.split(/\s+/)[0] ?? "";
+  return first.length > 1 ? first : cleaned || null;
+}
+
+function vocabTokens(names: string[], fallback: string): string {
+  const tokens = new Set<string>();
+  for (const name of names) {
+    const trimmed = name.trim();
+    if (!trimmed) continue;
+    tokens.add(escapeRe(trimmed));
+    const short = shortNameToken(trimmed);
+    if (short && short.length > 2) tokens.add(escapeRe(short));
+  }
+  return tokens.size ? [...tokens].join("|") : fallback;
+}
+
+/** Build the tenant vocabulary for the demo router from live CRM data. */
+export async function demoVocabForOrg(orgId: string): Promise<DemoVocab> {
+  const [accounts, users, contacts] = await Promise.all([
+    db.account.findMany({ where: { orgId }, select: { name: true }, take: 40 }),
+    db.user.findMany({ where: { orgId }, select: { name: true }, take: 40 }),
+    db.contact.findMany({ where: { orgId }, select: { name: true }, take: 40 }),
+  ]);
+  return {
+    accounts: accounts.map((a) => a.name),
+    reps: users.map((u) => u.name),
+    contacts: contacts.map((c) => c.name),
+  };
+}
 
 function sourcesForTools(names: string[]): AssistantSource[] {
   const set = new Set<AssistantSource>();
@@ -1476,21 +1518,30 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     name: "help",
     description: "Explain what the assistant can do across coaching, CRM, and ERP.",
     parameters: { type: "object", properties: {} },
-    async run() {
+    async run(_args, ctx) {
+      // Examples come from the tenant's own data so every workspace's help
+      // text references its accounts and reps, not another tenant's.
+      const [account, rep, contact] = await Promise.all([
+        db.account.findFirst({ where: { orgId: ctx.orgId }, orderBy: { createdAt: "asc" }, select: { name: true } }),
+        db.user.findFirst({ where: { orgId: ctx.orgId, role: "REP" }, orderBy: { createdAt: "asc" }, select: { name: true } }),
+        db.contact.findFirst({ where: { orgId: ctx.orgId }, orderBy: { createdAt: "asc" }, select: { name: true } }),
+      ]);
+      const acct = shortNameToken(account?.name) ?? "your account";
+      const repName = shortNameToken(rep?.name) ?? "your rep";
+      const contactName = shortNameToken(contact?.name) ?? "a contact";
       return {
         text: [
           "I can work across the whole platform. Try:",
           "• “What's our pipeline look like?”",
-          "• “Show me the Cascade deal”",
-          "• “List open quotes” / “Accept the Cascade quote”",
-          "• “Confirm order SO-1002” / “Invoice Harbor's order”",
+          `• “Show me the ${acct} deal”`,
+          `• “List open quotes” / “Accept the ${acct} quote”`,
           "• “Finance snapshot” / “What's low in inventory?” / “Show purchase orders”",
           "• “Trial balance” / “Warehouse stock” / “Projects” / “Payroll”",
-          "• “Who needs coaching?” / “How is Alex doing?”",
-          "• “What was Alex's last Cascade call score?”",
+          `• “Who needs coaching?” / “How is ${repName} doing?”`,
+          `• “What was ${repName}'s last ${acct} call score?”`,
           "• “Show recent role-plays” / “Show assignments”",
-          "• “Create a quote for BlueRidge with Meridian Core”",
-          "• “Find contact Dana”",
+          `• “Create a quote for ${acct}”`,
+          `• “Find contact ${contactName}”`,
         ].join("\n"),
         links: [
           { href: "/ask", label: "Ask view" },
@@ -1525,12 +1576,13 @@ async function runTool(name: string, args: Record<string, unknown>, ctx: ToolCtx
 export function routeDemoIntent(
   message: string,
   domain: "all" | AssistantSource = "all",
+  vocab?: DemoVocab,
 ): { name: string; args: Record<string, unknown> }[] {
   const m = message.trim();
   const lower = m.toLowerCase();
-  const accountRe = new RegExp(`\\b(${ACCOUNT_TOKENS})\\b`, "i");
-  const repRe = new RegExp(`\\b(${REP_TOKENS})\\b`, "i");
-  const contactRe = new RegExp(`\\b(${CONTACT_TOKENS})\\b`, "i");
+  const accountRe = new RegExp(`\\b(${vocab ? vocabTokens(vocab.accounts, ACCOUNT_TOKENS) : ACCOUNT_TOKENS})\\b`, "i");
+  const repRe = new RegExp(`\\b(${vocab ? vocabTokens(vocab.reps, REP_TOKENS) : REP_TOKENS})\\b`, "i");
+  const contactRe = new RegExp(`\\b(${vocab ? vocabTokens(vocab.contacts, CONTACT_TOKENS) : CONTACT_TOKENS})\\b`, "i");
   const namedAccount = m.match(accountRe)?.[1];
   const namedRep = m.match(repRe)?.[1];
   const namedContact = m.match(contactRe)?.[1];
@@ -1844,7 +1896,8 @@ export async function runAssistantChat(input: {
   }
 
   if (!aiAvailable()) {
-    const calls = routeDemoIntent(message, domain);
+    const vocab = await demoVocabForOrg(ctx.orgId);
+    const calls = routeDemoIntent(message, domain, vocab);
     const parts: string[] = [];
     const links: AssistantLink[] = [];
     const toolNames: string[] = [];
