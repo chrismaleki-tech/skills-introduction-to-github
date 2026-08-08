@@ -198,7 +198,7 @@ export function UploadForm({
               rows={10}
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
-              placeholder={"REP: Hi, this is Jordan from Meridian — did I catch you at an okay time?\nPROSPECT: You've got about two minutes, go ahead."}
+              placeholder={"REP: Hi, this is Jordan — did I catch you at an okay time?\nPROSPECT: You've got about two minutes, go ahead."}
               aria-label="Transcript"
               className={`${inputCls} font-mono text-xs resize-y`}
             />

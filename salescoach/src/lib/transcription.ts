@@ -107,29 +107,31 @@ export async function transcribeAudio(audio: Buffer, mimeType: string): Promise<
 
 // --- Path 3: mock ---
 
+// Industry-neutral so demo-mode transcription never leaks another tenant's
+// company or product names into a customer's workspace.
 const MOCK_EXCHANGES: [string, string][] = [
   [
-    "Hi, this is Jordan calling from Meridian Software — did I catch you at an okay time?",
+    "Hi, this is Jordan — did I catch you at an okay time?",
     "You've got about two minutes, go ahead.",
   ],
   [
-    "Appreciate that. We work with operations teams that are juggling inventory across multiple warehouses. Out of curiosity, how is your team handling that today?",
-    "Mostly spreadsheets and our old ERP, honestly. It's not great but it works.",
+    "Appreciate that. Before I say anything about us — how is your team handling this today, and what's working about it?",
+    "Mostly manual processes and a legacy system, honestly. It's not great but it works.",
   ],
   [
-    "That's what we hear a lot. When the counts drift, what does that end up costing you — is it mostly write-offs, or missed shipments?",
-    "Missed shipments mostly. We had a rough quarter with a big retail customer over exactly that.",
+    "That's what we hear a lot. When it goes wrong, what does it end up costing you — time, money, or customers?",
+    "Customers, mostly. We had a rough quarter with one of our biggest accounts over exactly that.",
   ],
   [
-    "That's a big deal. What would it mean for that relationship if the counts were reliable in real time?",
-    "It would help, sure. But look, we've been burned by software rollouts before. These things take a year and go over budget.",
+    "That's a big deal. What would it mean for that relationship if the problem just went away?",
+    "It would help, sure. But look, we've been burned by vendors before. These things drag on and go over budget.",
   ],
   [
-    "Totally fair — that's the most common concern we hear. Our deployments run in phases and the first warehouse is typically live in six weeks. Would it be useful if I showed you how a company your size did that rollout?",
+    "Totally fair — that's the most common concern we hear. We roll out in phases with a fixed scope up front. Would it be useful if I showed you how a company your size did it?",
     "Maybe. What does something like this cost?",
   ],
   [
-    "It depends on warehouse count, but most customers your size land between two and four thousand a month, and the missed-shipment math usually pays that back in the first quarter. Could we set up thirty minutes Thursday with you and whoever owns fulfillment, and I'll walk through the numbers?",
+    "It depends on scope, but against what that account issue cost you, most customers see the math work in the first quarter. Could we set up thirty minutes Thursday with you and whoever owns the budget, and I'll walk through the numbers?",
     "Alright, Thursday afternoon could work. Send me an invite.",
   ],
 ];
