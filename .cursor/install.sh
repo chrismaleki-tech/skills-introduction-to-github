@@ -23,7 +23,7 @@ if command -v apt-get >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
   PY_MM="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
   sudo apt-get update -y
   sudo apt-get install -y --no-install-recommends \
-    "python${PY_MM}-venv" python3-pip build-essential curl unzip
+    "python${PY_MM}-venv" python3-pip build-essential curl unzip zip
 else
   echo "apt-get/sudo unavailable; assuming python3-venv is already present"
 fi
@@ -54,6 +54,16 @@ pip install \
 # the datagolf tooling. Installed into the venv so `uvx` is on PATH.
 log "Installing uv / uvx"
 pip install uv
+
+# ---------------------------------------------------------------------------
+# 1b. Build the Lambda deployment asset consumed by the CDK stack
+# ---------------------------------------------------------------------------
+# The CDK stack (part4) references a prebuilt zip via Code.from_asset, so `cdk
+# synth`/`cdk deploy` fail until it exists. Rebuild it here (idempotent: the
+# build script cleans its output first).
+log "Building Lambda deployment package (for cdk synth/deploy)"
+bash part4_infrastructure/lambda_functions/build_minimal_package.sh >/dev/null
+echo "lambda-minimal-package.zip built"
 
 # ---------------------------------------------------------------------------
 # 2. AWS CLI v2 (official installer)
