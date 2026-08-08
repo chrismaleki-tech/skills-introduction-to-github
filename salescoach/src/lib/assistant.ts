@@ -70,7 +70,7 @@ const REP_TOKENS = "Alex|Casey|Jordan|Morgan|Riley|Sarah";
 const CONTACT_TOKENS = "Dana|Marta|Priya|Tom|Ellis";
 
 /** Per-tenant name vocabulary so the demo intent router works in every workspace. */
-export type DemoVocab = { accounts: string[]; reps: string[]; contacts: string[] };
+export type DemoVocab = { accounts: string[]; reps: string[]; contacts: string[]; products: string[] };
 
 function escapeRe(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -97,15 +97,17 @@ function vocabTokens(names: string[], fallback: string): string {
 
 /** Build the tenant vocabulary for the demo router from live CRM data. */
 export async function demoVocabForOrg(orgId: string): Promise<DemoVocab> {
-  const [accounts, users, contacts] = await Promise.all([
+  const [accounts, users, contacts, products] = await Promise.all([
     db.account.findMany({ where: { orgId }, select: { name: true }, take: 40 }),
     db.user.findMany({ where: { orgId }, select: { name: true }, take: 40 }),
     db.contact.findMany({ where: { orgId }, select: { name: true }, take: 40 }),
+    db.product.findMany({ where: { orgId, active: true }, select: { name: true }, take: 40 }),
   ]);
   return {
     accounts: accounts.map((a) => a.name),
     reps: users.map((u) => u.name),
     contacts: contacts.map((c) => c.name),
+    products: products.map((p) => p.name),
   };
 }
 
@@ -319,7 +321,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           stages: stageRows,
         },
         followUps: [
-          "Show me the Cascade deal",
+          ...(deals[0] ? [`Show me the ${shortNameToken(deals[0].name) ?? deals[0].name} deal`] : []),
           "Who needs coaching?",
           "List open quotes",
         ],
@@ -588,7 +590,16 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
     async run(args, ctx) {
       const deal = await resolveDeal(ctx.orgId, q(args.deal));
       if (!deal) return { text: `Deal not found: "${q(args.deal)}".` };
-      const productQuery = q(args.product) || deal.product || "Meridian Core";
+      let productQuery = q(args.product) || deal.product;
+      if (!productQuery) {
+        const fallback = await db.product.findFirst({
+          where: { orgId: ctx.orgId, active: true },
+          orderBy: { createdAt: "asc" },
+          select: { name: true },
+        });
+        productQuery = fallback?.name ?? "";
+      }
+      if (!productQuery) return { text: "No product specified and the catalog is empty — add one under ERP → Catalog." };
       const product = await resolveProduct(ctx.orgId, productQuery);
       if (!product) return { text: `No catalog product matched "${productQuery}".` };
       const quantity = Math.max(1, Math.round(Number(args.quantity) || 1));
@@ -947,7 +958,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           { href: "/calls", label: "Calls" },
         ],
         followUps: [
-          "What was Alex's last Cascade call score?",
+          "How am I doing?",
           "Show recent role-plays",
           "Show assignments",
         ],
@@ -1270,7 +1281,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
       return {
         text: `Moved **${updated.name}** to ${stage.label} (${stage.probability}%).`,
         links: [{ href: `/crm/deals/${updated.id}`, label: "Open deal" }],
-        followUps: ["Show me the Cascade deal", "What's our pipeline look like?"],
+        followUps: [`Show me the ${shortNameToken(updated.name) ?? updated.name} deal`, "What's our pipeline look like?"],
       };
     },
   },
@@ -1431,7 +1442,7 @@ export const ASSISTANT_TOOLS: ToolDef[] = [
           )
           .join("\n"),
         links: [{ href: "/conversations", label: "Conversations" }],
-        followUps: ["Show me the Cascade deal", "Find contact Dana"],
+        followUps: ["What's our pipeline look like?", "Who needs coaching?"],
       };
     },
   },
@@ -1740,7 +1751,11 @@ export function routeDemoIntent(
     return [{ name: "quote_action", args: { action: "reject", query: num || m } }];
   }
   if (allowErp && /\b(create|draft|new)\b.*\bquote\b|\bquote\b.*\b(for|on)\b/.test(lower)) {
-    const product = m.match(/\b(Meridian Core|Meridian Forecast|Core|Forecast|scanner)\b/i)?.[0];
+    const productRe = new RegExp(
+      `\\b(${vocab ? vocabTokens(vocab.products, "Meridian Core|Meridian Forecast|Core|Forecast|scanner") : "Meridian Core|Meridian Forecast|Core|Forecast|scanner"})\\b`,
+      "i",
+    );
+    const product = m.match(productRe)?.[0];
     const qty = Number(m.match(/\b(\d+)\s*(x|×|seats?|units?)?\b/i)?.[1] || 1);
     return [
       {
@@ -1924,6 +1939,7 @@ export async function runAssistantChat(input: {
   }
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const orgRow = await db.org.findUnique({ where: { id: ctx.orgId }, select: { name: true } });
   const domainHint =
     domain === "crm"
       ? "Prefer CRM tools (pipeline, deals, accounts, contacts)."
@@ -1932,7 +1948,7 @@ export async function runAssistantChat(input: {
         : domain === "trainer"
           ? "Prefer coaching/trainer tools (scores, assignments, role-play performance)."
           : "Query across CRM, ERP, and sales trainer as needed.";
-  const system = `You are SalesCoach Assistant for Meridian Software.
+  const system = `You are SalesCoach Assistant for ${orgRow?.name ?? "this organization"}.
 You help managers and reps across CRM (pipeline, accounts, contacts), ERP (catalog, quotes, orders, invoices, inventory, warehouses, GL, projects, HR/payroll, finance), and sales trainer / coaching (scores, assignments, role-play).
 ${domainHint}
 Use tools for live data and actions. Be concise. After tool results, summarize clearly with numbers and next steps.
