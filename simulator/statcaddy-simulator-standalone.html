@@ -18,7 +18,7 @@
   .players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
   .vs { font-weight: 700; color: var(--accent); padding-bottom: 10px; }
   label { display: block; font-size: .8rem; font-weight: 600; color: var(--green-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
-  input[list], select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; }
+  select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; cursor: pointer; }
   .weights-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
   .weights-head h2 { color: var(--green); font-size: 1.05rem; }
   .presets button { border: 1.5px solid var(--green-2); background: #fff; color: var(--green-2); border-radius: 999px; padding: 5px 12px; margin-left: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; }
@@ -54,11 +54,10 @@
 
   <div class="card">
     <div class="players">
-      <div><label>Player 1</label><input list="pl" id="p1" placeholder="Start typing a name…" value="Cameron Young"></div>
+      <div><label for="p1">Player 1</label><select id="p1" aria-label="Player 1"></select></div>
       <div class="vs">VS</div>
-      <div><label>Player 2</label><input list="pl" id="p2" placeholder="Start typing a name…" value="Ben Kohles"></div>
+      <div><label for="p2">Player 2</label><select id="p2" aria-label="Player 2"></select></div>
     </div>
-    <datalist id="pl"></datalist>
   </div>
 
   <div class="card">
@@ -179,13 +178,25 @@ function refresh() {
     }).join("") + "</table>";
 }
 
+function fillPlayerSelects(default1, default2) {
+  const opts = PLAYERS.map(p => `<option value="${p.name}">${p.name}</option>`).join("");
+  const defaults = [default1, default2];
+  ["p1", "p2"].forEach((id, i) => {
+    const el = $(id);
+    const keep = el.value || defaults[i] || (PLAYERS[i] && PLAYERS[i].name) || "";
+    el.innerHTML = opts;
+    if (keep && PLAYERS.some(p => p.name === keep)) el.value = keep;
+    else if (PLAYERS[i]) el.value = PLAYERS[i].name;
+  });
+}
+
 document.querySelectorAll(".presets button").forEach(b =>
   b.addEventListener("click", () => { weights = {...PRESETS[b.dataset.preset]}; buildWeightRows(); refresh(); }));
-["p1","p2"].forEach(id => $(id).addEventListener("input", refresh));
+["p1","p2"].forEach(id => $(id).addEventListener("change", refresh));
 
 Promise.resolve(JSON.parse(document.getElementById("embedded-data").textContent)).then(data => {
   PLAYERS = data;
-  $("pl").innerHTML = PLAYERS.map(p => `<option value="${p.name}">`).join("");
+  fillPlayerSelects(PLAYERS[0] && PLAYERS[0].name, PLAYERS[1] && PLAYERS[1].name);
   computeZParams(); buildWeightRows(); refresh();
 }).catch(() => {
   document.body.insertAdjacentHTML("afterbegin",
