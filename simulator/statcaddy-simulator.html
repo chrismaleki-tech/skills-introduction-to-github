@@ -45,6 +45,8 @@
   .breakdown th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
   .breakdown td.win { color: var(--fairway); font-weight: 700; }
   .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
+  .same-player-msg { display:none; margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: #fdecec; color: #b3261e; font-size: .9rem; font-weight: 600; text-align: center; }
+  .same-player-msg.is-visible { display:block; }
 </style>
 </head>
 <body>
@@ -215,6 +217,34 @@ function findPlayer(name) {
   return PLAYERS.find(p => p.name.toLowerCase() === n);
 }
 
+function clearMatchupResults() {
+  $("n1").textContent = "—"; $("n2").textContent = "—";
+  $("pr1").textContent = "—"; $("pr2").textContent = "—";
+  $("ml1").textContent = ""; $("ml2").textContent = "";
+  $("edge").style.width = "50%";
+  $("bd").innerHTML = "";
+}
+
+function syncExclusivePlayerOptions() {
+  const p1 = $("p1"), p2 = $("p2");
+  if (!p1 || !p2) return;
+  const v1 = p1.value, v2 = p2.value;
+  Array.from(p1.options).forEach(opt => { opt.disabled = !!(opt.value && opt.value === v2); });
+  Array.from(p2.options).forEach(opt => { opt.disabled = !!(opt.value && opt.value === v1); });
+}
+
+function ensureDifferentPlayers(changedId) {
+  const p1 = $("p1"), p2 = $("p2");
+  if (!p1 || !p2 || !PLAYERS.length) return;
+  if (p1.value && p2.value && p1.value === p2.value) {
+    const other = changedId === "p1" ? p2 : p1;
+    const taken = changedId === "p1" ? p1.value : p2.value;
+    const next = PLAYERS.find(p => p.name !== taken);
+    if (next) other.value = next.name;
+  }
+  syncExclusivePlayerOptions();
+}
+
 function refresh() {
   const total = STATS.reduce((a,s)=>a+weights[s.key],0);
   for (const s of STATS) {
@@ -222,8 +252,21 @@ function refresh() {
     if (el) el.textContent = total ? Math.round(100*weights[s.key]/total) + "%" : "0%";
   }
   $("wsum").textContent = "100%"; $("wsum").className = total ? "ok" : "warn";
+  const msg = $("same-player-msg");
   const a = findPlayer($("p1").value), b = findPlayer($("p2").value);
-  if (!a || !b) { $("bd").innerHTML = ""; return; }
+  if (!a || !b) {
+    if (msg) msg.classList.remove("is-visible");
+    clearMatchupResults();
+    return;
+  }
+  if (a.name === b.name) {
+    if (msg) msg.classList.add("is-visible");
+    clearMatchupResults();
+    $("n1").textContent = a.name;
+    $("n2").textContent = b.name;
+    return;
+  }
+  if (msg) msg.classList.remove("is-visible");
   const p = winProb(a, b);
   $("n1").textContent = a.name; $("n2").textContent = b.name;
   $("pr1").textContent = (100*p).toFixed(1) + "%"; $("pr2").textContent = (100*(1-p)).toFixed(1) + "%";
@@ -241,14 +284,20 @@ function refresh() {
 
 function fillPlayerSelects(default1, default2) {
   const opts = PLAYERS.map(p => `<option value="${p.name}">${p.name}</option>`).join("");
-  const defaults = [default1, default2];
+  let d1 = default1 || (PLAYERS[0] && PLAYERS[0].name) || "";
+  let d2 = default2 || (PLAYERS[1] && PLAYERS[1].name) || "";
+  if (d1 && d2 && d1 === d2) {
+    const alt = PLAYERS.find(p => p.name !== d1);
+    d2 = alt ? alt.name : d2;
+  }
   ["p1", "p2"].forEach((id, i) => {
     const el = $(id);
-    const keep = el.value || defaults[i] || (PLAYERS[i] && PLAYERS[i].name) || "";
+    const keep = el.value || (i === 0 ? d1 : d2);
     el.innerHTML = opts;
     if (keep && PLAYERS.some(p => p.name === keep)) el.value = keep;
     else if (PLAYERS[i]) el.value = PLAYERS[i].name;
   });
+  ensureDifferentPlayers("p1");
 }
 
 document.querySelectorAll(".presets button").forEach(b =>
@@ -266,7 +315,10 @@ document.querySelectorAll(".presets button").forEach(b =>
     }
     applyWeights(PRESETS[preset], preset);
   }));
-["p1","p2"].forEach(id => $(id).addEventListener("change", refresh));
+["p1","p2"].forEach(id => $(id).addEventListener("change", () => {
+  ensureDifferentPlayers(id);
+  refresh();
+}));
 window.addEventListener("beforeunload", saveSessionWeights);
 
 fetch("players.json").then(r => r.json()).then(data => {
