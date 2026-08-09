@@ -71,7 +71,8 @@ jobs:
           DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
           WP_URL: ${{ secrets.WP_URL }}
           WP_USERNAME: ${{ secrets.WP_USERNAME }}
-          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          # Browser /golflogin needs the real account password — not an Application Password.
+          WP_PASSWORD: ${{ secrets.WP_PASSWORD }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
         run: |
           python3 datagolf/deploy_simulator.py \

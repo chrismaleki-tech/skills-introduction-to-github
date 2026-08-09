@@ -102,7 +102,9 @@ Environment variables:
 
 - `WP_URL` — e.g. `https://statcaddygolf.com`
 - `WP_USERNAME` — WordPress username
-- `WP_APP_PASSWORD` — an Application Password (Users -> Profile -> Application Passwords)
+- `WP_APP_PASSWORD` — Application Password for REST only (Users -> Profile -> Application Passwords)
+- `WP_PASSWORD` — real account password for `/golflogin` browser deploys (`deploy_simulator.py` /
+  Weekly Simulator Deploy). Application passwords cannot sign into wp-admin.
 
 ## Workbook field sheets (Scottish Open Field / Wyndham Field)
 
