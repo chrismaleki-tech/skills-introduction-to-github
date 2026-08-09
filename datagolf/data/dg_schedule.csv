@@ -1,48 +1,48 @@
 country,course,course_key,event_id,event_name,latitude,location,longitude,start_date,status,tour,winner,updated_at
-USA,Waialae Country Club,6,6,Sony Open in Hawaii,21.272,"Honolulu, HI",-157.775,2026-01-15,completed,pga,"Gotterup, Chris (27774)",2026-08-08T10:19:44+00:00
-USA,Pete Dye Stadium Course;Nicklaus Tournament Course;La Quinta Country Club,704;233;202,2,The American Express,33.643,"La Quinta, CA",-116.267,2026-01-22,completed,pga,"Scheffler, Scottie (18417)",2026-08-08T10:19:44+00:00
-USA,Torrey Pines Golf Course (South Course);Torrey Pines Golf Course (North Course),4;104,4,Farmers Insurance Open,32.905,"San Diego, CA",-117.245,2026-01-29,completed,pga,"Rose, Justin (6093)",2026-08-08T10:19:44+00:00
-USA,TPC Scottsdale (Stadium Course),510,3,WM Phoenix Open,33.64,"Scottsdale, AZ",-111.91,2026-02-05,completed,pga,"Gotterup, Chris (27774)",2026-08-08T10:19:44+00:00
-USA,Pebble Beach Golf Links;Spyglass Hill Golf Course,5;205,5,AT&T Pebble Beach Pro-Am,36.569,"Pebble Beach, CA",-121.951,2026-02-12,completed,pga,"Morikawa, Collin (22085)",2026-08-08T10:19:44+00:00
-USA,The Riviera Country Club,500,7,The Genesis Invitational,34.05,"Pacific Palisades, CA",-118.5,2026-02-19,completed,pga,"Bridgeman, Jacob (29433)",2026-08-08T10:19:44+00:00
-USA,PGA National  - Champion Course,928,10,Cognizant Classic in The Palm Beaches,26.829,"Palm Beach Gardens, FL",-80.141,2026-02-26,completed,pga,"Echavarria, Nico (22833)",2026-08-08T10:19:44+00:00
-USA,Arnold Palmer's Bay Hill Club & Lodge,9,9,Arnold Palmer Invitational,28.458,"Bay Hill, FL",-81.511,2026-03-05,completed,pga,"Bhatia, Akshay (26096)",2026-08-08T10:19:44+00:00
-PUR,Grand Reserve Golf Club,940,483,Puerto Rico Open,18.405,"Rio Grande, Puerto Rico",-65.799,2026-03-05,completed,pga,"Castillo, Ricky (27819)",2026-08-08T10:19:44+00:00
-USA,TPC Sawgrass - THE PLAYERS Stadium Course,11,11,THE PLAYERS Championship,30.198,"Ponte Vedra Beach, FL",-81.394,2026-03-12,completed,pga,"Young, Cameron (26651)",2026-08-08T10:19:44+00:00
-USA,Innisbrook Resort and Golf Club - Copperhead Course,665,475,Valspar Championship,28.11,"Palm Harbor, FL",-82.76,2026-03-19,completed,pga,"Fitzpatrick, Matt (17646)",2026-08-08T10:19:44+00:00
-USA,Memorial Park Golf Course,897,20,Texas Children's Houston Open,29.924,"Houston, TX",-95.261,2026-03-26,completed,pga,"Woodland, Gary (12577)",2026-08-08T10:19:44+00:00
-USA,TPC San Antonio - The Oaks Course,770,41,Valero Texas Open,29.665,"San Antonio, TX",-98.4,2026-04-02,completed,pga,"Spaun, J.J. (17536)",2026-08-08T10:19:44+00:00
-USA,Augusta National Golf Club,14,14,Masters Tournament,33.5,"Augusta, GA",-82.02,2026-04-09,completed,pga,"McIlroy, Rory (10091)",2026-08-08T10:19:44+00:00
-USA,Harbour Town Golf Links,12,12,RBC Heritage,32.136,"Hilton Head Island, SC",-80.81,2026-04-16,completed,pga,"Fitzpatrick, Matt (17646)",2026-08-08T10:19:44+00:00
-USA,TPC Louisiana,714,18,Zurich Classic of New Orleans,29.902,"Avondale, LA",-90.19,2026-04-23,completed,pga,"Fitzpatrick, Matt (17646);Fitzpatrick, Alex (25362)",2026-08-08T10:19:44+00:00
-USA,Trump National Doral - Blue Monster Course,8,556,Cadillac Championship,25.813,"Miami, FL",-80.339,2026-04-30,completed,pga,"Young, Cameron (26651)",2026-08-08T10:19:44+00:00
-USA,Quail Hollow Club,872,480,Truist Championship,35.116,"Charlotte, NC",-80.842,2026-05-07,completed,pga,"Reitan, Kristoffer (21407)",2026-08-08T10:19:44+00:00
-USA,Dunes Golf and Beach Club,925,553,ONEflight Myrtle Beach Classic,33.758,"Myrtle Beach, SC",-78.796,2026-05-07,completed,pga,"Snedeker, Brandt (8820)",2026-08-08T10:19:44+00:00
-USA,Aronimink Golf Club,773,33,PGA Championship,40.012,"Newtown Square, PA",-75.409,2026-05-14,completed,pga,"Rai, Aaron (18554)",2026-08-08T10:19:44+00:00
-USA,TPC Craig Ranch,944,19,THE CJ CUP Byron Nelson,33.14,"McKinney, TX",-96.72,2026-05-21,completed,pga,"Clark, Wyndham (23604)",2026-08-08T10:19:44+00:00
-USA,Colonial Country Club,21,21,Charles Schwab Challenge,32.717,"Fort Worth, TX",-97.373,2026-05-28,completed,pga,"Henley, Russell (14578)",2026-08-08T10:19:44+00:00
-USA,Muirfield Village Golf Club,23,23,the Memorial Tournament,40.14,"Dublin, OH",-83.141,2026-06-04,completed,pga,"Poston, J.T. (21554)",2026-08-08T10:19:44+00:00
-CAN,TPC Toronto at Osprey Valley - North Course,935,32,RBC Canadian Open,43.849,"Alton, ON",-80.043,2026-06-11,completed,pga,"Cauley, Bud (14502)",2026-08-08T10:19:44+00:00
-USA,Shinnecock Hills Golf Club,618,26,U.S. Open,40.894,"Southampton, NY",-72.44,2026-06-18,completed,pga,"Clark, Wyndham (23604)",2026-08-08T10:19:44+00:00
-USA,TPC River Highlands,503,34,Travelers Championship,41.632,"Hartford, CT",-72.639,2026-06-25,completed,pga,"Hovland, Viktor (18841)",2026-08-08T10:19:44+00:00
-USA,TPC Deere Run,669,30,John Deere Classic,41.478,"Silvis, IL",-90.392,2026-07-02,completed,pga,"Gotterup, Chris (27774)",2026-08-08T10:19:44+00:00
-SCO,The Renaissance Club,945,541,Genesis Scottish Open,56.051,"North Berwick, Scotland",-2.809,2026-07-09,completed,pga,"Kim, Tom (24766)",2026-08-08T10:19:44+00:00
-USA,Hurstbourne Country Club,934,518,ISCO Championship,38.24,"Louisville, KY",-85.591,2026-07-09,completed,pga,"Fisk, Steven (26657)",2026-08-08T10:19:44+00:00
-ENG,Royal Birkdale Golf Club,541,100,The Open Championship,53.622,"Southport, England",-3.032,2026-07-16,completed,pga,"Fox, Ryan (11889)",2026-08-08T10:19:44+00:00
-DOM,Puntacana Resort & Club (Corales Golf Course),244,522,Corales Puntacana Championship,18.565,"Punta Cana, La Altagracia, Dominican Republic",-68.34,2026-07-16,completed,pga,"Mazzoli, Stefano (20844)",2026-08-08T10:19:44+00:00
-USA,TPC Twin Cities,883,525,3M Open,45.177,"Blaine, MN",-93.213,2026-07-23,completed,pga,"Koivun, Jackson (32319)",2026-08-08T10:19:44+00:00
-USA,Detroit Golf Club,947,524,Rocket Classic,42.426,"Detroit, MI",-83.126,2026-07-30,completed,pga,"Thorbjornsen, Michael (26649)",2026-08-08T10:19:44+00:00
-USA,Sedgefield Country Club,752,13,Wyndham Championship,36.014,"Greensboro, NC",-79.887,2026-08-06,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,TPC Southwind,513,27,FedEx St. Jude Championship,35.057,"Memphis, TN",-89.779,2026-08-13,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,Bellerive Country Club,679,28,BMW Championship,38.66,"St. Louis, MO",-90.483,2026-08-20,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,East Lake Golf Club,688,60,TOUR Championship,33.743,"Atlanta, GA",-84.303,2026-08-27,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,The Cliffs at Walnut Cove,942,557,Biltmore Championship Asheville,35.463,"Arden, NC",-82.602,2026-09-17,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,Medinah Country Club (No. 3),348,500,Presidents Cup,41.966,"Medinah, IL",-88.048,2026-09-24,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,Black Desert Resort,930,554,Bank of Utah Championship,37.168,"Ivins, UT",-113.653,2026-10-01,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-JPN,Yokohama Country Club (West Course),936,527,Baycurrent Classic,35.446,"Yokohama, Kanagawa, Japan",139.549,2026-10-08,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-BER,Port Royal Golf Course,765,528,Butterfield Bermuda Championship,32.261,"Southampton, Bermuda",-64.874,2026-10-22,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-MEX,Vidanta Vallarta,978,540,VidantaWorld Mexico Open,20.7,"Vallarta, Mexico",-105.3,2026-10-29,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-MEX,El Cardonal at Diamante,919,457,World Wide Technology Championship,22.901,"Cabo San Lucas, Mexico",-109.985,2026-11-05,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,Omni Barton Creek Resort & Spa (Fazio Canyons Course),943,558,Good Good Championship,30.271,"Austin, TX",-97.876,2026-11-12,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-USA,Sea Island Golf Club (Seaside Course);Sea Island Golf Club (Plantation Course),776;889,493,The RSM Classic,31.202,"Sea Island, GA",-81.332,2026-11-19,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
-BAH,Albany GC,232,478,Hero World Challenge,25.004,"Albany, The Bahamas",-77.509,2026-12-03,upcoming,pga,TBD,2026-08-08T10:19:44+00:00
+USA,Waialae Country Club,6,6,Sony Open in Hawaii,21.272,"Honolulu, HI",-157.775,2026-01-15,completed,pga,"Gotterup, Chris (27774)",2026-08-09T10:21:06+00:00
+USA,Pete Dye Stadium Course;Nicklaus Tournament Course;La Quinta Country Club,704;233;202,2,The American Express,33.643,"La Quinta, CA",-116.267,2026-01-22,completed,pga,"Scheffler, Scottie (18417)",2026-08-09T10:21:06+00:00
+USA,Torrey Pines Golf Course (South Course);Torrey Pines Golf Course (North Course),4;104,4,Farmers Insurance Open,32.905,"San Diego, CA",-117.245,2026-01-29,completed,pga,"Rose, Justin (6093)",2026-08-09T10:21:06+00:00
+USA,TPC Scottsdale (Stadium Course),510,3,WM Phoenix Open,33.64,"Scottsdale, AZ",-111.91,2026-02-05,completed,pga,"Gotterup, Chris (27774)",2026-08-09T10:21:06+00:00
+USA,Pebble Beach Golf Links;Spyglass Hill Golf Course,5;205,5,AT&T Pebble Beach Pro-Am,36.569,"Pebble Beach, CA",-121.951,2026-02-12,completed,pga,"Morikawa, Collin (22085)",2026-08-09T10:21:06+00:00
+USA,The Riviera Country Club,500,7,The Genesis Invitational,34.05,"Pacific Palisades, CA",-118.5,2026-02-19,completed,pga,"Bridgeman, Jacob (29433)",2026-08-09T10:21:06+00:00
+USA,PGA National  - Champion Course,928,10,Cognizant Classic in The Palm Beaches,26.829,"Palm Beach Gardens, FL",-80.141,2026-02-26,completed,pga,"Echavarria, Nico (22833)",2026-08-09T10:21:06+00:00
+USA,Arnold Palmer's Bay Hill Club & Lodge,9,9,Arnold Palmer Invitational,28.458,"Bay Hill, FL",-81.511,2026-03-05,completed,pga,"Bhatia, Akshay (26096)",2026-08-09T10:21:06+00:00
+PUR,Grand Reserve Golf Club,940,483,Puerto Rico Open,18.405,"Rio Grande, Puerto Rico",-65.799,2026-03-05,completed,pga,"Castillo, Ricky (27819)",2026-08-09T10:21:06+00:00
+USA,TPC Sawgrass - THE PLAYERS Stadium Course,11,11,THE PLAYERS Championship,30.198,"Ponte Vedra Beach, FL",-81.394,2026-03-12,completed,pga,"Young, Cameron (26651)",2026-08-09T10:21:06+00:00
+USA,Innisbrook Resort and Golf Club - Copperhead Course,665,475,Valspar Championship,28.11,"Palm Harbor, FL",-82.76,2026-03-19,completed,pga,"Fitzpatrick, Matt (17646)",2026-08-09T10:21:06+00:00
+USA,Memorial Park Golf Course,897,20,Texas Children's Houston Open,29.924,"Houston, TX",-95.261,2026-03-26,completed,pga,"Woodland, Gary (12577)",2026-08-09T10:21:06+00:00
+USA,TPC San Antonio - The Oaks Course,770,41,Valero Texas Open,29.665,"San Antonio, TX",-98.4,2026-04-02,completed,pga,"Spaun, J.J. (17536)",2026-08-09T10:21:06+00:00
+USA,Augusta National Golf Club,14,14,Masters Tournament,33.5,"Augusta, GA",-82.02,2026-04-09,completed,pga,"McIlroy, Rory (10091)",2026-08-09T10:21:06+00:00
+USA,Harbour Town Golf Links,12,12,RBC Heritage,32.136,"Hilton Head Island, SC",-80.81,2026-04-16,completed,pga,"Fitzpatrick, Matt (17646)",2026-08-09T10:21:06+00:00
+USA,TPC Louisiana,714,18,Zurich Classic of New Orleans,29.902,"Avondale, LA",-90.19,2026-04-23,completed,pga,"Fitzpatrick, Alex (25362);Fitzpatrick, Matt (17646)",2026-08-09T10:21:06+00:00
+USA,Trump National Doral - Blue Monster Course,8,556,Cadillac Championship,25.813,"Miami, FL",-80.339,2026-04-30,completed,pga,"Young, Cameron (26651)",2026-08-09T10:21:06+00:00
+USA,Quail Hollow Club,872,480,Truist Championship,35.116,"Charlotte, NC",-80.842,2026-05-07,completed,pga,"Reitan, Kristoffer (21407)",2026-08-09T10:21:06+00:00
+USA,Dunes Golf and Beach Club,925,553,ONEflight Myrtle Beach Classic,33.758,"Myrtle Beach, SC",-78.796,2026-05-07,completed,pga,"Snedeker, Brandt (8820)",2026-08-09T10:21:06+00:00
+USA,Aronimink Golf Club,773,33,PGA Championship,40.012,"Newtown Square, PA",-75.409,2026-05-14,completed,pga,"Rai, Aaron (18554)",2026-08-09T10:21:06+00:00
+USA,TPC Craig Ranch,944,19,THE CJ CUP Byron Nelson,33.14,"McKinney, TX",-96.72,2026-05-21,completed,pga,"Clark, Wyndham (23604)",2026-08-09T10:21:06+00:00
+USA,Colonial Country Club,21,21,Charles Schwab Challenge,32.717,"Fort Worth, TX",-97.373,2026-05-28,completed,pga,"Henley, Russell (14578)",2026-08-09T10:21:06+00:00
+USA,Muirfield Village Golf Club,23,23,the Memorial Tournament,40.14,"Dublin, OH",-83.141,2026-06-04,completed,pga,"Poston, J.T. (21554)",2026-08-09T10:21:06+00:00
+CAN,TPC Toronto at Osprey Valley - North Course,935,32,RBC Canadian Open,43.849,"Alton, ON",-80.043,2026-06-11,completed,pga,"Cauley, Bud (14502)",2026-08-09T10:21:06+00:00
+USA,Shinnecock Hills Golf Club,618,26,U.S. Open,40.894,"Southampton, NY",-72.44,2026-06-18,completed,pga,"Clark, Wyndham (23604)",2026-08-09T10:21:06+00:00
+USA,TPC River Highlands,503,34,Travelers Championship,41.632,"Hartford, CT",-72.639,2026-06-25,completed,pga,"Hovland, Viktor (18841)",2026-08-09T10:21:06+00:00
+USA,TPC Deere Run,669,30,John Deere Classic,41.478,"Silvis, IL",-90.392,2026-07-02,completed,pga,"Gotterup, Chris (27774)",2026-08-09T10:21:06+00:00
+SCO,The Renaissance Club,945,541,Genesis Scottish Open,56.051,"North Berwick, Scotland",-2.809,2026-07-09,completed,pga,"Kim, Tom (24766)",2026-08-09T10:21:06+00:00
+USA,Hurstbourne Country Club,934,518,ISCO Championship,38.24,"Louisville, KY",-85.591,2026-07-09,completed,pga,"Fisk, Steven (26657)",2026-08-09T10:21:06+00:00
+ENG,Royal Birkdale Golf Club,541,100,The Open Championship,53.622,"Southport, England",-3.032,2026-07-16,completed,pga,"Fox, Ryan (11889)",2026-08-09T10:21:06+00:00
+DOM,Puntacana Resort & Club (Corales Golf Course),244,522,Corales Puntacana Championship,18.565,"Punta Cana, La Altagracia, Dominican Republic",-68.34,2026-07-16,completed,pga,"Mazzoli, Stefano (20844)",2026-08-09T10:21:06+00:00
+USA,TPC Twin Cities,883,525,3M Open,45.177,"Blaine, MN",-93.213,2026-07-23,completed,pga,"Koivun, Jackson (32319)",2026-08-09T10:21:06+00:00
+USA,Detroit Golf Club,947,524,Rocket Classic,42.426,"Detroit, MI",-83.126,2026-07-30,completed,pga,"Thorbjornsen, Michael (26649)",2026-08-09T10:21:06+00:00
+USA,Sedgefield Country Club,752,13,Wyndham Championship,36.014,"Greensboro, NC",-79.887,2026-08-06,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,TPC Southwind,513,27,FedEx St. Jude Championship,35.057,"Memphis, TN",-89.779,2026-08-13,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,Bellerive Country Club,679,28,BMW Championship,38.66,"St. Louis, MO",-90.483,2026-08-20,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,East Lake Golf Club,688,60,TOUR Championship,33.743,"Atlanta, GA",-84.303,2026-08-27,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,The Cliffs at Walnut Cove,942,557,Biltmore Championship Asheville,35.463,"Arden, NC",-82.602,2026-09-17,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,Medinah Country Club (No. 3),348,500,Presidents Cup,41.966,"Medinah, IL",-88.048,2026-09-24,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,Black Desert Resort,930,554,Bank of Utah Championship,37.168,"Ivins, UT",-113.653,2026-10-01,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+JPN,Yokohama Country Club (West Course),936,527,Baycurrent Classic,35.446,"Yokohama, Kanagawa, Japan",139.549,2026-10-08,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+BER,Port Royal Golf Course,765,528,Butterfield Bermuda Championship,32.261,"Southampton, Bermuda",-64.874,2026-10-22,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+MEX,Vidanta Vallarta,978,540,VidantaWorld Mexico Open,20.7,"Vallarta, Mexico",-105.3,2026-10-29,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+MEX,El Cardonal at Diamante,919,457,World Wide Technology Championship,22.901,"Cabo San Lucas, Mexico",-109.985,2026-11-05,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,Omni Barton Creek Resort & Spa (Fazio Canyons Course),943,558,Good Good Championship,30.271,"Austin, TX",-97.876,2026-11-12,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+USA,Sea Island Golf Club (Seaside Course);Sea Island Golf Club (Plantation Course),776;889,493,The RSM Classic,31.202,"Sea Island, GA",-81.332,2026-11-19,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
+BAH,Albany GC,232,478,Hero World Challenge,25.004,"Albany, The Bahamas",-77.509,2026-12-03,upcoming,pga,TBD,2026-08-09T10:21:06+00:00
