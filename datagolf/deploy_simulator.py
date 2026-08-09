@@ -19,7 +19,10 @@ end after verification. Any error leaves it Disabled (members see the "updating"
 rather than a half-built field — so a failed run never corrupts the live tool.
 
 Env:
-  DATAGOLF_KEY, WP_URL, WP_USERNAME, WP_APP_PASSWORD   (required)
+  DATAGOLF_KEY, WP_URL, WP_USERNAME, WP_PASSWORD   (required for live deploy)
+  WP_PASSWORD        real WordPress login password for /golflogin (browser).
+                     Application passwords (WP_APP_PASSWORD) work for REST only and
+                     cannot sign into wp-admin — do not reuse them here.
   WORKBOOK           path to the latest workbook (default datagolf/workbooks/PGA_stat_caddy_latest.xlsx)
   TOUR               default pga
   STAT_WEIGHTS       optional JSON of the 8 model weights (defaults to the owner's general weights)
@@ -360,9 +363,12 @@ def main():
         log(f"[dry-run] built {len(players)} players for '{event}'. Skipping WordPress writes.")
         return 0
 
-    for v in ("WP_URL", "WP_USERNAME", "WP_APP_PASSWORD"):
+    for v in ("WP_URL", "WP_USERNAME", "WP_PASSWORD"):
         if not os.environ.get(v):
             log(f"ERROR: {v} not set"); return 2
+    if os.environ.get("WP_APP_PASSWORD") and os.environ["WP_PASSWORD"] == os.environ["WP_APP_PASSWORD"]:
+        log("ERROR: WP_PASSWORD looks like WP_APP_PASSWORD — browser login needs the real account password")
+        return 2
 
     from playwright.sync_api import sync_playwright
     field_norm = {norm_name(p["name"]) for p in players}
@@ -374,7 +380,7 @@ def main():
         pg = ctx.new_page()
         d = Deployer(pg, os.environ["WP_URL"])
         try:
-            d.login(os.environ["WP_USERNAME"], os.environ["WP_APP_PASSWORD"])
+            d.login(os.environ["WP_USERNAME"], os.environ["WP_PASSWORD"])
             d.set_status("disabled")  # FAIL-SAFE: down for the duration of the rebuild
 
             roster = d.roster()
