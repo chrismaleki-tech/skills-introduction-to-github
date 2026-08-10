@@ -143,11 +143,10 @@
 
   <div class="card">
     <div class="players">
-      <div><label>Player 1</label><input list="pl" id="p1" placeholder="Start typing a name…" value="Cameron Young"></div>
+      <div><label>Player 1</label><select id="p1" aria-label="Player 1"></select></div>
       <div class="vs">VS</div>
-      <div><label>Player 2</label><input list="pl" id="p2" placeholder="Start typing a name…" value="Ben Kohles"></div>
+      <div><label>Player 2</label><select id="p2" aria-label="Player 2"></select></div>
     </div>
-    <datalist id="pl"></datalist>
   </div>
 
   <div class="card">
@@ -171,7 +170,7 @@
     </div>
     <div class="edgebar"><div id="edge" style="width:50%"></div></div>
     <div class="breakdown" id="bd"></div>
-    <div class="foot">Model: your weighted blend of each player's standardized stats becomes a strokes-per-round edge; win odds via a normal model of 72-hole scoring (&sigma; &asymp; 2.75 strokes/round). Stats for the Wyndham Championship field (Aug 2026), source: Data Golf.</div>
+    <div class="foot">Model: your weighted blend of each player's standardized stats becomes a strokes-per-round edge; win odds via a normal model of 72-hole scoring (&sigma; &asymp; 2.75 strokes/round). Stats for this week's field, source: Data Golf.</div>
   </div>
 </div>
 </div>
@@ -271,11 +270,24 @@ function refresh() {
 
 document.querySelectorAll(".presets button").forEach(b =>
   b.addEventListener("click", () => { weights = {...PRESETS[b.dataset.preset]}; buildWeightRows(); refresh(); }));
-["p1","p2"].forEach(id => $(id).addEventListener("input", refresh));
+["p1","p2"].forEach(id => $(id).addEventListener("change", refresh));
+
+function fillPlayerSelects(preferred1, preferred2) {
+  const opts = PLAYERS.map(p => `<option value="${p.name}">${p.name}</option>`).join("");
+  $("p1").innerHTML = opts;
+  $("p2").innerHTML = opts;
+  const names = new Set(PLAYERS.map(p => p.name));
+  $("p1").value = names.has(preferred1) ? preferred1 : (PLAYERS[0] && PLAYERS[0].name) || "";
+  let p2 = names.has(preferred2) ? preferred2 : (PLAYERS[1] && PLAYERS[1].name) || "";
+  if (p2 && p2 === $("p1").value && PLAYERS.length > 1) {
+    p2 = PLAYERS.find(p => p.name !== $("p1").value).name;
+  }
+  $("p2").value = p2 || "";
+}
 
 fetch("players.json").then(r => r.json()).then(data => {
   PLAYERS = data;
-  $("pl").innerHTML = PLAYERS.map(p => `<option value="${p.name}">`).join("");
+  fillPlayerSelects(PLAYERS[0] && PLAYERS[0].name, PLAYERS[1] && PLAYERS[1].name);
   computeZParams(); buildWeightRows(); refresh();
 }).catch(() => {
   document.body.insertAdjacentHTML("afterbegin",

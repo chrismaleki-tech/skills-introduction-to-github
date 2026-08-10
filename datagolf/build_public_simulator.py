@@ -33,9 +33,6 @@ import os
 import re
 import sys
 
-import openpyxl
-import requests
-
 REPO_DIR = os.path.dirname(__file__)
 SIM_DIR = os.path.join(os.path.dirname(REPO_DIR), "simulator")
 TEMPLATE = os.path.join(SIM_DIR, "statcaddy-simulator-standalone.html")
@@ -77,6 +74,8 @@ def build_players_from_csv(csv_path: str) -> list:
 
 
 def build_players_from_workbook(workbook: str) -> list:
+    import openpyxl
+
     wb = openpyxl.load_workbook(workbook, data_only=True)
     db = wb["PGA Database"]
     hdr = {str(c.value).strip(): i + 1 for i, c in enumerate(db[1]) if c.value}
@@ -110,12 +109,7 @@ def build_players(workbook: str, field_csv: str | None = None) -> list:
 
 def build_embed(players: list) -> str:
     html = open(TEMPLATE).read()
-    # set default matchup to the first two current-field players
-    if len(players) >= 2:
-        html = re.sub(r'(<input list="pl" id="p1"[^>]*value=")[^"]*(")',
-                      rf'\g<1>{players[0]["name"]}\g<2>', html)
-        html = re.sub(r'(<input list="pl" id="p2"[^>]*value=")[^"]*(")',
-                      rf'\g<1>{players[1]["name"]}\g<2>', html)
+    # Defaults are applied in-page by fillPlayerSelects() from the embedded roster.
     style = re.sub(r"\s+", " ", re.search(r"<style>(.*?)</style>", html, re.S).group(1).replace("body {", "#sc-sim {"))
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
@@ -127,13 +121,36 @@ def build_embed(players: list) -> str:
 
 
 def push_to_wordpress(embed: str) -> None:
+    import ssl
+    import urllib.request
+
     url = os.environ["WP_URL"].rstrip("/")
     page_id = os.environ.get("WP_SIMULATOR_PAGE_ID", "4952")
-    auth = (os.environ["WP_USERNAME"], os.environ["WP_APP_PASSWORD"].replace(" ", ""))
-    r = requests.post(f"{url}/wp-json/wp/v2/pages/{page_id}", auth=auth,
-                      json={"content": embed}, timeout=60)
-    r.raise_for_status()
-    n = len(json.loads(re.search(r'id="embedded-data">(.*?)</script>', r.json()["content"]["rendered"], re.S).group(1)))
+    user = os.environ["WP_USERNAME"]
+    app = os.environ["WP_APP_PASSWORD"].replace(" ", "")
+    creds = base64.b64encode(f"{user}:{app}".encode()).decode()
+    req = urllib.request.Request(
+        f"{url}/wp-json/wp/v2/pages/{page_id}",
+        data=json.dumps({"content": embed}).encode(),
+        headers={
+            "Authorization": f"Basic {creds}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 StatCaddyAgent/1.0",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=90, context=ssl.create_default_context()) as r:
+        raw = r.read()
+        if raw[:1] == b"<":
+            raise RuntimeError("WordPress REST blocked by SiteGround captcha; retry --push")
+        body = json.loads(raw.decode())
+    content = body.get("content") or {}
+    blob = content.get("raw") or content.get("rendered") or ""
+    match = re.search(r'id="embedded-data">(.*?)</script>', blob, re.S)
+    if not match:
+        raise RuntimeError("push succeeded but embedded-data marker missing from response")
+    n = len(json.loads(match.group(1)))
     print(f"[ok] pushed to WordPress page {page_id}: {n} players live")
 
 
