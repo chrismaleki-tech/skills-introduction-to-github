@@ -116,14 +116,47 @@ def build_embed(players: list) -> str:
                       rf'\g<1>{players[0]["name"]}\g<2>', html)
         html = re.sub(r'(<input list="pl" id="p2"[^>]*value=")[^"]*(")',
                       rf'\g<1>{players[1]["name"]}\g<2>', html)
-    style = re.sub(r"\s+", " ", re.search(r"<style>(.*?)</style>", html, re.S).group(1).replace("body {", "#sc-sim {"))
+    # Template CSS is already scoped to #sc-sim; drop standalone body chrome only.
+    style = re.search(r"<style>(.*?)</style>", html, re.S).group(1)
+    style = re.sub(r"html\s*\{[^}]*\}", "", style)
+    style = re.sub(r"body\s*\{[^}]*\}", "", style)
+    style = re.sub(r"\s+", " ", style).strip()
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
-    markup = re.sub(r"\n\s*\n+", "\n", re.sub(r"<script.*?</script>", "", body, flags=re.S))
+    markup = re.sub(r"<script.*?</script>", "", body, flags=re.S)
+    # Minify markup so wpautop cannot inject <br>/<p> between flex/grid children.
+    markup = re.sub(r">\s+<", "><", markup)
+    markup = re.sub(r"\s+", " ", markup).strip()
+    # Template already wraps content in #sc-sim — inject <style> as its first child.
+    if markup.startswith('<div id="sc-sim">'):
+        markup = '<div id="sc-sim">' + f"<style>{style}</style>" + markup[len('<div id="sc-sim">'):]
+    else:
+        markup = f'<div id="sc-sim"><style>{style}</style>{markup}</div>'
     data = json.dumps(players, separators=(",", ":"))
-    return (f'<div id="sc-sim"><style>{style}</style>{markup}'
+    # Hide the theme's duplicate page H1 and clear space under the sticky header.
+    # Preset flex rules must stay media-query aware so phones can wrap 2x2.
+    page_chrome = (
+        "<style>"
+        "body.page-id-4952 .page-header,body.postid-4952 .page-header{display:none!important;}"
+        "body.page-id-4952 #content.site-main,body.postid-4952 #content.site-main{"
+        "padding-top:140px!important;overflow:visible!important;}"
+        "body.page-id-4952 .page-content,body.postid-4952 .page-content{overflow:visible!important;}"
+        "#sc-sim br{display:none!important;}"
+        "#sc-sim p{display:contents!important;margin:0!important;}"
+        "#sc-sim .presets{display:flex!important;gap:8px!important;width:100%!important;}"
+        "#sc-sim .presets button{flex:1 1 0!important;width:auto!important;max-width:none!important;"
+        "min-width:0!important;}"
+        "@media (min-width:721px){#sc-sim .presets{flex-wrap:nowrap!important;}"
+        "#sc-sim .presets button{white-space:nowrap!important;}}"
+        "@media (max-width:720px){#sc-sim .presets{flex-wrap:wrap!important;}"
+        "#sc-sim .presets button{flex:1 1 calc(50% - 4px)!important;min-height:44px!important;"
+        "white-space:normal!important;}}"
+        "@media (max-width:360px){#sc-sim .presets button{flex:1 1 100%!important;}}"
+        "</style>"
+    )
+    return (f'{page_chrome}{markup}'
             f'<script type="application/json" id="embedded-data">{data}</script>'
-            f'<script>eval(atob("{base64.b64encode(js.encode()).decode()}"));</script></div>')
+            f'<script>eval(atob("{base64.b64encode(js.encode()).decode()}"));</script>')
 
 
 def push_to_wordpress(embed: str) -> None:
