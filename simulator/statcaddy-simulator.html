@@ -311,14 +311,29 @@ document.querySelectorAll(".presets button").forEach(b =>
   b.addEventListener("click", () => { weights = {...PRESETS[b.dataset.preset]}; buildWeightRows(); refresh(); }));
 ["p1","p2"].forEach(id => $(id).addEventListener("input", refresh));
 
-fetch("players.json").then(r => r.json()).then(data => {
-  PLAYERS = data;
+function bootFromEmbedded() {
+  const el = document.getElementById("embedded-data");
+  if (!el) return Promise.reject(new Error("no embedded-data"));
+  PLAYERS = JSON.parse(el.textContent);
   $("pl").innerHTML = PLAYERS.map(p => `<option value="${p.name}">`).join("");
+  // Prefer field players as defaults when hardcoded names are not in this week's set.
+  if (PLAYERS.length >= 2) {
+    if (!findPlayer($("p1").value)) $("p1").value = PLAYERS[0].name;
+    if (!findPlayer($("p2").value) || $("p2").value === $("p1").value) $("p2").value = PLAYERS[1].name;
+  }
   computeZParams(); buildWeightRows(); refresh();
-}).catch(() => {
-  document.body.insertAdjacentHTML("afterbegin",
-    "<p style='color:#b3261e;text-align:center'>players.json not found — serve this folder over HTTP (e.g. python3 -m http.server).</p>");
-});
+}
+
+function boot() {
+  Promise.resolve()
+    .then(bootFromEmbedded)
+    .catch(() => {
+      document.body.insertAdjacentHTML("afterbegin",
+        "<p style='color:#b3261e;text-align:center'>players.json not found — serve this folder over HTTP (e.g. python3 -m http.server).</p>");
+    });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
 </script>
 </body>
 </html>
