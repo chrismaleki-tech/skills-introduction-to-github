@@ -78,12 +78,22 @@ jobs:
           python3 datagolf/deploy_simulator.py \
             --workbook "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" --out-dir /tmp
 
+      - name: Rebuild and push public matchup simulator
+        if: ${{ github.event.inputs.dry_run != 'true' }}
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          python3 datagolf/build_public_simulator.py \
+            --workbook datagolf/workbooks/PGA_stat_caddy_latest.xlsx --push
+
       - name: Commit refreshed workbook
         if: ${{ always() }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add datagolf/workbooks/ || true
+          git add datagolf/workbooks/ simulator/players.json simulator/wp-embed.html || true
           if git diff --cached --quiet; then
             echo "No workbook changes to commit."
           else

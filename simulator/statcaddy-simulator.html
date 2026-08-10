@@ -5,51 +5,178 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>StatCaddy — Build Your Own Matchup Model</title>
 <style>
-  :root {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { margin: 0; background: #f6f8f6; }
+  #sc-sim {
     --green: #1b4332; --green-2: #2d6a4f; --fairway: #40916c; --light: #d8f3dc;
-    --bg: #f6f8f6; --card: #ffffff; --ink: #1b2a24; --muted: #6b7f76; --accent: #b7791f;
+    --bg: transparent; --card: #ffffff; --ink: #1b2a24; --muted: #6b7f76; --accent: #b7791f;
+    box-sizing: border-box;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 8px max(16px, env(safe-area-inset-right)) 40px max(16px, env(safe-area-inset-left));
+    line-height: 1.45;
+    overflow: visible;
+    position: relative;
+    z-index: 0;
   }
-  * { box-sizing: border-box; margin: 0; }
-  body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 24px 16px; }
-  .wrap { max-width: 880px; margin: 0 auto; }
-  h1 { color: var(--green); font-size: 1.5rem; margin-bottom: 4px; }
-  .sub { color: var(--muted); margin-bottom: 20px; font-size: .95rem; }
-  .card { background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(27,67,50,.08); padding: 20px; margin-bottom: 18px; }
-  .players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
-  .vs { font-weight: 700; color: var(--accent); padding-bottom: 10px; }
-  label { display: block; font-size: .8rem; font-weight: 600; color: var(--green-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
-  input[list], select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; }
-  .weights-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
-  .weights-head h2 { color: var(--green); font-size: 1.05rem; }
-  .presets button { border: 1.5px solid var(--green-2); background: #fff; color: var(--green-2); border-radius: 999px; padding: 5px 12px; margin-left: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; }
-  .presets button:hover { background: var(--light); }
-  .w-row { display: grid; grid-template-columns: 130px 1fr 64px; gap: 12px; align-items: center; padding: 7px 0; }
-  .w-row .name { font-size: .9rem; font-weight: 600; }
-  .w-row .name small { display:block; color: var(--muted); font-weight: 400; }
-  input[type=range] { width: 100%; accent-color: var(--fairway); }
-  .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--green); }
-  .total { text-align: right; font-size: .85rem; color: var(--muted); margin-top: 6px; }
-  .total b.ok { color: var(--fairway); } .total b.warn { color: #b3261e; }
-  .result { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; border-radius: 12px; border: 1.5px solid #e0ece4; }
-  .side { padding: 18px; text-align: center; }
-  .side.a { background: linear-gradient(160deg, var(--green), var(--green-2)); color: #fff; }
-  .side.b { background: #fff; }
-  .side .pname { font-weight: 700; font-size: 1.05rem; min-height: 1.4em; }
-  .side .prob { font-size: 2.2rem; font-weight: 800; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
-  .side .ml { font-size: .95rem; opacity: .85; font-variant-numeric: tabular-nums; }
-  .edgebar { height: 10px; background: #e4ede7; border-radius: 999px; margin: 14px 0 4px; overflow: hidden; }
-  .edgebar > div { height: 100%; background: linear-gradient(90deg, var(--green-2), var(--fairway)); transition: width .25s; }
-  .breakdown { margin-top: 14px; }
-  .breakdown table { width: 100%; border-collapse: collapse; font-size: .88rem; }
-  .breakdown th, .breakdown td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #eef4f0; font-variant-numeric: tabular-nums; }
-  .breakdown th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
-  .breakdown td.win { color: var(--fairway); font-weight: 700; }
-  .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
+  #sc-sim *, #sc-sim *::before, #sc-sim *::after { box-sizing: border-box; }
+  #sc-sim .wrap { width: 100%; margin: 0 auto; overflow: visible; }
+  #sc-sim h1.sc-title {
+    color: var(--green) !important;
+    font-family: "Segoe UI", system-ui, sans-serif !important;
+    font-size: clamp(1.25rem, 2.8vw, 1.6rem) !important;
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    margin: 0 0 8px !important;
+    padding: 8px 0 0 !important;
+    overflow: visible !important;
+  }
+  #sc-sim .sub { color: var(--muted); margin: 0 0 18px; font-size: clamp(.88rem, 2.2vw, .95rem); }
+  #sc-sim .card {
+    background: var(--card);
+    border: 1px solid #e4eee8;
+    border-radius: 12px;
+    box-shadow: none;
+    padding: clamp(14px, 2.5vw, 18px) clamp(14px, 2.5vw, 20px);
+    margin: 0 0 14px;
+  }
+  #sc-sim .players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: end; }
+  #sc-sim .vs { font-weight: 700; color: var(--accent); padding-bottom: 10px; text-align: center; }
+  #sc-sim label {
+    display: block; font-size: .78rem; font-weight: 600; color: var(--green-2);
+    margin: 0 0 4px; text-transform: uppercase; letter-spacing: .04em;
+  }
+  #sc-sim input[list], #sc-sim select {
+    width: 100%; padding: 12px; border: 1.5px solid #cfe3d6; border-radius: 9px;
+    font-size: 16px; line-height: 1.3; background: #fff; color: var(--ink);
+    min-height: 44px;
+  }
+  #sc-sim .weights-head { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin: 0 0 14px; }
+  #sc-sim .weights-head h2 {
+    color: var(--green);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: normal;
+    text-transform: none;
+    margin: 0;
+    line-height: 1.3;
+  }
+  #sc-sim .presets {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  #sc-sim .presets br { display: none !important; }
+  #sc-sim .presets button {
+    border: 1.5px solid var(--green-2);
+    background: #fff;
+    color: var(--green-2);
+    border-radius: 8px;
+    padding: 10px 6px;
+    margin: 0;
+    cursor: pointer;
+    font-size: clamp(.7rem, 1.4vw, .82rem);
+    font-weight: 600;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    min-height: 40px;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #sc-sim .presets button:hover { background: var(--light); }
+  #sc-sim .w-row {
+    display: grid; grid-template-columns: minmax(110px, 160px) 1fr 56px;
+    gap: 12px; align-items: center; padding: 8px 0;
+  }
+  #sc-sim .w-row .name { font-size: .9rem; font-weight: 600; color: var(--ink); }
+  #sc-sim .w-row .name small { display: block; color: var(--muted); font-weight: 400; }
+  #sc-sim input[type=range] {
+    width: 100%; accent-color: var(--fairway);
+    height: 28px; margin: 0;
+  }
+  #sc-sim .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--green); }
+  #sc-sim .total { text-align: right; font-size: .85rem; color: var(--muted); margin-top: 8px; }
+  #sc-sim .total b.ok { color: var(--fairway); }
+  #sc-sim .total b.warn { color: #b3261e; }
+  #sc-sim .result { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; border-radius: 12px; border: 1.5px solid #e0ece4; }
+  #sc-sim .side { padding: clamp(12px, 2vw, 16px); text-align: center; min-width: 0; }
+  #sc-sim .side.a { background: linear-gradient(160deg, var(--green), var(--green-2)); color: #fff; }
+  #sc-sim .side.b { background: #fff; color: var(--ink); }
+  #sc-sim .side .pname {
+    font-weight: 700; font-size: clamp(.9rem, 2.4vw, 1.05rem); min-height: 1.4em;
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+  #sc-sim .side .prob { font-size: clamp(1.45rem, 4vw, 2.2rem); font-weight: 800; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+  #sc-sim .side .ml { font-size: clamp(.8rem, 2vw, .95rem); opacity: .85; font-variant-numeric: tabular-nums; }
+  #sc-sim .edgebar { height: 10px; background: #e4ede7; border-radius: 999px; margin: 14px 0 4px; overflow: hidden; }
+  #sc-sim .edgebar > div { height: 100%; background: linear-gradient(90deg, var(--green-2), var(--fairway)); transition: width .25s; }
+  #sc-sim .breakdown { margin-top: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  #sc-sim .breakdown table { width: 100%; min-width: 280px; border-collapse: collapse; font-size: .88rem; }
+  #sc-sim .breakdown th, #sc-sim .breakdown td { padding: 6px 8px; text-align: center; border-bottom: 1px solid #eef4f0; font-variant-numeric: tabular-nums; }
+  #sc-sim .breakdown th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
+  #sc-sim .breakdown td.win { color: var(--fairway); font-weight: 700; }
+  #sc-sim .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
+
+  /* Narrow laptop / tablet content columns (incl. WP theme width) */
+  @media (max-width: 720px) {
+    #sc-sim { padding-top: 12px; padding-bottom: 32px; }
+    #sc-sim .presets { flex-wrap: wrap; }
+    #sc-sim .presets button {
+      flex: 1 1 calc(50% - 4px);
+      white-space: normal;
+      min-height: 44px;
+      font-size: .78rem;
+    }
+    #sc-sim .w-row { grid-template-columns: minmax(100px, 1fr) 1.4fr 48px; gap: 8px; }
+  }
+
+  /* Phones (iPhone / Android) */
+  @media (max-width: 560px) {
+    #sc-sim { padding: 16px max(12px, env(safe-area-inset-right)) 28px max(12px, env(safe-area-inset-left)); }
+    #sc-sim .players { grid-template-columns: 1fr; gap: 10px; }
+    #sc-sim .vs { padding: 0; }
+    #sc-sim .presets { flex-wrap: wrap; }
+    #sc-sim .presets button {
+      flex: 1 1 calc(50% - 4px);
+      white-space: normal;
+      min-height: 44px;
+      padding: 10px 8px;
+      margin-left: 0;
+      font-size: .8rem;
+    }
+    #sc-sim .w-row { grid-template-columns: 1fr auto; gap: 6px 10px; }
+    #sc-sim .w-row input[type=range] { grid-column: 1 / -1; order: 3; height: 32px; }
+    #sc-sim .pct { text-align: right; }
+    #sc-sim .total { text-align: left; }
+    #sc-sim .side { padding: 14px 10px; }
+    #sc-sim .breakdown { font-size: .84rem; }
+    #sc-sim .breakdown th, #sc-sim .breakdown td { padding: 6px 4px; }
+  }
+
+  /* Very small phones */
+  @media (max-width: 360px) {
+    #sc-sim .presets button { flex: 1 1 100%; }
+    #sc-sim .result { grid-template-columns: 1fr; }
+    #sc-sim .side.b { border-top: 1px solid #e0ece4; }
+  }
 </style>
 </head>
 <body>
+<div id="sc-sim">
 <div class="wrap">
-  <h1>Build Your Own Matchup Model</h1>
+  <h1 class="sc-title">Build Your Own Matchup Model</h1>
   <div class="sub">Weight the stats the way <i>you</i> read this week's course — StatCaddy simulates the head-to-head.</div>
 
   <div class="card">
@@ -65,10 +192,10 @@
     <div class="weights-head">
       <h2>Your stat weights</h2>
       <div class="presets">
-        <button data-preset="balanced">Balanced</button>
-        <button data-preset="ballstriking">Ball-Striking</button>
-        <button data-preset="shortgame">Short Game</button>
-        <button data-preset="hotform">Hot Form</button>
+        <button type="button" data-preset="balanced">Balanced</button>
+        <button type="button" data-preset="ballstriking">Ball-Striking</button>
+        <button type="button" data-preset="shortgame">Short Game</button>
+        <button type="button" data-preset="hotform">Hot Form</button>
       </div>
     </div>
     <div id="weights"></div>
@@ -84,6 +211,7 @@
     <div class="breakdown" id="bd"></div>
     <div class="foot">Model: your weighted blend of each player's standardized stats becomes a strokes-per-round edge; win odds via a normal model of 72-hole scoring (&sigma; &asymp; 2.75 strokes/round). Stats for the Wyndham Championship field (Aug 2026), source: Data Golf.</div>
   </div>
+</div>
 </div>
 
 <script>
@@ -183,14 +311,29 @@ document.querySelectorAll(".presets button").forEach(b =>
   b.addEventListener("click", () => { weights = {...PRESETS[b.dataset.preset]}; buildWeightRows(); refresh(); }));
 ["p1","p2"].forEach(id => $(id).addEventListener("input", refresh));
 
-fetch("players.json").then(r => r.json()).then(data => {
-  PLAYERS = data;
+function bootFromEmbedded() {
+  const el = document.getElementById("embedded-data");
+  if (!el) return Promise.reject(new Error("no embedded-data"));
+  PLAYERS = JSON.parse(el.textContent);
   $("pl").innerHTML = PLAYERS.map(p => `<option value="${p.name}">`).join("");
+  // Prefer field players as defaults when hardcoded names are not in this week's set.
+  if (PLAYERS.length >= 2) {
+    if (!findPlayer($("p1").value)) $("p1").value = PLAYERS[0].name;
+    if (!findPlayer($("p2").value) || $("p2").value === $("p1").value) $("p2").value = PLAYERS[1].name;
+  }
   computeZParams(); buildWeightRows(); refresh();
-}).catch(() => {
-  document.body.insertAdjacentHTML("afterbegin",
-    "<p style='color:#b3261e;text-align:center'>players.json not found — serve this folder over HTTP (e.g. python3 -m http.server).</p>");
-});
+}
+
+function boot() {
+  Promise.resolve()
+    .then(bootFromEmbedded)
+    .catch(() => {
+      document.body.insertAdjacentHTML("afterbegin",
+        "<p style='color:#b3261e;text-align:center'>players.json not found — serve this folder over HTTP (e.g. python3 -m http.server).</p>");
+    });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
 </script>
 </body>
 </html>
