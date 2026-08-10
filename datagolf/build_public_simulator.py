@@ -35,7 +35,7 @@ TEMPLATE = os.path.join(SIM_DIR, "statcaddy-simulator-standalone.html")
 # PGA Database column header -> widget stat key
 COLMAP = {
     "SG OTT": "ott", "Approach": "app", "Around Green": "arg", "Putting": "putt",
-    "Form": "form", "History": "hist", "Points": "pts",
+    "T2Green": "fit", "Form": "form", "History": "hist", "Points": "pts",
 }
 
 
@@ -67,14 +67,40 @@ def build_players(workbook: str) -> list:
     return players
 
 
+PAGE_WRAPPER_CSS = (
+    "<style>"
+    "body.page-id-4952 .page-header,body.postid-4952 .page-header{display:none!important;}"
+    "body.page-id-4952 #content.site-main,body.postid-4952 #content.site-main{"
+    "padding-top:140px!important;overflow:visible!important;}"
+    "body.page-id-4952 .page-content,body.postid-4952 .page-content{overflow:visible!important;}"
+    "#sc-sim br{display:none!important;}"
+    "#sc-sim p{display:contents!important;margin:0!important;}"
+    "#sc-sim .presets{display:flex!important;flex-wrap:nowrap!important;gap:8px!important;width:100%!important;}"
+    "#sc-sim .presets button{flex:1 1 0!important;width:auto!important;max-width:none!important;"
+    "min-width:0!important;}"
+    "</style>"
+)
+
+
 def build_embed(players: list) -> str:
     html = open(TEMPLATE).read()
-    # set default matchup to the first two current-field players
+    # Seed default selected players on the <select> elements when present.
     if len(players) >= 2:
-        html = re.sub(r'(<input list="pl" id="p1"[^>]*value=")[^"]*(")',
-                      rf'\g<1>{players[0]["name"]}\g<2>', html)
-        html = re.sub(r'(<input list="pl" id="p2"[^>]*value=")[^"]*(")',
-                      rf'\g<1>{players[1]["name"]}\g<2>', html)
+        p1, p2 = players[0]["name"], players[1]["name"]
+        html = re.sub(
+            r'(<select id="p1"[^>]*>)(.*?)(</select>)',
+            rf'\1<option value="{p1}" selected>{p1}</option>\3',
+            html,
+            count=1,
+            flags=re.S,
+        )
+        html = re.sub(
+            r'(<select id="p2"[^>]*>)(.*?)(</select>)',
+            rf'\1<option value="{p2}" selected>{p2}</option>\3',
+            html,
+            count=1,
+            flags=re.S,
+        )
     style = re.sub(r"\s+", " ", re.search(r"<style>(.*?)</style>", html, re.S).group(1).replace("body {", "#sc-sim {"))
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
@@ -89,8 +115,9 @@ def push_to_wordpress(embed: str) -> None:
     url = os.environ["WP_URL"].rstrip("/")
     page_id = os.environ.get("WP_SIMULATOR_PAGE_ID", "4952")
     auth = (os.environ["WP_USERNAME"], os.environ["WP_APP_PASSWORD"].replace(" ", ""))
+    content = PAGE_WRAPPER_CSS + embed
     r = requests.post(f"{url}/wp-json/wp/v2/pages/{page_id}", auth=auth,
-                      json={"content": embed}, timeout=60)
+                      json={"content": content}, timeout=60)
     r.raise_for_status()
     n = len(json.loads(re.search(r'id="embedded-data">(.*?)</script>', r.json()["content"]["rendered"], re.S).group(1)))
     print(f"[ok] pushed to WordPress page {page_id}: {n} players live")

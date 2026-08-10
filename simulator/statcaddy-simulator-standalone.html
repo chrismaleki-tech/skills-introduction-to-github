@@ -18,14 +18,14 @@
   .players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
   .vs { font-weight: 700; color: var(--accent); padding-bottom: 10px; }
   label { display: block; font-size: .8rem; font-weight: 600; color: var(--green-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
-  input[list], select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; }
+  select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; cursor: pointer; }
   .weights-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
   .weights-head h2 { color: var(--green); font-size: 1.05rem; }
   .presets button { border: 1.5px solid var(--green-2); background: #fff; color: var(--green-2); border-radius: 999px; padding: 5px 12px; margin-left: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; }
   .presets button:hover { background: var(--light); }
+  .presets button.is-active { background: var(--green-2); color: #fff; }
   .w-row { display: grid; grid-template-columns: 130px 1fr 64px; gap: 12px; align-items: center; padding: 7px 0; }
   .w-row .name { font-size: .9rem; font-weight: 600; }
-  .w-row .name small { display:block; color: var(--muted); font-weight: 400; }
   input[type=range] { width: 100%; accent-color: var(--fairway); }
   .pct { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; color: var(--green); }
   .total { text-align: right; font-size: .85rem; color: var(--muted); margin-top: 6px; }
@@ -45,6 +45,8 @@
   .breakdown th { color: var(--muted); font-weight: 600; font-size: .78rem; text-transform: uppercase; }
   .breakdown td.win { color: var(--fairway); font-weight: 700; }
   .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
+  .same-player-msg { display:none; margin: 10px 0 0; padding: 10px 12px; border-radius: 8px; background: #fdecec; color: #b3261e; font-size: .9rem; font-weight: 600; text-align: center; }
+  .same-player-msg.is-visible { display:block; }
 </style>
 </head>
 <body>
@@ -54,21 +56,22 @@
 
   <div class="card">
     <div class="players">
-      <div><label>Player 1</label><input list="pl" id="p1" placeholder="Start typing a name…" value="Cameron Young"></div>
+      <div><label for="p1">Player 1</label><select id="p1" aria-label="Player 1"></select></div>
       <div class="vs">VS</div>
-      <div><label>Player 2</label><input list="pl" id="p2" placeholder="Start typing a name…" value="Ben Kohles"></div>
+      <div><label for="p2">Player 2</label><select id="p2" aria-label="Player 2"></select></div>
     </div>
-    <datalist id="pl"></datalist>
+    <div id="same-player-msg" class="same-player-msg" role="status">Choose two different players to run a matchup.</div>
   </div>
 
   <div class="card">
     <div class="weights-head">
       <h2>Your stat weights</h2>
       <div class="presets">
-        <button data-preset="balanced">Balanced</button>
-        <button data-preset="ballstriking">Ball-Striking</button>
-        <button data-preset="shortgame">Short Game</button>
-        <button data-preset="hotform">Hot Form</button>
+        <button type="button" data-preset="custom">My Weights</button>
+        <button type="button" data-preset="balanced">Balanced</button>
+        <button type="button" data-preset="ballstriking">Ball-Striking</button>
+        <button type="button" data-preset="shortgame">Short Game</button>
+        <button type="button" data-preset="hotform">Hot Form</button>
       </div>
     </div>
     <div id="weights"></div>
@@ -88,35 +91,95 @@
 
 <script>
 const STATS = [
-  { key:"ott",  label:"SG: Off the Tee",   hint:"driving power + accuracy" },
-  { key:"app",  label:"SG: Approach",      hint:"iron play" },
-  { key:"arg",  label:"SG: Around Green",  hint:"chipping, bunkers" },
-  { key:"putt", label:"SG: Putting",       hint:"on the greens" },
-  { key:"form", label:"Current Form",      hint:"last 10 weeks, trimmed" },
-  { key:"hist", label:"Course History",    hint:"past results here" },
-  { key:"pts",  label:"DG Points",         hint:"season-long results" },
+  { key:"ott",  label:"SG: Off the Tee" },
+  { key:"app",  label:"SG: Approach" },
+  { key:"arg",  label:"SG: Around Green" },
+  { key:"putt", label:"SG: Putting" },
+  { key:"fit",  label:"Course Fit" },
+  { key:"form", label:"Current Form" },
+  { key:"hist", label:"Course History" },
+  { key:"pts",  label:"DG Points" },
 ];
 const PRESETS = {
-  balanced:     {ott:15, app:20, arg:12, putt:15, form:18, hist:10, pts:10},
-  ballstriking: {ott:30, app:32, arg:8,  putt:8,  form:12, hist:5,  pts:5},
-  shortgame:    {ott:8,  app:12, arg:28, putt:30, form:12, hist:5,  pts:5},
-  hotform:      {ott:10, app:12, arg:8,  putt:10, form:40, hist:10, pts:10},
+  balanced:     {ott:12, app:18, arg:10, putt:12, fit:15, form:15, hist:8,  pts:10},
+  ballstriking: {ott:25, app:28, arg:6,  putt:6,  fit:15, form:10, hist:5,  pts:5},
+  shortgame:    {ott:6,  app:10, arg:24, putt:26, fit:14, form:10, hist:5,  pts:5},
+  hotform:      {ott:8,  app:10, arg:6,  putt:8,  fit:15, form:35, hist:8,  pts:10},
 };
+const WEIGHT_KEYS = STATS.map(s => s.key);
+const LS_SESSION = "scSimSessionWeights";
+const LS_CUSTOM = "scSimCustomWeights";
 let PLAYERS = [];
 let weights = {...PRESETS.balanced};
 let zstats = {};
+let activePreset = "balanced";
 
 const $ = id => document.getElementById(id);
+
+function cloneWeights(w) {
+  const out = {};
+  WEIGHT_KEYS.forEach(k => {
+    if (w && w[k] != null && w[k] !== "") out[k] = +w[k];
+    else out[k] = +(PRESETS.balanced[k] || 0);
+  });
+  return out;
+}
+
+function weightsEqual(a, b) {
+  return WEIGHT_KEYS.every(k => +a[k] === +b[k]);
+}
+
+function readStoredWeights(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return null;
+    return cloneWeights(parsed);
+  } catch (e) {
+    return null;
+  }
+}
+
+function saveSessionWeights() {
+  try { localStorage.setItem(LS_SESSION, JSON.stringify(cloneWeights(weights))); } catch (e) {}
+}
+
+function saveCustomWeights() {
+  try { localStorage.setItem(LS_CUSTOM, JSON.stringify(cloneWeights(weights))); } catch (e) {}
+}
+
+function markActivePreset(name) {
+  activePreset = name || "";
+  document.querySelectorAll(".presets button").forEach(btn => {
+    btn.classList.toggle("is-active", btn.dataset.preset === activePreset);
+  });
+}
+
+function applyWeights(next, presetName) {
+  weights = cloneWeights(next);
+  buildWeightRows();
+  refresh();
+  saveSessionWeights();
+  markActivePreset(presetName);
+}
 
 function buildWeightRows() {
   $("weights").innerHTML = STATS.map(s => `
     <div class="w-row">
-      <div class="name">${s.label}<small>${s.hint}</small></div>
+      <div class="name">${s.label}</div>
       <input type="range" min="0" max="50" step="1" value="${weights[s.key]}" data-k="${s.key}">
       <div class="pct" id="pct-${s.key}">${weights[s.key]}%</div>
     </div>`).join("");
   document.querySelectorAll("input[type=range]").forEach(r =>
-    r.addEventListener("input", e => { weights[e.target.dataset.k] = +e.target.value; refresh(); }));
+    r.addEventListener("input", e => {
+      weights[e.target.dataset.k] = +e.target.value;
+      activePreset = "custom";
+      markActivePreset("custom");
+      saveCustomWeights();
+      saveSessionWeights();
+      refresh();
+    }));
 }
 
 function computeZParams() {
@@ -155,6 +218,34 @@ function findPlayer(name) {
   return PLAYERS.find(p => p.name.toLowerCase() === n);
 }
 
+function clearMatchupResults() {
+  $("n1").textContent = "—"; $("n2").textContent = "—";
+  $("pr1").textContent = "—"; $("pr2").textContent = "—";
+  $("ml1").textContent = ""; $("ml2").textContent = "";
+  $("edge").style.width = "50%";
+  $("bd").innerHTML = "";
+}
+
+function syncExclusivePlayerOptions() {
+  const p1 = $("p1"), p2 = $("p2");
+  if (!p1 || !p2) return;
+  const v1 = p1.value, v2 = p2.value;
+  Array.from(p1.options).forEach(opt => { opt.disabled = !!(opt.value && opt.value === v2); });
+  Array.from(p2.options).forEach(opt => { opt.disabled = !!(opt.value && opt.value === v1); });
+}
+
+function ensureDifferentPlayers(changedId) {
+  const p1 = $("p1"), p2 = $("p2");
+  if (!p1 || !p2 || !PLAYERS.length) return;
+  if (p1.value && p2.value && p1.value === p2.value) {
+    const other = changedId === "p1" ? p2 : p1;
+    const taken = changedId === "p1" ? p1.value : p2.value;
+    const next = PLAYERS.find(p => p.name !== taken);
+    if (next) other.value = next.name;
+  }
+  syncExclusivePlayerOptions();
+}
+
 function refresh() {
   const total = STATS.reduce((a,s)=>a+weights[s.key],0);
   for (const s of STATS) {
@@ -162,8 +253,21 @@ function refresh() {
     if (el) el.textContent = total ? Math.round(100*weights[s.key]/total) + "%" : "0%";
   }
   $("wsum").textContent = "100%"; $("wsum").className = total ? "ok" : "warn";
+  const msg = $("same-player-msg");
   const a = findPlayer($("p1").value), b = findPlayer($("p2").value);
-  if (!a || !b) { $("bd").innerHTML = ""; return; }
+  if (!a || !b) {
+    if (msg) msg.classList.remove("is-visible");
+    clearMatchupResults();
+    return;
+  }
+  if (a.name === b.name) {
+    if (msg) msg.classList.add("is-visible");
+    clearMatchupResults();
+    $("n1").textContent = a.name;
+    $("n2").textContent = b.name;
+    return;
+  }
+  if (msg) msg.classList.remove("is-visible");
   const p = winProb(a, b);
   $("n1").textContent = a.name; $("n2").textContent = b.name;
   $("pr1").textContent = (100*p).toFixed(1) + "%"; $("pr2").textContent = (100*(1-p)).toFixed(1) + "%";
@@ -179,14 +283,67 @@ function refresh() {
     }).join("") + "</table>";
 }
 
+function fillPlayerSelects(default1, default2) {
+  const opts = PLAYERS.map(p => `<option value="${p.name}">${p.name}</option>`).join("");
+  let d1 = default1 || (PLAYERS[0] && PLAYERS[0].name) || "";
+  let d2 = default2 || (PLAYERS[1] && PLAYERS[1].name) || "";
+  if (d1 && d2 && d1 === d2) {
+    const alt = PLAYERS.find(p => p.name !== d1);
+    d2 = alt ? alt.name : d2;
+  }
+  ["p1", "p2"].forEach((id, i) => {
+    const el = $(id);
+    const keep = el.value || (i === 0 ? d1 : d2);
+    el.innerHTML = opts;
+    if (keep && PLAYERS.some(p => p.name === keep)) el.value = keep;
+    else if (PLAYERS[i]) el.value = PLAYERS[i].name;
+  });
+  ensureDifferentPlayers("p1");
+}
+
 document.querySelectorAll(".presets button").forEach(b =>
-  b.addEventListener("click", () => { weights = {...PRESETS[b.dataset.preset]}; buildWeightRows(); refresh(); }));
-["p1","p2"].forEach(id => $(id).addEventListener("input", refresh));
+  b.addEventListener("click", () => {
+    const preset = b.dataset.preset;
+    if (preset === "custom") {
+      const custom = readStoredWeights(LS_CUSTOM);
+      if (!custom) return;
+      applyWeights(custom, "custom");
+      return;
+    }
+    // Keep the customer's pre-preset weights so My Weights can restore them.
+    if (activePreset === "custom" || !PRESETS[activePreset] || !weightsEqual(weights, PRESETS[activePreset] || {})) {
+      saveCustomWeights();
+    }
+    applyWeights(PRESETS[preset], preset);
+  }));
+["p1","p2"].forEach(id => $(id).addEventListener("change", () => {
+  ensureDifferentPlayers(id);
+  refresh();
+}));
+window.addEventListener("beforeunload", saveSessionWeights);
 
 Promise.resolve(JSON.parse(document.getElementById("embedded-data").textContent)).then(data => {
   PLAYERS = data;
-  $("pl").innerHTML = PLAYERS.map(p => `<option value="${p.name}">`).join("");
-  computeZParams(); buildWeightRows(); refresh();
+  fillPlayerSelects(PLAYERS[0] && PLAYERS[0].name, PLAYERS[1] && PLAYERS[1].name);
+  computeZParams();
+  const session = readStoredWeights(LS_SESSION);
+  const custom = readStoredWeights(LS_CUSTOM);
+  if (session) {
+    weights = session;
+    const matched = Object.keys(PRESETS).find(k => weightsEqual(session, PRESETS[k]));
+    activePreset = matched || "custom";
+    if (!custom) saveCustomWeights();
+  } else if (custom) {
+    weights = custom;
+    activePreset = "custom";
+  } else {
+    weights = cloneWeights(PRESETS.balanced);
+    activePreset = "balanced";
+  }
+  buildWeightRows();
+  refresh();
+  saveSessionWeights();
+  markActivePreset(activePreset);
 }).catch(() => {
   document.body.insertAdjacentHTML("afterbegin",
     "<p style='color:#b3261e;text-align:center'>players.json not found — serve this folder over HTTP (e.g. python3 -m http.server).</p>");
