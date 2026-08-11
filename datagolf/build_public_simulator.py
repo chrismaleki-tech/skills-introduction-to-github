@@ -6,8 +6,8 @@ push it to the live WordPress page.
 Preferred data source is the member-field export
 ``datagolf/workbooks/StatCaddy_Field_latest.csv`` (same players/stats as the
 member pick list). Columns map to widget keys: Player→name, SG OTT→ott,
-Points→pts, Approach→app, Putting→putt, Around Green→arg, Form→form,
-History→hist. (T2Green / fit is omitted — the public STATS list has no fit slot.)
+Points→pts (shown as Class), Approach→app, Putting→putt, Around Green→arg,
+Form→form, History→hist, T2Green→fit (Course Fit).
 
 Falls back to the workbook's PGA Database sheet (players with a T2Green value)
 only when that CSV is missing.
@@ -39,18 +39,20 @@ TEMPLATE = os.path.join(SIM_DIR, "statcaddy-simulator-standalone.html")
 FIELD_CSV = os.path.join(REPO_DIR, "workbooks", "StatCaddy_Field_latest.csv")
 
 # CSV / PGA Database column header -> widget stat key
-# (fit/T2Green omitted — public STATS template has no fit key)
 COLMAP = {
     "SG OTT": "ott", "Approach": "app", "Around Green": "arg", "Putting": "putt",
-    "Form": "form", "History": "hist", "Points": "pts",
+    "Form": "form", "History": "hist", "T2Green": "fit", "Points": "pts",
 }
 
 
 def _record_from_row(name: str, get_value) -> dict | None:
-    """Build one player dict from a name + value getter; None if any stat missing."""
+    """Build one player dict from a name + value getter; None if any required stat missing."""
     rec = {"name": str(name).strip()}
     for header, key in COLMAP.items():
         v = get_value(header)
+        if key == "fit" and (v is None or v == ""):
+            rec[key] = 0.0
+            continue
         try:
             rec[key] = round(float(v), 3)
         except (TypeError, ValueError):
@@ -105,6 +107,21 @@ def build_players(workbook: str, field_csv: str | None = None) -> list:
         return players
     print(f"[warn] {csv_path} missing — falling back to workbook T2Green field")
     return build_players_from_workbook(workbook)
+
+
+def refresh_standalone_embedded(players: list) -> None:
+    """Keep the standalone template's embedded roster in sync with the field CSV."""
+    html = open(TEMPLATE).read()
+    data = json.dumps(players, indent=0)
+    updated, n = re.subn(
+        r'(<script type="application/json" id="embedded-data">).*?(</script>)',
+        rf"\g<1>{data}\g<2>",
+        html,
+        count=1,
+        flags=re.S,
+    )
+    if n:
+        open(TEMPLATE, "w").write(updated)
 
 
 def build_embed(players: list) -> str:
@@ -167,6 +184,7 @@ def main() -> int:
     if len(players) < 2:
         print(f"ERROR: only {len(players)} field players found — aborting.", file=sys.stderr)
         return 1
+    refresh_standalone_embedded(players)
     embed = build_embed(players)
     json.dump(players, open(os.path.join(SIM_DIR, "players.json"), "w"), indent=0)
     open(os.path.join(SIM_DIR, "wp-embed.html"), "w").write(embed)
@@ -176,7 +194,16 @@ def main() -> int:
         if not all(os.environ.get(v) for v in ("WP_URL", "WP_USERNAME", "WP_APP_PASSWORD")):
             print("ERROR: --push requires WP_URL / WP_USERNAME / WP_APP_PASSWORD", file=sys.stderr)
             return 2
-        push_to_wordpress(embed)
+        for attempt in range(1, 7):
+            try:
+                push_to_wordpress(embed)
+                break
+            except Exception as e:
+                if attempt == 6:
+                    raise
+                print(f"[warn] push attempt {attempt} failed: {e}; retrying")
+                import time
+                time.sleep(3 * attempt)
     return 0
 
 

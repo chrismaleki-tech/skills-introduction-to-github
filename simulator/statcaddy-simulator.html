@@ -177,19 +177,20 @@
 
 <script>
 const STATS = [
-  { key:"ott",  label:"SG: Off the Tee",   hint:"driving power + accuracy" },
-  { key:"app",  label:"SG: Approach",      hint:"iron play" },
-  { key:"arg",  label:"SG: Around Green",  hint:"chipping, bunkers" },
-  { key:"putt", label:"SG: Putting",       hint:"on the greens" },
-  { key:"form", label:"Current Form",      hint:"last 10 weeks, trimmed" },
-  { key:"hist", label:"Course History",    hint:"past results here" },
-  { key:"pts",  label:"DG Points",         hint:"season-long results" },
+  { key:"ott",  label:"SG: Off the Tee" },
+  { key:"app",  label:"SG: Approach" },
+  { key:"arg",  label:"SG: Around Green" },
+  { key:"putt", label:"SG: Putting" },
+  { key:"form", label:"Current Form" },
+  { key:"hist", label:"Course History" },
+  { key:"fit",  label:"Course Fit" },
+  { key:"pts",  label:"Class" },
 ];
 const PRESETS = {
-  balanced:     {ott:15, app:20, arg:12, putt:15, form:18, hist:10, pts:10},
-  ballstriking: {ott:30, app:32, arg:8,  putt:8,  form:12, hist:5,  pts:5},
-  shortgame:    {ott:8,  app:12, arg:28, putt:30, form:12, hist:5,  pts:5},
-  hotform:      {ott:10, app:12, arg:8,  putt:10, form:40, hist:10, pts:10},
+  balanced:     {ott:14, app:18, arg:10, putt:14, form:16, hist:8,  fit:10, pts:10},
+  ballstriking: {ott:28, app:30, arg:6,  putt:6,  form:10, hist:5,  fit:10, pts:5},
+  shortgame:    {ott:8,  app:12, arg:26, putt:28, form:10, hist:5,  fit:6,  pts:5},
+  hotform:      {ott:10, app:12, arg:8,  putt:10, form:36, hist:8,  fit:8,  pts:8},
 };
 let PLAYERS = [];
 let weights = {...PRESETS.balanced};
@@ -200,7 +201,7 @@ const $ = id => document.getElementById(id);
 function buildWeightRows() {
   $("weights").innerHTML = STATS.map(s => `
     <div class="w-row">
-      <div class="name">${s.label}<small>${s.hint}</small></div>
+      <div class="name">${s.label}</div>
       <input type="range" min="0" max="50" step="1" value="${weights[s.key]}" data-k="${s.key}">
       <div class="pct" id="pct-${s.key}">${weights[s.key]}%</div>
     </div>`).join("");
