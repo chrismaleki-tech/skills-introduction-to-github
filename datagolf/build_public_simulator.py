@@ -3,11 +3,18 @@
 Regenerate the public "Build Your Own Matchup Model" simulator and (optionally)
 push it to the live WordPress page.
 
-Data source is the workbook's PGA Database sheet: the current field is the set of
-players that have a course-fit (T2Green) value set for the upcoming event. Each
-player's 7 widget stats are read from that sheet, an embeddable, WordPress-safe
-HTML block is built (scoped CSS + base64 JS + inline JSON), and — if WordPress
-credentials are present — the block is written to the simulator page via REST.
+Preferred data source is the member-field export
+``datagolf/workbooks/StatCaddy_Field_latest.csv`` (same players/stats as the
+member pick list). Columns map to widget keys: Player→name, SG OTT→ott,
+Points→pts (shown as Class), Approach→app, Putting→putt, Around Green→arg,
+Form→form, History→hist, T2Green→fit (Course Fit).
+
+Falls back to the workbook's PGA Database sheet (players with a T2Green value)
+only when that CSV is missing.
+
+An embeddable, WordPress-safe HTML block is built (scoped CSS + base64 JS +
+inline JSON), and — if WordPress credentials are present — the block is written
+to the simulator page via REST.
 
 Env (only needed for the push step):
     WP_URL, WP_USERNAME, WP_APP_PASSWORD
@@ -20,26 +27,57 @@ Usage:
 
 import argparse
 import base64
+import csv
 import json
 import os
 import re
 import sys
 
-import openpyxl
-import requests
-
 REPO_DIR = os.path.dirname(__file__)
 SIM_DIR = os.path.join(os.path.dirname(REPO_DIR), "simulator")
 TEMPLATE = os.path.join(SIM_DIR, "statcaddy-simulator-standalone.html")
+FIELD_CSV = os.path.join(REPO_DIR, "workbooks", "StatCaddy_Field_latest.csv")
 
-# PGA Database column header -> widget stat key
+# CSV / PGA Database column header -> widget stat key
 COLMAP = {
     "SG OTT": "ott", "Approach": "app", "Around Green": "arg", "Putting": "putt",
-    "Form": "form", "History": "hist", "Points": "pts",
+    "Form": "form", "History": "hist", "T2Green": "fit", "Points": "pts",
 }
 
 
-def build_players(workbook: str) -> list:
+def _record_from_row(name: str, get_value) -> dict | None:
+    """Build one player dict from a name + value getter; None if any required stat missing."""
+    rec = {"name": str(name).strip()}
+    for header, key in COLMAP.items():
+        v = get_value(header)
+        if key == "fit" and (v is None or v == ""):
+            rec[key] = 0.0
+            continue
+        try:
+            rec[key] = round(float(v), 3)
+        except (TypeError, ValueError):
+            return None
+    return rec
+
+
+def build_players_from_csv(csv_path: str) -> list:
+    players = []
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = (row.get("Player") or "").strip()
+            if not name:
+                continue
+            rec = _record_from_row(name, lambda h, r=row: r.get(h))
+            if rec:
+                players.append(rec)
+    players.sort(key=lambda p: p["name"])
+    return players
+
+
+def build_players_from_workbook(workbook: str) -> list:
+    import openpyxl
+
     wb = openpyxl.load_workbook(workbook, data_only=True)
     db = wb["PGA Database"]
     hdr = {str(c.value).strip(): i + 1 for i, c in enumerate(db[1]) if c.value}
@@ -51,30 +89,44 @@ def build_players(workbook: str) -> list:
             continue
         if fit_col and db.cell(row=r, column=fit_col).value is None:
             continue  # not in this week's field
-        rec = {"name": str(name).strip()}
-        ok = True
-        for header, key in COLMAP.items():
-            col = hdr.get(header)
-            v = db.cell(row=r, column=col).value if col else None
-            try:
-                rec[key] = round(float(v), 3)
-            except (TypeError, ValueError):
-                ok = False
-                break
-        if ok:
+        rec = _record_from_row(
+            name,
+            lambda h, row=r: db.cell(row=row, column=hdr[h]).value if h in hdr else None,
+        )
+        if rec:
             players.append(rec)
     players.sort(key=lambda p: p["name"])
     return players
 
 
+def build_players(workbook: str, field_csv: str | None = None) -> list:
+    csv_path = field_csv if field_csv is not None else FIELD_CSV
+    if os.path.isfile(csv_path):
+        players = build_players_from_csv(csv_path)
+        print(f"[ok] field source: {csv_path} ({len(players)} players)")
+        return players
+    print(f"[warn] {csv_path} missing — falling back to workbook T2Green field")
+    return build_players_from_workbook(workbook)
+
+
+def refresh_standalone_embedded(players: list) -> None:
+    """Keep the standalone template's embedded roster in sync with the field CSV."""
+    html = open(TEMPLATE).read()
+    data = json.dumps(players, indent=0)
+    updated, n = re.subn(
+        r'(<script type="application/json" id="embedded-data">).*?(</script>)',
+        rf"\g<1>{data}\g<2>",
+        html,
+        count=1,
+        flags=re.S,
+    )
+    if n:
+        open(TEMPLATE, "w").write(updated)
+
+
 def build_embed(players: list) -> str:
     html = open(TEMPLATE).read()
-    # set default matchup to the first two current-field players
-    if len(players) >= 2:
-        html = re.sub(r'(<input list="pl" id="p1"[^>]*value=")[^"]*(")',
-                      rf'\g<1>{players[0]["name"]}\g<2>', html)
-        html = re.sub(r'(<input list="pl" id="p2"[^>]*value=")[^"]*(")',
-                      rf'\g<1>{players[1]["name"]}\g<2>', html)
+    # Defaults are applied in-page by fillPlayerSelects() from the embedded roster.
     style = re.sub(r"\s+", " ", re.search(r"<style>(.*?)</style>", html, re.S).group(1).replace("body {", "#sc-sim {"))
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
@@ -86,26 +138,53 @@ def build_embed(players: list) -> str:
 
 
 def push_to_wordpress(embed: str) -> None:
+    import ssl
+    import urllib.request
+
     url = os.environ["WP_URL"].rstrip("/")
     page_id = os.environ.get("WP_SIMULATOR_PAGE_ID", "4952")
-    auth = (os.environ["WP_USERNAME"], os.environ["WP_APP_PASSWORD"].replace(" ", ""))
-    r = requests.post(f"{url}/wp-json/wp/v2/pages/{page_id}", auth=auth,
-                      json={"content": embed}, timeout=60)
-    r.raise_for_status()
-    n = len(json.loads(re.search(r'id="embedded-data">(.*?)</script>', r.json()["content"]["rendered"], re.S).group(1)))
+    user = os.environ["WP_USERNAME"]
+    app = os.environ["WP_APP_PASSWORD"].replace(" ", "")
+    creds = base64.b64encode(f"{user}:{app}".encode()).decode()
+    req = urllib.request.Request(
+        f"{url}/wp-json/wp/v2/pages/{page_id}",
+        data=json.dumps({"content": embed}).encode(),
+        headers={
+            "Authorization": f"Basic {creds}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": "Mozilla/5.0 StatCaddyAgent/1.0",
+        },
+        method="POST",
+    )
+    with urllib.request.urlopen(req, timeout=90, context=ssl.create_default_context()) as r:
+        raw = r.read()
+        if raw[:1] == b"<":
+            raise RuntimeError("WordPress REST blocked by SiteGround captcha; retry --push")
+        body = json.loads(raw.decode())
+    content = body.get("content") or {}
+    blob = content.get("raw") or content.get("rendered") or ""
+    match = re.search(r'id="embedded-data">(.*?)</script>', blob, re.S)
+    if not match:
+        raise RuntimeError("push succeeded but embedded-data marker missing from response")
+    n = len(json.loads(match.group(1)))
     print(f"[ok] pushed to WordPress page {page_id}: {n} players live")
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Rebuild the public matchup simulator.")
     parser.add_argument("--workbook", default=os.path.join(REPO_DIR, "workbooks", "PGA_stat_caddy_latest.xlsx"))
+    parser.add_argument("--field-csv", default=FIELD_CSV,
+                        help="Member-field CSV (default: StatCaddy_Field_latest.csv). "
+                             "Falls back to workbook T2Green if missing.")
     parser.add_argument("--push", action="store_true", help="Also update the live WordPress page.")
     args = parser.parse_args()
 
-    players = build_players(args.workbook)
+    players = build_players(args.workbook, field_csv=args.field_csv)
     if len(players) < 2:
         print(f"ERROR: only {len(players)} field players found — aborting.", file=sys.stderr)
         return 1
+    refresh_standalone_embedded(players)
     embed = build_embed(players)
     json.dump(players, open(os.path.join(SIM_DIR, "players.json"), "w"), indent=0)
     open(os.path.join(SIM_DIR, "wp-embed.html"), "w").write(embed)
@@ -115,7 +194,16 @@ def main() -> int:
         if not all(os.environ.get(v) for v in ("WP_URL", "WP_USERNAME", "WP_APP_PASSWORD")):
             print("ERROR: --push requires WP_URL / WP_USERNAME / WP_APP_PASSWORD", file=sys.stderr)
             return 2
-        push_to_wordpress(embed)
+        for attempt in range(1, 7):
+            try:
+                push_to_wordpress(embed)
+                break
+            except Exception as e:
+                if attempt == 6:
+                    raise
+                print(f"[warn] push attempt {attempt} failed: {e}; retrying")
+                import time
+                time.sleep(3 * attempt)
     return 0
 
 
