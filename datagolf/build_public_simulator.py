@@ -76,6 +76,14 @@ def build_embed(players: list) -> str:
         html = re.sub(r'(<input list="pl" id="p2"[^>]*value=")[^"]*(")',
                       rf'\g<1>{players[1]["name"]}\g<2>', html)
     style = re.sub(r"\s+", " ", re.search(r"<style>(.*?)</style>", html, re.S).group(1).replace("body {", "#sc-sim {"))
+    # Scope layout-critical rules under #sc-sim so theme/button CSS cannot restack presets.
+    style += (
+        " #sc-sim .weights-head{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:12px}"
+        " #sc-sim .presets{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%}"
+        " #sc-sim .presets button{display:inline-flex!important;align-items:center;justify-content:center;"
+        "width:100%!important;margin:0!important;box-sizing:border-box}"
+        " @media (max-width:640px){#sc-sim .presets{grid-template-columns:repeat(2,minmax(0,1fr))!important}}"
+    )
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
     markup = re.sub(r"\n\s*\n+", "\n", re.sub(r"<script.*?</script>", "", body, flags=re.S))
