@@ -34,3 +34,12 @@ on the site) can render the `dg_player` records with a Loop Grid, and ACF Pro
 
 Meta writes require the `edit_posts` capability, so only authenticated
 API users (the pipeline's Application Password user) can modify records.
+
+## Code Snippets (live site overrides)
+
+Source for WordPress **Code Snippets** used on statcaddygolf.com lives in
+`wordpress/snippets/`. Keep these in sync with the active snippets in WP admin.
+
+| File | Snippet name | Purpose |
+|---|---|---|
+| `snippets/standardize-player-headshots.php` | StatCaddy standardize player headshots | Force consistent headshot framing (`object-fit: cover`, top-center) on 1v1 + multi-player simulators |
