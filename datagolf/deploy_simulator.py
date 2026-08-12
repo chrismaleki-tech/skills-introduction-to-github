@@ -151,6 +151,10 @@ def build_field(key, workbook, tour):
     return event, players
 
 
+# WordPress Player Data upload format (must stay column-compatible with the site importer).
+WP_FIELD_HEADER = ["Player", "SG OTT", "Points", "Approach", "Putting", "Around Green",
+                   "T2Green", "Form", "History", "Tournament", "Tour"]
+# Downloadable field sheet includes power rankings.
 FIELD_HEADER = ["Rank", "Player", "SG OTT", "Points", "Approach", "Putting", "Around Green",
                 "T2Green", "Form", "History", "Power", "Win%", "Tournament", "Tour"]
 
@@ -176,17 +180,23 @@ def attach_power_rankings(players, weights, temperature=SOFTMAX_TEMP):
     return scored
 
 
+def _wp_field_rows(event, players):
+    return [[p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"],
+             p["form"], p["hist"], event, "PGA Tour"] for p in players]
+
+
 def _field_rows(event, players):
     return [[p["rank"], p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"],
              p["form"], p["hist"], p["power"], p["win_pct"], event, "PGA Tour"] for p in players]
 
 
 def write_field_csv(event, players, path):
+    """Write the WordPress Player Data CSV (no Rank/Power/Win% columns)."""
     import csv
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(FIELD_HEADER)
-        w.writerows(_field_rows(event, players))
+        w.writerow(WP_FIELD_HEADER)
+        w.writerows(_wp_field_rows(event, players))
 
 
 def write_field_sheet(event, players, out_dir):
