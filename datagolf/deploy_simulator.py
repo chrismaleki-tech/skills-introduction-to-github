@@ -20,6 +20,9 @@ rather than a half-built field — so a failed run never corrupts the live tool.
 
 Env:
   DATAGOLF_KEY, WP_URL, WP_USERNAME, WP_PASSWORD   (required for live deploy)
+  WP_URL             production WordPress origin, or a SiteGround
+                     staging origin (https://staging1.statcaddygolf.com). See
+                     wordpress/STAGING.md.
   WP_PASSWORD        real WordPress login password for /golflogin (browser).
                      Application passwords (WP_APP_PASSWORD) work for REST only and
                      cannot sign into wp-admin — do not reuse them here.

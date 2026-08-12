@@ -100,11 +100,16 @@ python datagolf/load_wordpress.py
 
 Environment variables:
 
-- `WP_URL` — e.g. `https://statcaddygolf.com`
+- `WP_URL` — production WordPress origin, or a SiteGround staging origin such as `https://staging1.statcaddygolf.com`
 - `WP_USERNAME` — WordPress username
 - `WP_APP_PASSWORD` — Application Password for REST only (Users -> Profile -> Application Passwords)
 - `WP_PASSWORD` — real account password for `/golflogin` browser deploys (`deploy_simulator.py` /
   Weekly Simulator Deploy). Application passwords cannot sign into wp-admin.
+
+To stand up a staging copy of the live site and point these variables at it, see
+[`wordpress/STAGING.md`](../wordpress/STAGING.md). GitHub Actions workflows that
+write to WordPress accept a **target** of `staging` (uses `WP_STAGING_URL`) or
+`production` (default; scheduled runs always use production).
 
 ## Workbook field sheets (Scottish Open Field / Wyndham Field)
 

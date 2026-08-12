@@ -11,6 +11,11 @@ on:
         type: choice
         options: [pga, euro, kft, alt, liv]
         default: pga
+      target:
+        description: "WordPress site to load into. Scheduled runs always use production."
+        type: choice
+        options: [production, staging]
+        default: production
   schedule:
     # Daily at 10:00 UTC (after Data Golf's overnight model updates).
     - cron: "0 10 * * *"
@@ -22,7 +27,7 @@ jobs:
   update-csv:
     runs-on: ubuntu-latest
     env:
-      WP_URL: ${{ secrets.WP_URL }}
+      WP_URL: ${{ github.event.inputs.target == 'staging' && secrets.WP_STAGING_URL || secrets.WP_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,10 +61,20 @@ jobs:
             git push
           fi
 
+      - name: Guard staging WordPress target
+        if: ${{ github.event.inputs.target == 'staging' }}
+        env:
+          WP_URL_STAGING: ${{ secrets.WP_STAGING_URL }}
+        run: |
+          if [ -z "$WP_URL_STAGING" ]; then
+            echo "::error::WP_STAGING_URL is not set. Create the SiteGround staging copy, then add the secret (wordpress/STAGING.md)."
+            exit 1
+          fi
+
       - name: Load into WordPress
         if: ${{ env.WP_URL != '' }}
         env:
-          WP_URL: ${{ secrets.WP_URL }}
-          WP_USERNAME: ${{ secrets.WP_USERNAME }}
-          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          WP_URL: ${{ github.event.inputs.target == 'staging' && secrets.WP_STAGING_URL || secrets.WP_URL }}
+          WP_USERNAME: ${{ github.event.inputs.target == 'staging' && (secrets.WP_STAGING_USERNAME || secrets.WP_USERNAME) || secrets.WP_USERNAME }}
+          WP_APP_PASSWORD: ${{ github.event.inputs.target == 'staging' && (secrets.WP_STAGING_APP_PASSWORD || secrets.WP_APP_PASSWORD) || secrets.WP_APP_PASSWORD }}
         run: python datagolf/load_wordpress.py
