@@ -77,9 +77,13 @@ def build_embed(players: list) -> str:
                       rf'\g<1>{players[1]["name"]}\g<2>', html)
     style = re.sub(r"\s+", " ", re.search(r"<style>(.*?)</style>", html, re.S).group(1).replace("body {", "#sc-sim {"))
     # Scope layout-critical rules under #sc-sim so theme/button CSS cannot restack presets.
+    # Also hide theme page title (duplicate of the simulator nav label) and neutralize
+    # wpautop <br> tags WordPress inserts between the preset buttons.
     style += (
+        " .page-id-4952 .page-header,.page-id-4952 .entry-title{display:none!important}"
         " #sc-sim .weights-head{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:12px}"
         " #sc-sim .presets{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%}"
+        " #sc-sim .presets br{display:none!important}"
         " #sc-sim .presets button{display:inline-flex!important;align-items:center;justify-content:center;"
         "width:100%!important;margin:0!important;box-sizing:border-box}"
         " @media (max-width:640px){#sc-sim .presets{grid-template-columns:repeat(2,minmax(0,1fr))!important}}"
@@ -87,6 +91,18 @@ def build_embed(players: list) -> str:
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
     markup = re.sub(r"\n\s*\n+", "\n", re.sub(r"<script.*?</script>", "", body, flags=re.S))
+    # Keep preset buttons on one line so wpautop cannot insert <br> between them.
+    markup = re.sub(
+        r'<div class="presets">\s*'
+        r'(<button[^>]*>.*?</button>)\s*'
+        r'(<button[^>]*>.*?</button>)\s*'
+        r'(<button[^>]*>.*?</button>)\s*'
+        r'(<button[^>]*>.*?</button>)\s*'
+        r'</div>',
+        r'<div class="presets">\1\2\3\4</div>',
+        markup,
+        flags=re.S,
+    )
     data = json.dumps(players, separators=(",", ":"))
     return (f'<div id="sc-sim"><style>{style}</style>{markup}'
             f'<script type="application/json" id="embedded-data">{data}</script>'
