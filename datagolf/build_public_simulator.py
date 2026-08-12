@@ -79,8 +79,17 @@ def build_embed(players: list) -> str:
     # Scope layout-critical rules under #sc-sim so theme/button CSS cannot restack presets.
     # Also hide theme page title (duplicate of the simulator nav label) and neutralize
     # wpautop <br> tags WordPress inserts between the preset buttons.
+    # Center the matchup title in the Elementor header using the site h1 face (Staatliches).
     style += (
         " .page-id-4952 .page-header,.page-id-4952 .entry-title{display:none!important}"
+        " .page-id-4952 .elementor-location-header .elementor-element-080483f,"
+        ".page-id-4952 .elementor-location-header .elementor-element-d094220{position:relative!important}"
+        " .page-id-4952 .sc-header-matchup-title{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);"
+        "margin:0;padding:0;font-family:\"Staatliches\",Sans-serif;font-size:65px;font-weight:400;"
+        "letter-spacing:2px;line-height:1;color:#1b4332;text-transform:uppercase;white-space:nowrap;"
+        "text-align:center;pointer-events:none;z-index:5}"
+        " @media (max-width:1200px){.page-id-4952 .sc-header-matchup-title{font-size:42px}}"
+        " @media (max-width:782px){.page-id-4952 .sc-header-matchup-title{font-size:26px;letter-spacing:1px}}"
         " #sc-sim .weights-head{display:flex;flex-direction:column;align-items:stretch;gap:12px;margin-bottom:12px}"
         " #sc-sim .presets{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;width:100%}"
         " #sc-sim .presets br{display:none!important}"
@@ -104,9 +113,18 @@ def build_embed(players: list) -> str:
         flags=re.S,
     )
     data = json.dumps(players, separators=(",", ":"))
+    header_js = (
+        "(function(){if(!document.body||!document.body.classList.contains('page-id-4952'))return;"
+        "if(document.querySelector('.sc-header-matchup-title'))return;"
+        "var host=document.querySelector('.elementor-location-header .elementor-element-080483f')"
+        "||document.querySelector('.elementor-location-header .elementor-element-d094220');"
+        "if(!host)return;var el=document.createElement('div');el.className='sc-header-matchup-title';"
+        "el.textContent='Build Your Own Matchup Model';host.appendChild(el);})();"
+    )
     return (f'<div id="sc-sim"><style>{style}</style>{markup}'
             f'<script type="application/json" id="embedded-data">{data}</script>'
-            f'<script>eval(atob("{base64.b64encode(js.encode()).decode()}"));</script></div>')
+            f'<script>eval(atob("{base64.b64encode(js.encode()).decode()}"));</script>'
+            f'<script>{header_js}</script></div>')
 
 
 def push_to_wordpress(embed: str) -> None:
