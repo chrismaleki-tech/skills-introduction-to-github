@@ -12,17 +12,25 @@
   * { box-sizing: border-box; margin: 0; }
   body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 24px 16px; }
   .wrap { max-width: 880px; margin: 0 auto; }
-  h1 { color: var(--green); font-size: 1.5rem; margin-bottom: 4px; }
   .sub { color: var(--muted); margin-bottom: 20px; font-size: .95rem; }
   .card { background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(27,67,50,.08); padding: 20px; margin-bottom: 18px; }
   .players { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: end; }
   .vs { font-weight: 700; color: var(--accent); padding-bottom: 10px; }
   label { display: block; font-size: .8rem; font-weight: 600; color: var(--green-2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
   input[list], select { width: 100%; padding: 10px 12px; border: 1.5px solid #cfe3d6; border-radius: 9px; font-size: 1rem; background: #fff; }
-  .weights-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+  .weights-head { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-bottom: 12px; }
   .weights-head h2 { color: var(--green); font-size: 1.05rem; }
-  .presets button { border: 1.5px solid var(--green-2); background: #fff; color: var(--green-2); border-radius: 999px; padding: 5px 12px; margin-left: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; }
+  .presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; width: 100%; }
+  .presets button {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 100%; margin: 0; border: 1.5px solid var(--green-2); background: #fff;
+    color: var(--green-2); border-radius: 999px; padding: 8px 10px; cursor: pointer;
+    font-size: .8rem; font-weight: 600; line-height: 1.2; text-align: center; white-space: nowrap;
+  }
   .presets button:hover { background: var(--light); }
+  @media (max-width: 640px) {
+    .presets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
   .w-row { display: grid; grid-template-columns: 130px 1fr 64px; gap: 12px; align-items: center; padding: 7px 0; }
   .w-row .name { font-size: .9rem; font-weight: 600; }
   .w-row .name small { display:block; color: var(--muted); font-weight: 400; }
@@ -49,7 +57,6 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Build Your Own Matchup Model</h1>
   <div class="sub">Weight the stats the way <i>you</i> read this week's course — StatCaddy simulates the head-to-head.</div>
 
   <div class="card">
