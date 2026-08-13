@@ -14,6 +14,11 @@
  * "Classic Simulator" on page 3736). They are flipped here so every simulator
  * button reads green with a white label.
  *
+ * The Try Simulator buttons themselves only differ from that scheme on hover:
+ * the footer one and the two "Try the Simulator" buttons on the home page keep
+ * a white label over the white hover fill, so their text disappears. They are
+ * given the header button's green hover label here.
+ *
  * Colours only: padding, radius, shadow and typography stay as each button
  * already had them. The theme sets .green-button colours with !important, so
  * these overrides need it too; they print after the enqueued stylesheets.
@@ -37,7 +42,13 @@ add_action('wp_head', function () {
 .elementor-166 .elementor-element.elementor-element-e9fa265 .elementor-button:hover,
 .elementor-166 .elementor-element.elementor-element-e9fa265 .elementor-button:focus,
 .elementor-3736 .elementor-element.elementor-element-799f126 .elementor-button:hover,
-.elementor-3736 .elementor-element.elementor-element-799f126 .elementor-button:focus{
+.elementor-3736 .elementor-element.elementor-element-799f126 .elementor-button:focus,
+.elementor-843 .elementor-element.elementor-element-0a16414 .elementor-button:hover,
+.elementor-843 .elementor-element.elementor-element-0a16414 .elementor-button:focus,
+.elementor-84 .elementor-element.elementor-element-49d2df1 .elementor-button:hover,
+.elementor-84 .elementor-element.elementor-element-49d2df1 .elementor-button:focus,
+.elementor-84 .elementor-element.elementor-element-bb78f71 .elementor-button:hover,
+.elementor-84 .elementor-element.elementor-element-bb78f71 .elementor-button:focus{
   background-color:#FFFFFF!important;
   border-color:#48911E!important;
   color:#48911E!important;
