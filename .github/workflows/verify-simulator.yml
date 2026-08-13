@@ -21,6 +21,25 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  snippet-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Check live Code Snippets match wordpress/snippets/
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+        run: |
+          python datagolf/sync_wp_snippets.py check
+
   verify:
     runs-on: ubuntu-latest
     steps:

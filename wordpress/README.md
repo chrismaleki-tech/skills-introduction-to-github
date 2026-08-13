@@ -38,11 +38,30 @@ API users (the pipeline's Application Password user) can modify records.
 ## Code Snippets (live site overrides)
 
 Source for WordPress **Code Snippets** used on statcaddygolf.com lives in
-`wordpress/snippets/`. Keep these in sync with the active snippets in WP admin.
+`wordpress/snippets/`, mapped to live snippet ids by `snippets/manifest.json`.
+Every ACTIVE live snippet must be tracked here.
 
-| File | Snippet name | Purpose |
-|---|---|---|
-| `snippets/standardize-player-headshots.php` | StatCaddy standardize player headshots | Force consistent headshot framing (`object-fit: cover`, top-center) on 1v1 + multi-player simulators |
+| File | Id | Snippet name | Purpose |
+|---|---|---|---|
+| `snippets/open-access.php` | 6 | StatCaddy open access (no login required) | Safety net that keeps simulator pages readable without login |
+| `snippets/simulator-switcher-dropdown.php` | 9 | StatCaddy simulator switcher dropdown | Top-of-page "Simulators" picklist + phone-safe header/card chrome |
+| `snippets/block-same-player-matchups.php` | 10 | StatCaddy block same-player matchups | Rejects duplicate golfers server- and client-side; simulator layout CSS |
+| `snippets/remove-spin-to-win.php` | 11 | StatCaddy remove Spin to Win | Removes the Spin to Win promo from simulator pages |
+| `snippets/standardize-player-headshots.php` | 12 | StatCaddy standardize player headshots | Force consistent headshot framing (`object-fit: cover`, top-center) on 1v1 + multi-player simulators |
+
+Sync with `datagolf/sync_wp_snippets.py` (env: `WP_URL`, `WP_USERNAME`,
+`WP_APP_PASSWORD`):
+
+```
+python datagolf/sync_wp_snippets.py check   # exit 1 on any drift (runs daily in CI)
+python datagolf/sync_wp_snippets.py pull    # live -> repo, then commit the diff
+python datagolf/sync_wp_snippets.py push    # repo -> live, then purge the cache
+```
+
+`check` also fails when an active live snippet is missing from the manifest, so
+untracked hotfixes are caught by the daily `verify-simulator` workflow. Repo
+files start with `<?php` for editors; the plugin stores code without it, and
+the sync script converts both ways.
 
 ### Simulator card CSS rule
 

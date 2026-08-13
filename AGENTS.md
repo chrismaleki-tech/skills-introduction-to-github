@@ -17,11 +17,14 @@ because past agent sessions broke the live site; follow them for every change.
 
 - The live site is production with paying members. Treat every write to it
   like a deploy.
-- Never hand-edit live Code Snippets and walk away. Any change to a live
-  snippet must also land in this repo the same session:
-  - snippet source in `wordpress/snippets/` (see `wordpress/README.md`), and
-  - an idempotent push/patch script under `datagolf/` (pattern:
-    `datagolf/fix_player_card_headshots_live.py`).
+- Never hand-edit live Code Snippets and walk away. All active snippets are
+  tracked in `wordpress/snippets/` (manifest: `wordpress/snippets/manifest.json`).
+  To change one: edit the repo file, run
+  `python datagolf/sync_wp_snippets.py push`, purge the cache, and commit.
+  After any intentional live-side edit, run
+  `python datagolf/sync_wp_snippets.py pull` and commit the diff.
+  `python datagolf/sync_wp_snippets.py check` must pass before you finish —
+  CI runs it daily and fails on any drift or untracked active snippet.
 - After any live change that affects page output, purge the SiteGround cache
   (admin-bar item `#wp-admin-bar-SG_CachePress_Supercacher_Purge`, or run
   `python datagolf/fix_player_card_headshots_live.py --purge`), then verify as
