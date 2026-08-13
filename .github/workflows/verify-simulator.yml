@@ -1,0 +1,55 @@
+name: Verify Simulator Cards
+
+# Catches live-site regressions where a simulator card stops showing the
+# selected golfer's portrait (e.g. CSS clamping the slick slider widths).
+# Runs after the weekly deploy, once a day, and on demand.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily 14:00 UTC (after the Monday 13:00 UTC weekly deploy window).
+    - cron: "0 14 * * *"
+  workflow_run:
+    workflows: ["Weekly Simulator Deploy"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-simulator
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Verify every card shows its selected golfer
+        env:
+          WP_URL: ${{ secrets.WP_URL }}
+          WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          # Browser /golflogin needs the real account password — not an Application Password.
+          WP_PASSWORD: ${{ secrets.WP_PASSWORD }}
+        run: |
+          python datagolf/verify_simulator_cards.py --select --shots-dir /tmp/shots --tag verify
+
+      - name: Upload card screenshots
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: simulator-card-screenshots
+          path: /tmp/shots/
+          retention-days: 14
