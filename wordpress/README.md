@@ -34,3 +34,30 @@ on the site) can render the `dg_player` records with a Loop Grid, and ACF Pro
 
 Meta writes require the `edit_posts` capability, so only authenticated
 API users (the pipeline's Application Password user) can modify records.
+
+## Code Snippets (live site overrides)
+
+Source for WordPress **Code Snippets** used on statcaddygolf.com lives in
+`wordpress/snippets/`. Keep these in sync with the active snippets in WP admin.
+
+| File | Snippet name | Purpose |
+|---|---|---|
+| `snippets/standardize-player-headshots.php` | StatCaddy standardize player headshots | Force consistent headshot framing (`object-fit: cover`, top-center) on 1v1 + multi-player simulators |
+
+### Simulator card CSS rule
+
+The simulator cards show portraits through a slick slider: one
+`.player-container` slide per field player, laid out by slick in a single very
+wide `.slick-track` row that `.slick-list` clips to one visible frame. Slick
+writes the track and slide widths inline and slides the selected player into the
+frame with a negative `left`.
+
+Never add a `width` / `max-width` rule for `.slick-track`, `.slick-slide` or
+`.player-container`. Clamping them to the frame width wraps the row into a
+vertical stack, and every slide except the first one ends up outside the clipped
+frame — so a card renders an empty portrait for the golfer it has selected. To
+contain the slider on small screens, clip at `.slick-list` (and size
+`.player-image` / its `<img>`) instead.
+
+Run `python datagolf/verify_simulator_cards.py --select` after any simulator CSS
+change; it fails when a card's selected portrait is not inside its frame.
