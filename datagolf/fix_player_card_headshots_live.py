@@ -33,6 +33,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import ssl
 import sys
 import time
@@ -140,14 +141,23 @@ def replace(code: str, old: str, new: str, label: str) -> str:
 
 
 def width_clamped_selectors(code: str) -> list:
-    """Return slick-owned selectors that still appear in a width declaration."""
+    """Return slick-owned classes that a width rule still targets directly.
+
+    Only the rule's subject counts: `.player-container .player-image{width:…}`
+    sizes the portrait, which is fine, while `.player-container{width:…}` sizes
+    the slide itself, which breaks the slider.
+    """
+    body = re.sub(r"/\*.*?\*/", "", code, flags=re.S)
     hits = []
-    for block in code.split("}"):
-        if "width" not in block:
+    for match in re.finditer(r"([^{}();]+)\{([^{}]*)\}", body):
+        selectors, decls = match.group(1), match.group(2)
+        if not re.search(r"(^|[;\s])(max-)?width\s*:", decls):
             continue
-        for sel in SLICK_OWNED:
-            if sel in block.split("{")[0] and sel not in hits:
-                hits.append(sel)
+        for selector in selectors.split(","):
+            subject = selector.strip().split()[-1] if selector.strip() else ""
+            for sel in SLICK_OWNED:
+                if sel in subject and sel not in hits:
+                    hits.append(sel)
     return hits
 
 
@@ -206,9 +216,12 @@ def purge_cache() -> None:
         pg.click("#wp-submit")
         pg.wait_for_load_state("networkidle")
         pg.goto(f"{base}/wp-admin/", wait_until="networkidle")
-        link = pg.locator("#wp-admin-bar-sg-cachepress-purge a").first
+        link = pg.locator(
+            "#wp-admin-bar-SG_CachePress_Supercacher_Purge a, #wp-admin-bar-sg-cachepress-purge a"
+        ).first
         if link.count():
             link.click()
+            pg.wait_for_load_state("networkidle")
             pg.wait_for_timeout(3000)
             print("[ok] page cache purged")
         else:

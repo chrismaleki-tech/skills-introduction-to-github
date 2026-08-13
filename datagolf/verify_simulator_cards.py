@@ -36,7 +36,8 @@ MEASURE = r"""
     const cur = card.querySelector('.slick-slide.slick-current');
     const sel = card.querySelector('select');
     const selected = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : null;
-    if (!list || !cur) return {card: card.id, selected, visiblePct: null, note: 'no slider'};
+    const selectedId = sel ? String(sel.value || '') : null;
+    if (!list || !cur) return {card: card.id, selected, selectedId, visiblePct: null, note: 'no slider'};
     const lr = list.getBoundingClientRect(), cr = cur.getBoundingClientRect();
     const ow = Math.max(0, Math.min(cr.right, lr.right) - Math.max(cr.left, lr.left));
     const oh = Math.max(0, Math.min(cr.bottom, lr.bottom) - Math.max(cr.top, lr.top));
@@ -44,6 +45,8 @@ MEASURE = r"""
     return {
       card: card.id,
       selected,
+      selectedId,
+      slidePlayerId: cur.dataset.playerId || null,
       portrait: img ? (img.alt || img.getAttribute('src').split('/').pop()) : null,
       portraitLoaded: !!(img && img.naturalWidth > 0),
       trackWidth: Math.round(parseFloat(getComputedStyle(card.querySelector('.slick-track')).width)),
@@ -57,19 +60,19 @@ MEASURE = r"""
 
 def pick(pg, card_id: str, needle: str) -> None:
     """Choose a golfer through the real picker so the theme's handlers run."""
-    pg.evaluate(
-        """([cardId, needle]) => {
-             const sel = document.querySelector('#' + cardId + ' select');
-             const opt = [...sel.options].find(o => o.text.includes(needle));
-             if (!opt) return;
-             sel.value = opt.value;
-             const $ = window.jQuery;
-             if ($ && $(sel).data('select2')) $(sel).trigger('select2:select', {data: {id: opt.value}});
-             if ($) $(sel).trigger('change'); else sel.dispatchEvent(new Event('change', {bubbles: true}));
-           }""",
-        [card_id, needle],
-    )
-    pg.wait_for_timeout(2500)
+    card = pg.locator(f"#{card_id}")
+    opener = card.locator(".select2-selection").first
+    if opener.count():
+        opener.click()
+        pg.wait_for_timeout(600)
+        search = pg.locator(".select2-container--open input.select2-search__field")
+        if search.count():
+            search.first.fill(needle)
+            pg.wait_for_timeout(900)
+        pg.locator(".select2-container--open li.select2-results__option", has_text=needle).first.click()
+    else:
+        card.locator("select").first.select_option(label=needle)
+    pg.wait_for_timeout(3000)
 
 
 def main() -> int:
@@ -131,7 +134,7 @@ def main() -> int:
             report["1v1/after-select"] = cards
             for c in cards:
                 ok = (c.get("visiblePct") or 0) >= MIN_VISIBLE_PCT and c.get("portraitLoaded") \
-                     and (c.get("selected") or "").split()[-1] in str(c.get("portrait"))
+                     and c.get("slidePlayerId") == c.get("selectedId")
                 print(f"{'ok  ' if ok else 'FAIL'} {'1v1/after-select':<16} {c['card']:<14} "
                       f"{str(c.get('selected')):<22} portrait={str(c.get('portrait'))[:28]:<30} "
                       f"visible={c.get('visiblePct')}%")
