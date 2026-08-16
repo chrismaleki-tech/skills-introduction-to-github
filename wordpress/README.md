@@ -47,6 +47,17 @@ the same name and activated there.
   onto a separate player so the numbers on screen total 100. Head-to-head
   matchups are handled upstream in `datagolf/deploy_simulator.py`, which puts
   the uploaded win counts on a tenth-of-a-percent grid.
+  Live as snippet id **14**, "StatCaddy matchup percentages total 100", global
+  scope, priority 10, active. To turn it off, deactivate that snippet; the
+  simulator falls straight back to its own numbers.
+
+Once `wordpress/snippets/manifest.json` lands, snippet 14 needs an entry so the
+drift check tracks it:
+
+```json
+{ "id": 14, "file": "matchup-percentages-total-100.php",
+  "name": "StatCaddy matchup percentages total 100", "scope": "global", "active": true }
+```
 
 Run the snippet tests with:
 
