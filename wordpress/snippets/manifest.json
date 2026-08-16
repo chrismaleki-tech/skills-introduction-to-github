@@ -1,0 +1,37 @@
+[
+  {
+    "id": 6,
+    "file": "open-access.php",
+    "name": "StatCaddy open access (no login required)",
+    "scope": "global",
+    "active": true
+  },
+  {
+    "id": 9,
+    "file": "simulator-switcher-dropdown.php",
+    "name": "StatCaddy simulator switcher dropdown",
+    "scope": "global",
+    "active": true
+  },
+  {
+    "id": 10,
+    "file": "block-same-player-matchups.php",
+    "name": "StatCaddy block same-player matchups",
+    "scope": "global",
+    "active": true
+  },
+  {
+    "id": 11,
+    "file": "remove-spin-to-win.php",
+    "name": "StatCaddy remove Spin to Win",
+    "scope": "global",
+    "active": true
+  },
+  {
+    "id": 12,
+    "file": "standardize-player-headshots.php",
+    "name": "StatCaddy standardize player headshots",
+    "scope": "global",
+    "active": true
+  }
+]
