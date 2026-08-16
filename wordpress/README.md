@@ -34,3 +34,22 @@ on the site) can render the `dg_player` records with a Loop Grid, and ACF Pro
 
 Meta writes require the `edit_posts` capability, so only authenticated
 API users (the pipeline's Application Password user) can modify records.
+
+## Code snippets
+
+`snippets/` holds PHP that runs on the live site through the Code Snippets
+plugin rather than through this plugin. Each file is pasted into a snippet of
+the same name and activated there.
+
+- `matchup-percentages-total-100.php` — makes the simulator's win percentages
+  add up to 100. Each player's share is rounded to a tenth on its own, so a
+  three-way can show 99.9 and a six-way 100.2; this moves each leftover tenth
+  onto a separate player so the numbers on screen total 100. Head-to-head
+  matchups are handled upstream in `datagolf/deploy_simulator.py`, which puts
+  the uploaded win counts on a tenth-of-a-percent grid.
+
+Run the snippet tests with:
+
+```
+php wordpress/snippets/tests/test-matchup-percentages.php
+```
