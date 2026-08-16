@@ -34,3 +34,22 @@ on the site) can render the `dg_player` records with a Loop Grid, and ACF Pro
 
 Meta writes require the `edit_posts` capability, so only authenticated
 API users (the pipeline's Application Password user) can modify records.
+
+# Code Snippets (`wordpress/snippets/`)
+
+The live site runs its custom CSS/PHP through the **Code Snippets** plugin
+rather than through theme files, because the `stat-caddy` theme is not in this
+repo. Those snippets are production code, so each one is kept here as a PHP
+file and mapped to its live snippet id by `wordpress/snippets/manifest.json`.
+
+- `simulator-button-colors.php` (live snippet 13) — puts every simulator
+  call-to-action on the Try Simulator colour scheme: a `#48911E` fill with a
+  white label that inverts to a white fill with a green label on hover. It
+  covers the theme's `.green-button` ("Run the simulation" / "Run the
+  simulations"), the Elementor buttons the two simulators link to each other
+  with, and the hover label of the Try Simulator buttons.
+
+To change a snippet, edit the repo file and PUT it to
+`/wp-json/code-snippets/v1/snippets/<id>` (`WP_USERNAME` + `WP_APP_PASSWORD`),
+then purge the SiteGround cache from the admin bar and check the result as a
+logged-out visitor — logged-in admins bypass the page cache.
