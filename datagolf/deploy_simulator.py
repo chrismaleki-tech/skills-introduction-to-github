@@ -85,6 +85,23 @@ def event_start_date(key, tour, event):
     return None
 
 
+def course_fit_event(key, tour):
+    """The event Data Golf's course-fit decompositions currently describe."""
+    dec = dg_get("/preds/player-decompositions", key, tour=tour)
+    return dec.get("event_name"), dec.get("course_name")
+
+
+def course_fit_is_stale(event, fit_event):
+    """True when the course fit on offer belongs to a different event than the field.
+
+    Data Golf names the field for a new week days before it re-cuts the course-fit
+    decompositions, so early in the week the two disagree. Fit and history carry the two
+    largest weights in the model, so deploying in that window publishes numbers describing
+    last week's course.
+    """
+    return norm_name(fit_event or "") != norm_name(event)
+
+
 def format_event_dates(start_date):
     """The label the simulator shows beneath the tournament name, e.g. 'August 20-23'.
 
@@ -420,6 +437,19 @@ def main():
     event, players = build_field(key, args.workbook, args.tour)
     if len(players) < 2:
         log("ERROR: fewer than 2 simulatable players — aborting"); return 3
+
+    fit_event, fit_course = course_fit_event(key, args.tour)
+    if course_fit_is_stale(event, fit_event):
+        log(f"ERROR: Data Golf's course fit still describes '{fit_event}' at '{fit_course}', "
+            f"not this week's '{event}'. Fit and history carry the two largest weights, so "
+            f"deploying now would publish last week's course. Nothing has been changed — "
+            f"re-run once Data Golf switches over, or set ALLOW_STALE_COURSE_FIT=1 to override.")
+        if not os.environ.get("ALLOW_STALE_COURSE_FIT"):
+            return 6
+        log("[warn] ALLOW_STALE_COURSE_FIT is set — continuing with last week's course fit")
+    else:
+        log(f"course fit is current: {fit_event} at {fit_course}")
+
     field_csv = os.path.join(args.out_dir, "deploy_field.csv")
     write_field_csv(event, players, field_csv)
     # always publish the downloadable weekly field-stat sheet (CSV + XLSX)
