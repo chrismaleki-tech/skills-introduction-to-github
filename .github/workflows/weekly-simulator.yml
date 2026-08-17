@@ -7,8 +7,13 @@ on:
         description: "Completed week (Sunday) YYYY-MM-DD to fold into the workbook. Blank = most recent Sunday."
         default: ""
       dry_run:
-        description: "Build field/CSVs but make NO changes to the live site (true/false)."
+        description: "Build field/CSVs but make NO changes to the WordPress site (true/false)."
         default: "false"
+      target:
+        description: "WordPress site to deploy to. Scheduled runs always use production."
+        type: choice
+        options: [production, staging]
+        default: production
   schedule:
     # Monday 13:00 UTC = 6:00 AM Pacific during Daylight Time (Mar-Nov).
     # NOTE: GitHub cron is UTC-only; in Standard Time (Nov-Mar) this is 5:00 AM Pacific.
@@ -66,15 +71,27 @@ jobs:
             cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_updated_$(date +%Y-%m-%d).xlsx"
           fi
 
-      - name: Deploy simulator to statcaddygolf.com
+      - name: Guard staging WordPress target
+        if: ${{ github.event.inputs.target == 'staging' }}
+        env:
+          WP_URL_STAGING: ${{ secrets.WP_STAGING_URL }}
+        run: |
+          if [ -z "$WP_URL_STAGING" ]; then
+            echo "::error::WP_STAGING_URL is not set. Create the SiteGround staging copy, then add the secret (wordpress/STAGING.md)."
+            exit 1
+          fi
+          echo "Staging URL is configured."
+
+      - name: Deploy simulator to WordPress
         env:
           DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
-          WP_URL: ${{ secrets.WP_URL }}
-          WP_USERNAME: ${{ secrets.WP_USERNAME }}
+          WP_URL: ${{ github.event.inputs.target == 'staging' && secrets.WP_STAGING_URL || secrets.WP_URL }}
+          WP_USERNAME: ${{ github.event.inputs.target == 'staging' && (secrets.WP_STAGING_USERNAME || secrets.WP_USERNAME) || secrets.WP_USERNAME }}
           # Browser /golflogin needs the real account password — not an Application Password.
-          WP_PASSWORD: ${{ secrets.WP_PASSWORD }}
+          WP_PASSWORD: ${{ github.event.inputs.target == 'staging' && (secrets.WP_STAGING_PASSWORD || secrets.WP_PASSWORD) || secrets.WP_PASSWORD }}
           DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
         run: |
+          echo "Deploying simulator (target=${{ github.event.inputs.target || 'production' }})"
           python3 datagolf/deploy_simulator.py \
             --workbook "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" --out-dir /tmp
 

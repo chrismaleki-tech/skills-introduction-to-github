@@ -6,6 +6,11 @@ on:
       week:
         description: "Week-ending Sunday (YYYY-MM-DD). Leave empty for the most recent Sunday."
         default: ""
+      target:
+        description: "WordPress site to push the public simulator to. Scheduled runs always use production."
+        type: choice
+        options: [production, staging]
+        default: production
   schedule:
     # Tuesday 12:00 UTC: the completed event is archived and the new field's
     # course-fit decompositions are posted by then.
@@ -18,7 +23,7 @@ jobs:
   update-workbook:
     runs-on: ubuntu-latest
     env:
-      WP_URL: ${{ secrets.WP_URL }}
+      WP_URL: ${{ github.event.inputs.target == 'staging' && secrets.WP_STAGING_URL || secrets.WP_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -62,12 +67,22 @@ jobs:
           cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_latest.xlsx"
           cp /tmp/recalced/updated.xlsx "datagolf/workbooks/PGA_stat_caddy_updated_$(date +%Y-%m-%d).xlsx"
 
+      - name: Guard staging WordPress target
+        if: ${{ github.event.inputs.target == 'staging' }}
+        env:
+          WP_URL_STAGING: ${{ secrets.WP_STAGING_URL }}
+        run: |
+          if [ -z "$WP_URL_STAGING" ]; then
+            echo "::error::WP_STAGING_URL is not set. Create the SiteGround staging copy, then add the secret (wordpress/STAGING.md)."
+            exit 1
+          fi
+
       - name: Refresh public "Build Your Own Matchup Model" page
         if: ${{ env.WP_URL != '' }}
         env:
-          WP_URL: ${{ secrets.WP_URL }}
-          WP_USERNAME: ${{ secrets.WP_USERNAME }}
-          WP_APP_PASSWORD: ${{ secrets.WP_APP_PASSWORD }}
+          WP_URL: ${{ github.event.inputs.target == 'staging' && secrets.WP_STAGING_URL || secrets.WP_URL }}
+          WP_USERNAME: ${{ github.event.inputs.target == 'staging' && (secrets.WP_STAGING_USERNAME || secrets.WP_USERNAME) || secrets.WP_USERNAME }}
+          WP_APP_PASSWORD: ${{ github.event.inputs.target == 'staging' && (secrets.WP_STAGING_APP_PASSWORD || secrets.WP_APP_PASSWORD) || secrets.WP_APP_PASSWORD }}
         run: |
           python3 datagolf/build_public_simulator.py \
             --workbook "datagolf/workbooks/PGA_stat_caddy_latest.xlsx" --push

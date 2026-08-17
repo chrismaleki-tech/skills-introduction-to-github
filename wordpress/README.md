@@ -13,13 +13,18 @@ WooCommerce keeps handling the selling of access. Elementor Pro (already active
 on the site) can render the `dg_player` records with a Loop Grid, and ACF Pro
 (also active) can be pointed at the same meta fields for editing/display.
 
+## Staging site
+
+To clone statcaddygolf.com for plugin, simulator, and pipeline tests without
+touching live members or Stripe, follow [STAGING.md](STAGING.md).
+
 ## Install
 
 1. In this repo, zip the plugin folder (already produced as
    `wordpress/statcaddy-golf-data.zip`, or rebuild with
    `cd wordpress && zip -r statcaddy-golf-data.zip statcaddy-golf-data`).
 2. In WP admin: **Plugins -> Add New -> Upload Plugin**, choose the zip, install,
-   and **Activate**.
+   and **Activate**. Prefer doing this on the [staging copy](STAGING.md) first.
 3. Confirm it worked: `GET /wp-json/wp/v2/dg_players` should return `200` (an
    empty array until the first load), and a **Golfers** menu item appears in the
    admin sidebar.

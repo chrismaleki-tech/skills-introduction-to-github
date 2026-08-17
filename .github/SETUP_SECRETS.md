@@ -64,9 +64,27 @@ Your AWS IAM user should have the following permissions:
 }
 ```
 
+## WordPress / StatCaddy staging
+
+The live site is WordPress on SiteGround. To clone it and point the Data Golf
+pipeline at the copy, follow [`wordpress/STAGING.md`](../wordpress/STAGING.md).
+
+Add these Actions secrets after the staging URL exists:
+
+| Secret | Required | Purpose |
+|---|---|---|
+| `WP_STAGING_URL` | for `target=staging` runs | Staging origin, e.g. `https://staging1.statcaddygolf.com` |
+| `WP_STAGING_USERNAME` | no | Falls back to `WP_USERNAME` |
+| `WP_STAGING_PASSWORD` | no | Falls back to `WP_PASSWORD` (real login, not an app password) |
+| `WP_STAGING_APP_PASSWORD` | no | Falls back to `WP_APP_PASSWORD` |
+
+Scheduled weekly jobs always use production (`WP_URL`). Choose **target: staging**
+only when manually running Weekly Simulator Deploy, Update Data Golf CSVs, or
+Weekly StatCaddy Workbook Update.
+
 ## Environment Setup
 
-The workflow supports multiple environments:
+The AWS CDK workflow supports multiple environments:
 
 - **dev** (default) - Development environment
 - **staging** - Staging environment  
