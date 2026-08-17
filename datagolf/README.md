@@ -106,6 +106,18 @@ Environment variables:
 - `WP_PASSWORD` — real account password for `/golflogin` browser deploys (`deploy_simulator.py` /
   Weekly Simulator Deploy). Application passwords cannot sign into wp-admin.
 
+## Tournament name and dates on the simulator
+
+The label under the tournament name comes from the `tournament_dates` field on the
+`tournament` taxonomy term in wp-admin. It is free text, and for most of the 2026
+calendar it still held the 2025 dates because nobody re-typed it.
+
+`deploy_simulator.py` now writes it for the event it activates each week, from
+`start_date` in the Data Golf schedule — round one, always a Thursday — through the
+final round three days later, e.g. `August 20-23`. Only the activated term is
+touched, so terms for other weeks keep whatever they already say until their turn
+comes round. An event missing from the schedule is left alone with a warning.
+
 ## Workbook field sheets (Scottish Open Field / Wyndham Field)
 
 `update_workbook.py` can build an event field sheet in the same layout as the
