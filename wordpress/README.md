@@ -48,6 +48,8 @@ Every ACTIVE live snippet must be tracked here.
 | `snippets/block-same-player-matchups.php` | 10 | StatCaddy block same-player matchups | Rejects duplicate golfers server- and client-side; simulator layout CSS |
 | `snippets/remove-spin-to-win.php` | 11 | StatCaddy remove Spin to Win | Removes the Spin to Win promo from simulator pages |
 | `snippets/standardize-player-headshots.php` | 12 | StatCaddy standardize player headshots | Force consistent headshot framing (`object-fit: cover`, top-center) on 1v1 + multi-player simulators |
+| `snippets/simulator-button-colors.php` | 13 | StatCaddy simulator button colors | Puts every simulator call-to-action on the Try Simulator colour scheme: a `#48911E` fill with a white label that inverts on hover |
+| `snippets/matchup-percentages-total-100.php` | 14 | StatCaddy matchup percentages total 100 | Moves the leftover tenth so win percentages add up to 100 instead of 99.9 or 100.1 |
 
 Sync with `datagolf/sync_wp_snippets.py` (env: `WP_URL`, `WP_USERNAME`,
 `WP_APP_PASSWORD`):
@@ -62,6 +64,18 @@ python datagolf/sync_wp_snippets.py push    # repo -> live, then purge the cache
 untracked hotfixes are caught by the daily `verify-simulator` workflow. Repo
 files start with `<?php` for editors; the plugin stores code without it, and
 the sync script converts both ways.
+
+A snippet can also be changed by hand: edit the repo file and PUT it to
+`/wp-json/code-snippets/v1/snippets/<id>` (`WP_USERNAME` + `WP_APP_PASSWORD`),
+then purge the SiteGround cache from the admin bar and check the result as a
+logged-out visitor — logged-in admins bypass the page cache.
+
+Snippet 14 has its own test suite, since the rounding it does is easy to get
+subtly wrong:
+
+```
+php wordpress/snippets/tests/test-matchup-percentages.php
+```
 
 ### Simulator card CSS rule
 

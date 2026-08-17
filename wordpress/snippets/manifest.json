@@ -33,5 +33,19 @@
     "name": "StatCaddy standardize player headshots",
     "scope": "global",
     "active": true
+  },
+  {
+    "id": 13,
+    "file": "simulator-button-colors.php",
+    "name": "StatCaddy simulator button colors",
+    "scope": "global",
+    "active": true
+  },
+  {
+    "id": 14,
+    "file": "matchup-percentages-total-100.php",
+    "name": "StatCaddy matchup percentages total 100",
+    "scope": "global",
+    "active": true
   }
 ]
