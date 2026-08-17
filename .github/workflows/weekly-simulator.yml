@@ -9,6 +9,9 @@ on:
       dry_run:
         description: "Build field/CSVs but make NO changes to the live site (true/false)."
         default: "false"
+      wait_for_course_fit_minutes:
+        description: "Minutes to wait for Data Golf to publish this week's course fit before giving up."
+        default: "300"
   schedule:
     # Monday 13:00 UTC = 6:00 AM Pacific during Daylight Time (Mar-Nov).
     # NOTE: GitHub cron is UTC-only; in Standard Time (Nov-Mar) this is 5:00 AM Pacific.
@@ -24,6 +27,8 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Long enough to sit out the wait for Data Golf's course fit and still deploy.
+    timeout-minutes: 350
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,6 +54,15 @@ jobs:
           fi
           echo "week=$WEEK" >> "$GITHUB_OUTPUT"
           echo "Completed week: $WEEK"
+
+      # Data Golf names the field hours before it re-cuts the course-fit decompositions, and
+      # not at a dependable time. The workbook refresh below bakes the fit in, so wait here
+      # rather than there: until this passes, the live site keeps last week's data.
+      - name: Wait for Data Golf to publish this week's course fit
+        env:
+          DATAGOLF_KEY: ${{ secrets.DATAGOLF_KEY }}
+          WAIT_FOR_COURSE_FIT_MINUTES: ${{ github.event.inputs.wait_for_course_fit_minutes || '300' }}
+        run: python3 datagolf/deploy_simulator.py --wait-for-course-fit-only
 
       - name: Refresh workbook (stats, DG points, course fit)
         env:

@@ -27,6 +27,13 @@ Env:
   TOUR               default pga
   STAT_WEIGHTS       optional JSON of the 8 model weights (defaults to the owner's general weights)
   DRY_RUN            "1" to build the field/stats/CSVs and skip all WordPress writes
+  WAIT_FOR_COURSE_FIT_MINUTES
+                     how long to wait for Data Golf to re-cut the course-fit decompositions
+                     for this week's event. Data Golf names the field hours before it
+                     publishes the fit, and not at a dependable time, so the Monday run waits
+                     rather than deploying last week's course. 0 (default) checks once.
+  ALLOW_STALE_COURSE_FIT
+                     "1" to deploy anyway when the fit still describes the previous event
 """
 
 import argparse
@@ -37,6 +44,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 import unicodedata
 
 import openpyxl
@@ -89,6 +97,24 @@ def course_fit_event(key, tour):
     """The event Data Golf's course-fit decompositions currently describe."""
     dec = dg_get("/preds/player-decompositions", key, tour=tour)
     return dec.get("event_name"), dec.get("course_name")
+
+
+def wait_for_course_fit(key, tour, event, minutes, poll_seconds=600):
+    """Poll until Data Golf's course fit describes `event`, or the wait runs out.
+
+    Data Golf re-cuts the decompositions partway through the day the field is named, and not
+    at a dependable hour, so the run waits for them rather than assuming a time. Returns the
+    last (event, course) seen, which the caller still has to check.
+    """
+    deadline = time.monotonic() + max(0, minutes) * 60
+    while True:
+        fit_event, fit_course = course_fit_event(key, tour)
+        if not course_fit_is_stale(event, fit_event) or time.monotonic() >= deadline:
+            return fit_event, fit_course
+        left = int((deadline - time.monotonic()) / 60)
+        log(f"  course fit still describes '{fit_event}' — checking again in "
+            f"{poll_seconds // 60} min ({left} min of waiting left)")
+        time.sleep(min(poll_seconds, max(1, deadline - time.monotonic())))
 
 
 def course_fit_is_stale(event, fit_event):
@@ -426,6 +452,9 @@ def main():
     ap.add_argument("--out-dir", default="/tmp")
     ap.add_argument("--field-dir", default=os.path.join(os.path.dirname(__file__), "workbooks"),
                     help="Where to save the downloadable weekly field-stat sheet (CSV + XLSX).")
+    ap.add_argument("--wait-for-course-fit-only", action="store_true",
+                    help="Wait for Data Golf's course fit to reach this week's event, then exit. "
+                         "Run this before refreshing the workbook, which bakes the fit in.")
     args = ap.parse_args()
 
     key = os.environ.get("DATAGOLF_KEY")
@@ -433,12 +462,26 @@ def main():
         log("ERROR: DATAGOLF_KEY not set"); return 2
     weights = json.loads(os.environ["STAT_WEIGHTS"]) if os.environ.get("STAT_WEIGHTS") else DEFAULT_WEIGHTS
     dry = os.environ.get("DRY_RUN") == "1"
+    wait_minutes = int(os.environ.get("WAIT_FOR_COURSE_FIT_MINUTES") or 0)
+
+    if args.wait_for_course_fit_only:
+        event = dg_get("/field-updates", key, tour=args.tour).get("event_name")
+        log(f"this week's field is '{event}'; waiting up to {wait_minutes} min for its course fit")
+        fit_event, fit_course = wait_for_course_fit(key, args.tour, event, wait_minutes)
+        if course_fit_is_stale(event, fit_event):
+            log(f"ERROR: course fit still describes '{fit_event}' at '{fit_course}', not '{event}'. "
+                f"Nothing has been changed — the workbook must not be refreshed until it switches.")
+            return 6
+        log(f"course fit is current: {fit_event} at {fit_course}")
+        return 0
 
     event, players = build_field(key, args.workbook, args.tour)
     if len(players) < 2:
         log("ERROR: fewer than 2 simulatable players — aborting"); return 3
 
-    fit_event, fit_course = course_fit_event(key, args.tour)
+    if wait_minutes:
+        log(f"will wait up to {wait_minutes} min for Data Golf's course fit to reach '{event}'")
+    fit_event, fit_course = wait_for_course_fit(key, args.tour, event, wait_minutes)
     if course_fit_is_stale(event, fit_event):
         log(f"ERROR: Data Golf's course fit still describes '{fit_event}' at '{fit_course}', "
             f"not this week's '{event}'. Fit and history carry the two largest weights, so "
