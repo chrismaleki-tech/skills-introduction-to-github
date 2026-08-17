@@ -30,6 +30,7 @@ Env:
 """
 
 import argparse
+import datetime
 import itertools
 import json
 import os
@@ -50,6 +51,12 @@ K_SCALE = 0.1154
 EXPORT_MAP = {"driving_distance": "ott", "driving_accuracy": "pts", "approach_accuracy": "app",
               "putting_skill": "putt", "ag": "arg", "sg": "fit", "current_form": "form", "course_history": "hist"}
 REGEN_FIELD_KEY = "field_67f22c3f0d287"  # ACF "Regenerate Players Data" toggle
+# A tour event runs four days, Thursday through Sunday. Data Golf's start_date is round one
+# (a Thursday for every event on the schedule), so the final round is three days later.
+DAYS_TO_FINAL_ROUND = 3
+# Spelled out rather than strftime("%B") so the label cannot follow the runner's locale.
+MONTH_NAMES = ("January", "February", "March", "April", "May", "June",
+               "July", "August", "September", "October", "November", "December")
 
 
 def log(msg):
@@ -68,6 +75,26 @@ def dg_get(path, key, **params):
     r = requests.get(f"{DG}{path}", params={**params, "file_format": "json", "key": key}, timeout=30)
     r.raise_for_status()
     return r.json()
+
+
+def event_start_date(key, tour, event):
+    """Data Golf's round-one date for the named event, or None if it is not on the schedule."""
+    for row in dg_get("/get-schedule", key, tour=tour).get("schedule", []):
+        if norm_name(row.get("event_name") or "") == norm_name(event):
+            return row.get("start_date")
+    return None
+
+
+def format_event_dates(start_date):
+    """The label the simulator shows beneath the tournament name, e.g. 'August 20-23'.
+
+    A range that crosses a month gets the second month spelled out too ('April 30 - May 3').
+    """
+    start = datetime.date.fromisoformat(start_date)
+    end = start + datetime.timedelta(days=DAYS_TO_FINAL_ROUND)
+    if start.month == end.month:
+        return f"{MONTH_NAMES[start.month - 1]} {start.day}-{end.day}"
+    return f"{MONTH_NAMES[start.month - 1]} {start.day} - {MONTH_NAMES[end.month - 1]} {end.day}"
 
 
 # ── Build the week's field + stats ──────────────────────────────────────────
@@ -246,14 +273,29 @@ class Deployer:
         self.pg.select_option('select[name="_status"]', status)
         self.pg.click("#bulk_edit"); self.pg.wait_for_load_state("networkidle"); self.pg.wait_for_timeout(2500)
 
-    def set_active_tournament(self, event):
+    def fill_term_dates(self, dates):
+        """Put `dates` in the term's Tournament Dates box. True when the value changed.
+
+        The box is free text that nobody re-types once the season moves on, which is how the
+        simulator ended up advertising last year's dates for most of the calendar.
+        """
+        box = self.pg.locator('.acf-field[data-name="tournament_dates"] input').first
+        if not box.count():
+            log("  [warn] term has no Tournament Dates field — leaving the label alone")
+            return False
+        if (box.input_value() or "").strip() == dates:
+            return False
+        box.fill(dates)
+        return True
+
+    def set_active_tournament(self, event, dates=None):
         slug = re.sub(r"[^a-z0-9]+", "-", event.lower()).strip("-")
         # ensure the term exists
         self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
         if event not in self.pg.content():
             self.pg.fill("#tag-name", event)
             self.pg.click("#submit"); self.pg.wait_for_load_state("networkidle"); self.pg.wait_for_timeout(1500)
-        # deactivate any active, activate ours
+        # deactivate any active, activate ours, and date the one we activate
         self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
         rows = self.pg.evaluate("""()=>{const o=[];document.querySelectorAll('a.row-title').forEach(a=>{const m=(a.getAttribute('href')||'').match(/tag_ID=(\\d+)/);if(m)o.push({id:m[1],name:a.textContent.trim()});});return o;}""")
         for r in rows:
@@ -262,8 +304,15 @@ class Deployer:
             if not cb.count():
                 continue
             want = (norm_name(r["name"]) == norm_name(event))
+            dirty = False
+            if want and dates:
+                dirty = self.fill_term_dates(dates)
+                if dirty:
+                    log(f"  dates for {r['name']}: {dates}")
             if cb.is_checked() != want:
                 self.pg.evaluate("([w])=>{const c=document.querySelector('input.acf-switch-input'); c.checked=w; c.dispatchEvent(new Event('change',{bubbles:true}));}", [want])
+                dirty = True
+            if dirty:
                 self.pg.locator('input#submit, input[type="submit"][value="Update"]').first.click()
                 self.pg.wait_for_load_state("networkidle"); self.pg.wait_for_timeout(800)
 
@@ -376,8 +425,15 @@ def main():
     # always publish the downloadable weekly field-stat sheet (CSV + XLSX)
     write_field_sheet(event, players, args.field_dir)
 
+    start = event_start_date(key, args.tour, event)
+    event_dates = format_event_dates(start) if start else None
+    if event_dates:
+        log(f"event dates from the Data Golf schedule: {event_dates} (round one {start})")
+    else:
+        log(f"[warn] '{event}' is not on the Data Golf schedule — leaving its dates as they are")
+
     if dry:
-        log(f"[dry-run] built {len(players)} players for '{event}'. Skipping WordPress writes.")
+        log(f"[dry-run] built {len(players)} players for '{event}' ({event_dates}). Skipping WordPress writes.")
         return 0
 
     for v in ("WP_URL", "WP_USERNAME", "WP_PASSWORD"):
@@ -420,7 +476,7 @@ def main():
             d.bulk_status(publish_ids, "publish")
             d.bulk_status(draft_ids, "draft")
 
-            d.set_active_tournament(event)
+            d.set_active_tournament(event, event_dates)
             d.upload_csv("player", field_csv)     # set stats
             d.regenerate()
 
