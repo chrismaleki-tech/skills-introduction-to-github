@@ -316,23 +316,40 @@ class Deployer:
                     break
                 self.pg.wait_for_timeout(1200)
             live = next((x["win_percent"] for x in res if str(x["player_id"]) == a), None) if isinstance(res, list) else None
-            if live is not None and abs(float(live) - float(expected)) < 0.2:
+            # Tolerance sits below the displayed tenth: the live value should be the file's
+            # value, so anything the simulator re-rounds differently has to fail here.
+            match = live is not None and abs(float(live) - float(expected)) < 0.05
+            if match:
                 ok += 1
-            log(f"  verify {a} vs {b}: live={live} expected={expected}")
+            log(f"  verify {a} vs {b}: live={live} expected={expected}{'' if match else '  <-- MISMATCH'}")
         return ok == len(sample_rows)
 
 
 def build_sim_csv(export, weights, path):
+    """Write every ordered pairing as `id_a,id_b,win_pct,wins_of_10000`.
+
+    The simulator displays `wins_of_10000 / 100` rounded to one decimal, so counts are put
+    on a tenth-of-a-percent grid and the opposite side is derived by subtraction rather than
+    recomputed. Off the grid, a count ending in 5 makes both halves of a matchup display a
+    trailing …x5, PHP's round() lifts both away from zero, and the two sides add up to 100.1.
+    """
     R = {}
     for p in export:
         R[p["id"]] = sum(weights[EXPORT_MAP[f]] * float(p[f]) for f in EXPORT_MAP)
     ids = [p["id"] for p in export]
+    counts = {}
+    for a, b in itertools.combinations(ids, 2):
+        cnt = int(round(norm.cdf(K_SCALE * (R[a] - R[b])) * 1000)) * 10
+        counts[(a, b)], counts[(b, a)] = cnt, 10000 - cnt
+    off = [(a, b) for (a, b), c in counts.items() if c % 10 or c + counts[(b, a)] != 10000]
+    if off:
+        raise ValueError(f"{len(off)} pairing(s) would not display a total of 100.0, e.g. {off[0]}")
     rows = {}
     with open(path, "w", newline="") as f:
         for a, b in itertools.permutations(ids, 2):
-            cnt = round(norm.cdf(K_SCALE * (R[a] - R[b])) * 10000)
-            f.write(f"{a},{b},{round(cnt/100,1)},{cnt}\n")
-            rows[(str(a), str(b))] = round(cnt / 100, 1)
+            cnt = counts[(a, b)]
+            f.write(f"{a},{b},{cnt / 100:.1f},{cnt}\n")
+            rows[(str(a), str(b))] = cnt / 100
     return rows
 
 
