@@ -111,10 +111,10 @@ def wait_for_course_fit(key, tour, event, minutes, poll_seconds=600):
         fit_event, fit_course = course_fit_event(key, tour)
         if not course_fit_is_stale(event, fit_event) or time.monotonic() >= deadline:
             return fit_event, fit_course
-        left = int((deadline - time.monotonic()) / 60)
-        log(f"  course fit still describes '{fit_event}' — checking again in "
-            f"{poll_seconds // 60} min ({left} min of waiting left)")
-        time.sleep(min(poll_seconds, max(1, deadline - time.monotonic())))
+        nap = min(poll_seconds, max(1, deadline - time.monotonic()))
+        log(f"  course fit still describes '{fit_event}' — next check in {nap / 60:.0f} min "
+            f"(giving up in {(deadline - time.monotonic()) / 60:.0f} min)")
+        time.sleep(nap)
 
 
 def course_fit_is_stale(event, fit_event):
