@@ -25,7 +25,8 @@ Env:
                      cannot sign into wp-admin — do not reuse them here.
   WORKBOOK           path to the latest workbook (default datagolf/workbooks/PGA_stat_caddy_latest.xlsx)
   TOUR               default pga
-  STAT_WEIGHTS       optional JSON of the 8 model weights (defaults to the owner's general weights)
+  STAT_WEIGHTS       optional JSON of the 8 model weights (defaults: ott 1.2, pts 0.25, app 1.3,
+                     putt 1.0, arg 1.0, fit 2.0, form 1.5, hist 2.0)
   DRY_RUN            "1" to build the field/stats/CSVs and skip all WordPress writes
 """
 
@@ -45,8 +46,13 @@ from scipy.stats import norm
 
 DG = "https://feeds.datagolf.com"
 # Owner's general stat weights + the calibrated probability scale (see reverse_engineer_model.py).
-DEFAULT_WEIGHTS = {"ott": 1.2, "pts": 0.25, "app": 1.3, "putt": 1.0, "arg": 1.0, "fit": 3.0, "form": 1.5, "hist": 3.0}
+# FedEx St. Jude (TPC Southwind): fit/hist lowered from 3.0 → 2.0 vs Wyndham defaults.
+DEFAULT_WEIGHTS = {"ott": 1.2, "pts": 0.25, "app": 1.3, "putt": 1.0, "arg": 1.0, "fit": 2.0, "form": 1.5, "hist": 2.0}
 K_SCALE = 0.1154
+# Softmax temperature used when converting power scores to fair win odds.
+SOFTMAX_TEMP = 3.0
+# Field-stat columns -> weight key (same order as FIELD_HEADER metrics).
+STAT_KEYS = ["ott", "pts", "app", "putt", "arg", "fit", "form", "hist"]
 # Export-field -> weight key (the site's player export uses these names).
 EXPORT_MAP = {"driving_distance": "ott", "driving_accuracy": "pts", "approach_accuracy": "app",
               "putting_skill": "putt", "ag": "arg", "sg": "fit", "current_form": "form", "course_history": "hist"}
@@ -172,24 +178,60 @@ def build_field(key, workbook, tour):
     return event, players
 
 
-FIELD_HEADER = ["Player", "SG OTT", "Points", "Approach", "Putting", "Around Green", "T2Green", "Form", "History", "Tournament", "Tour"]
+# WordPress Player Data upload format (must stay column-compatible with the site importer).
+WP_FIELD_HEADER = ["Player", "SG OTT", "Points", "Approach", "Putting", "Around Green",
+                   "T2Green", "Form", "History", "Tournament", "Tour"]
+# Downloadable field sheet includes power rankings.
+FIELD_HEADER = ["Rank", "Player", "SG OTT", "Points", "Approach", "Putting", "Around Green",
+                "T2Green", "Form", "History", "Power", "Win%", "Tournament", "Tour"]
+
+
+def power_score(player, weights):
+    """Raw weighted sum used for StatCaddy power rankings (no standardization)."""
+    return sum(weights[k] * float(player[k]) for k in STAT_KEYS)
+
+
+def attach_power_rankings(players, weights, temperature=SOFTMAX_TEMP):
+    """Sort field by power score and attach Rank / Power / fair Win% (softened softmax)."""
+    scored = [{**p, "power": power_score(p, weights)} for p in players]
+    scored.sort(key=lambda p: p["power"], reverse=True)
+    # Softened softmax over power scores → fair tournament win odds.
+    scaled = [p["power"] / temperature for p in scored]
+    m = max(scaled) if scaled else 0.0
+    exps = [pow(2.718281828459045, s - m) for s in scaled]
+    total = sum(exps) or 1.0
+    for i, p in enumerate(scored):
+        p["rank"] = i + 1
+        p["win_pct"] = round(100.0 * exps[i] / total, 2)
+        p["power"] = round(p["power"], 4)
+    return scored
+
+
+def _wp_field_rows(event, players):
+    return [[p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"],
+             p["form"], p["hist"], event, "PGA Tour"] for p in players]
 
 
 def _field_rows(event, players):
-    return [[p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"], p["form"], p["hist"], event, "PGA Tour"] for p in players]
+    return [[p["rank"], p["name"], p["ott"], p["pts"], p["app"], p["putt"], p["arg"], p["fit"],
+             p["form"], p["hist"], p["power"], p["win_pct"], event, "PGA Tour"] for p in players]
 
 
 def write_field_csv(event, players, path):
+    """Write the WordPress Player Data CSV (no Rank/Power/Win% columns)."""
     import csv
     with open(path, "w", newline="") as f:
         w = csv.writer(f)
-        w.writerow(FIELD_HEADER)
-        w.writerows(_field_rows(event, players))
+        w.writerow(WP_FIELD_HEADER)
+        w.writerows(_wp_field_rows(event, players))
 
 
 def write_field_sheet(event, players, out_dir):
     """Write the week's downloadable field-stat sheet as CSV + XLSX (a stable 'latest' plus
-    an event/date-stamped copy) so it can be grabbed each week from the repo."""
+    an event/date-stamped copy) so it can be grabbed each week from the repo.
+
+    Players must already include Rank / Power / Win% from attach_power_rankings().
+    """
     import csv
     from datetime import date
     os.makedirs(out_dir, exist_ok=True)
@@ -420,6 +462,9 @@ def main():
     event, players = build_field(key, args.workbook, args.tour)
     if len(players) < 2:
         log("ERROR: fewer than 2 simulatable players — aborting"); return 3
+    players = attach_power_rankings(players, weights)
+    log(f"power rankings ({event}): fit={weights['fit']} hist={weights['hist']} "
+        f"top3={[(p['rank'], p['name'], p['power']) for p in players[:3]]}")
     field_csv = os.path.join(args.out_dir, "deploy_field.csv")
     write_field_csv(event, players, field_csv)
     # always publish the downloadable weekly field-stat sheet (CSV + XLSX)
