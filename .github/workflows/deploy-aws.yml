@@ -1,10 +1,28 @@
 name: Deploy to AWS
 
+# This repo also hosts the golf simulator (simulator/, datagolf/, wordpress/), which has no
+# AWS infrastructure here. Without these path filters every golf commit starts a Rearc deploy.
 on:
   push:
     branches: [ main, develop, 'cursor/**' ]  # Include cursor branches for development
+    paths:
+      - 'part1_data_sourcing/**'
+      - 'part2_api_integration/**'
+      - 'part3_analytics/**'
+      - 'part4_infrastructure/**'
+      - 'shared/**'
+      - 'requirements.txt'
+      - '.github/workflows/deploy-aws.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'part1_data_sourcing/**'
+      - 'part2_api_integration/**'
+      - 'part3_analytics/**'
+      - 'part4_infrastructure/**'
+      - 'shared/**'
+      - 'requirements.txt'
+      - '.github/workflows/deploy-aws.yml'
   workflow_dispatch:
     inputs:
       environment:
