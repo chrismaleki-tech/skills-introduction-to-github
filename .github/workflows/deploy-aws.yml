@@ -135,6 +135,9 @@ jobs:
           echo "Package size: $(du -h build-minimal/lambda-minimal-package.zip | cut -f1)"
           ls -la build-minimal/
 
+      # Not continue-on-error: everything after this step depends on a bootstrapped
+      # environment, so swallowing a failure here just resurfaces it as a confusing
+      # "Deploy CDK Stack" error several minutes later.
       - name: Bootstrap CDK (if needed)
         run: |
           cd part4_infrastructure/cdk
@@ -143,8 +146,29 @@ jobs:
           if [ -z "$ACCOUNT_ID" ]; then
             ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
           fi
-          cdk bootstrap aws://$ACCOUNT_ID/${{ env.AWS_DEFAULT_REGION }}
-        continue-on-error: true
+          REGION="${{ env.AWS_DEFAULT_REGION }}"
+
+          if cdk bootstrap "aws://$ACCOUNT_ID/$REGION"; then
+            echo "✅ CDK bootstrap is up to date for aws://$ACCOUNT_ID/$REGION"
+            exit 0
+          fi
+
+          CALLER=$(aws sts get-caller-identity --query Arn --output text 2>/dev/null || echo "unknown")
+          echo "::error title=CDK bootstrap failed::Could not bootstrap aws://$ACCOUNT_ID/$REGION as $CALLER. Every later CDK step depends on this, so the deploy is stopping here."
+          {
+            echo "## ❌ CDK bootstrap failed"
+            echo ""
+            echo "- Target environment: \`aws://$ACCOUNT_ID/$REGION\`"
+            echo "- CI identity: \`$CALLER\`"
+            echo ""
+            echo "\`cdk deploy\` needs resources that only bootstrapping creates: the \`cdk-hnb659fds-*\` roles,"
+            echo "the \`cdk-hnb659fds-assets-*\` bucket, and the \`/cdk-bootstrap/hnb659fds/version\` SSM parameter."
+            echo ""
+            echo "If the failure above is \`AccessDenied\`, the CI identity needs \`cloudformation:*\` on the"
+            echo "\`CDKToolkit\` stack, \`sts:AssumeRole\` on \`cdk-hnb659fds-*\`, and \`ssm:GetParameter\` on"
+            echo "\`/cdk-bootstrap/hnb659fds/*\` — or an admin should run \`cdk bootstrap aws://$ACCOUNT_ID/$REGION\` once."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
 
       - name: CDK Synth
         run: |
