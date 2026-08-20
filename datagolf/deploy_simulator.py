@@ -45,7 +45,7 @@ from scipy.stats import norm
 
 DG = "https://feeds.datagolf.com"
 # Owner's general stat weights + the calibrated probability scale (see reverse_engineer_model.py).
-DEFAULT_WEIGHTS = {"ott": 1.2, "pts": 0.25, "app": 1.3, "putt": 1.0, "arg": 1.0, "fit": 2.0, "form": 1.5, "hist": 2.0}
+DEFAULT_WEIGHTS = {"ott": 1.2, "pts": 0.25, "app": 1.3, "putt": 1.0, "arg": 1.0, "fit": 3.0, "form": 1.5, "hist": 3.0}
 K_SCALE = 0.1154
 # Export-field -> weight key (the site's player export uses these names).
 EXPORT_MAP = {"driving_distance": "ott", "driving_accuracy": "pts", "approach_accuracy": "app",
