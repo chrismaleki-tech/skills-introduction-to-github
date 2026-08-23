@@ -16,6 +16,7 @@ Usage:
     python datagolf/field_stats.py --top 20
     python datagolf/field_stats.py --json
     python datagolf/field_stats.py --export-csv field_stats.csv --chart field_stats.png
+    python datagolf/field_stats.py --export-xlsx field_stats.xlsx
 """
 
 import argparse
@@ -448,6 +449,17 @@ def export_columns(field: pd.DataFrame) -> pd.DataFrame:
     return exported.assign(**{column: exported[column].round(4) for column in rounded})
 
 
+def write_workbook(table: pd.DataFrame, path: str, sheet_name: str = "Field Stats") -> None:
+    """The same table as a spreadsheet, with the header frozen and columns sized to fit."""
+    with pd.ExcelWriter(path, engine="openpyxl") as writer:
+        table.to_excel(writer, sheet_name=sheet_name[:31], index=False)
+        sheet = writer.sheets[sheet_name[:31]]
+        sheet.freeze_panes = "A2"
+        for index, column in enumerate(table.columns, start=1):
+            widest = max([len(str(column))] + [len(str(value)) for value in table[column]])
+            sheet.column_dimensions[sheet.cell(row=1, column=index).column_letter].width = widest + 2
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Report stats for the current event's field.")
     parser.add_argument("--data-dir", default=os.path.join(os.path.dirname(__file__), "data"),
@@ -455,6 +467,7 @@ def main() -> int:
     parser.add_argument("--top", type=int, default=10, help="Rows per leaderboard (default: 10)")
     parser.add_argument("--json", action="store_true", help="Emit the stats as JSON instead of a report")
     parser.add_argument("--export-csv", help="Also write the merged per-player table to this path")
+    parser.add_argument("--export-xlsx", help="Also write the merged per-player table as a spreadsheet")
     parser.add_argument("--chart", help="Also write a PNG summary chart to this path")
     args = parser.parse_args()
 
@@ -470,6 +483,10 @@ def main() -> int:
     if args.export_csv:
         export_columns(field).to_csv(args.export_csv, index=False)
         print(f"[ok] wrote per-player table -> {args.export_csv}", file=sys.stderr)
+    if args.export_xlsx:
+        write_workbook(export_columns(field), args.export_xlsx,
+                       f"{context.get('event_name', 'Field')} Stats")
+        print(f"[ok] wrote spreadsheet -> {args.export_xlsx}", file=sys.stderr)
     if args.chart:
         write_chart(field, stats, args.chart, args.top)
         print(f"[ok] wrote chart -> {args.chart}", file=sys.stderr)

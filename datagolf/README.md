@@ -92,6 +92,7 @@ python datagolf/field_stats.py                    # report for the current field
 python datagolf/field_stats.py --top 20           # longer leaderboards
 python datagolf/field_stats.py --json             # same numbers, machine-readable
 python datagolf/field_stats.py --export-csv field.csv --chart field.png
+python datagolf/field_stats.py --export-xlsx field.xlsx   # spreadsheet to hand over
 ```
 
 The report covers field size and composition (countries, amateurs, DG/OWGR rank

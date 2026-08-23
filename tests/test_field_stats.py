@@ -274,6 +274,28 @@ def test_the_exported_table_is_ordered_by_skill(synthetic):
     assert "sg_total" in exported.columns
 
 
+def test_the_spreadsheet_export_round_trips(tmp_path):
+    write_snapshots(tmp_path)
+    field, _, _ = build_field(str(tmp_path))
+    table = field_stats.export_columns(field)
+    path = tmp_path / "field.xlsx"
+    field_stats.write_workbook(table, str(path), "Test Championship Stats")
+    reloaded = pd.read_excel(path)
+    assert list(reloaded.columns) == list(table.columns)
+    assert list(reloaded["player"]) == list(table["player"])
+    assert reloaded["sg_total"].tolist() == table["sg_total"].tolist()
+
+
+def test_a_long_event_name_still_makes_a_legal_sheet_name(tmp_path):
+    """Excel rejects sheet names past 31 characters."""
+    write_snapshots(tmp_path)
+    field, _, _ = build_field(str(tmp_path))
+    path = tmp_path / "long.xlsx"
+    field_stats.write_workbook(field_stats.export_columns(field), str(path),
+                               "A Very Long Sponsored Tournament Name Stats")
+    assert pd.read_excel(path).shape[0] == len(FIELD_ROWS)
+
+
 def test_the_exported_probabilities_are_readable_in_a_spreadsheet(tmp_path):
     """Data Golf ships probabilities to 15 decimals; the export trims them to four."""
     write_snapshots(tmp_path)
