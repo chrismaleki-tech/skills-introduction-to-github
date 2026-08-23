@@ -435,12 +435,17 @@ def write_chart(field: pd.DataFrame, stats: dict, path: str, top: int) -> None:
 
 
 def export_columns(field: pd.DataFrame) -> pd.DataFrame:
+    """The merged per-player table, best first. Probabilities are Data Golf's raw
+    fractions carried to more than a dozen decimals; four is past the model's
+    resolution already, and it keeps the file readable in a spreadsheet."""
     wanted = (["player", "country", "dg_rank", "owgr_rank", "tour_rank"]
               + [column for column, _ in SKILL_METRICS]
               + [column for column, _ in PROBABILITIES])
     columns = [column for column in wanted if column in field.columns]
     sort_column = "sg_total" if "sg_total" in columns else columns[0]
-    return field[columns].sort_values(sort_column, ascending=False)
+    exported = field[columns].sort_values(sort_column, ascending=False)
+    rounded = [column for column, _ in PROBABILITIES if column in columns]
+    return exported.assign(**{column: exported[column].round(4) for column in rounded})
 
 
 def main() -> int:

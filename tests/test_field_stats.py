@@ -274,6 +274,16 @@ def test_the_exported_table_is_ordered_by_skill(synthetic):
     assert "sg_total" in exported.columns
 
 
+def test_the_exported_probabilities_are_readable_in_a_spreadsheet(tmp_path):
+    """Data Golf ships probabilities to 15 decimals; the export trims them to four."""
+    write_snapshots(tmp_path)
+    predictions = pd.read_csv(tmp_path / "dg_predictions.csv")
+    predictions["win"] = [1 / 3, 1 / 3, 1 / 3]
+    predictions.to_csv(tmp_path / "dg_predictions.csv", index=False)
+    field, _, _ = build_field(str(tmp_path))
+    assert list(field_stats.export_columns(field)["win"]) == [0.3333, 0.3333, 0.3333]
+
+
 # ── Committed snapshots ────────────────────────────────────────────────────
 
 
