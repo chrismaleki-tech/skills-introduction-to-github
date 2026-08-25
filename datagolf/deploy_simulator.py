@@ -73,6 +73,15 @@ TAB_TIMEOUT_MS = 60_000
 # Enough pages to hold a full season of tournament terms, and a stop so a list that always
 # offers a "next page" cannot spin forever.
 TERM_PAGE_LIMIT = 20
+# Signed-out visitors are served from SiteGround's page cache, so the deploy is not finished
+# until that cache has let go of the rebuild's "disabled" page.
+PURGE_ITEM = "#wp-admin-bar-SG_CachePress_Supercacher_Purge a"
+DISABLED_MARK = "Simulator Currently Disabled"
+PUBLIC_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+             "Chrome/151.0.0.0 Safari/537.36")
+PURGE_ATTEMPTS = 3
+PURGE_CHECKS = 6
+PURGE_CHECK_WAIT_MS = 5_000
 
 
 def log(msg):
@@ -99,6 +108,13 @@ def event_start_date(key, tour, event):
         if norm_name(row.get("event_name") or "") == norm_name(event):
             return row.get("start_date")
     return None
+
+
+def public_page_disabled(base):
+    """True when a signed-out request for the simulator still gets the 'disabled' page."""
+    r = requests.get(f"{base.rstrip('/')}/matchup-simulator/", timeout=30,
+                     headers={"User-Agent": PUBLIC_UA})
+    return DISABLED_MARK.lower() in r.text.lower()
 
 
 def format_event_dates(start_date):
@@ -399,10 +415,32 @@ class Deployer:
         return json.loads(re.search(r"\[.*\]", ta.input_value(), re.S).group(0))
 
     def purge_cache(self):
+        """Purge SiteGround's page cache. True when a purge was actually triggered.
+
+        The admin-bar entry lives in a hover submenu, so follow its href instead of clicking
+        it. This used to look for a node id the plugin does not use and skip the purge in
+        silence, which left signed-out members on the rebuild's "updating" page for as long
+        as the cache entry lived — a successful deploy that nobody could see.
+        """
         self.pg.goto(f"{self.base}/wp-admin/", wait_until="networkidle")
-        pl = self.pg.locator("#wp-admin-bar-sg-cachepress-purge a").first
-        if pl.count():
-            pl.click(); self.pg.wait_for_timeout(2500)
+        link = self.pg.locator(PURGE_ITEM).first
+        if not link.count():
+            log("  [warn] SiteGround purge control not found — signed-out visitors may be served stale HTML")
+            return False
+        self.pg.goto(link.get_attribute("href"), wait_until="domcontentloaded")
+        self.pg.wait_for_timeout(2500)
+        return True
+
+    def settle_public_page(self):
+        """Purge until a signed-out request stops being served the disabled page."""
+        for attempt in range(1, PURGE_ATTEMPTS + 1):
+            self.purge_cache()
+            for _ in range(PURGE_CHECKS):
+                self.pg.wait_for_timeout(PURGE_CHECK_WAIT_MS)
+                if not public_page_disabled(self.base):
+                    return True
+            log(f"  signed-out page still cached as disabled (purge {attempt}/{PURGE_ATTEMPTS})")
+        return False
 
     def verify(self, tournament_slug, sample_rows):
         """Run run_simulation on sample pairs; return True if they match the sim file."""
@@ -545,7 +583,10 @@ def main():
             sample = [(a, b, rows[(a, b)]) for a, b in random.sample(list(rows), min(3, len(rows)))]
             if d.verify(slug, sample):
                 d.set_status("enabled")
-                d.purge_cache()
+                if not d.settle_public_page():
+                    log("ERROR: signed-out visitors are still served the disabled page. The "
+                        "simulator is enabled — purge SiteGround's cache by hand.")
+                    return 6
                 log(f"SUCCESS: '{event}' live with {len(export)} players.")
                 return 0
             log("ERROR: verification failed — leaving simulator DISABLED (safe state).")
