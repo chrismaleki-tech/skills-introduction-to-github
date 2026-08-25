@@ -82,6 +82,9 @@ PUBLIC_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Ge
 PURGE_ATTEMPTS = 3
 PURGE_CHECKS = 6
 PURGE_CHECK_WAIT_MS = 5_000
+# SiteGround answers a challenged request with 202 and a meta-refresh, not the page.
+CHALLENGE_STATUS = 202
+LIVE, DISABLED, UNAVAILABLE = "live", "disabled", "unavailable"
 
 
 def log(msg):
@@ -110,11 +113,24 @@ def event_start_date(key, tour, event):
     return None
 
 
-def public_page_disabled(base):
-    """True when a signed-out request for the simulator still gets the 'disabled' page."""
+def public_page_state(base, event):
+    """How the simulator page looks to a signed-out visitor.
+
+    LIVE         the page is being served and carries this week's event
+    DISABLED     the rebuild's "currently disabled" page is still cached
+    UNAVAILABLE  SiteGround answered with its bot challenge, or with a page that names no
+                 event — either way the check has learnt nothing and must ask again
+
+    Absence of the disabled notice is not evidence on its own: the challenge page carries no
+    notice either, and reading that as success would let a stale cache through.
+    """
     r = requests.get(f"{base.rstrip('/')}/matchup-simulator/", timeout=30,
                      headers={"User-Agent": PUBLIC_UA})
-    return DISABLED_MARK.lower() in r.text.lower()
+    if r.status_code == CHALLENGE_STATUS or "SG-Captcha" in r.headers or SG_CAPTCHA in r.text:
+        return UNAVAILABLE
+    if DISABLED_MARK.lower() in r.text.lower():
+        return DISABLED
+    return LIVE if event.lower() in r.text.lower() else UNAVAILABLE
 
 
 def format_event_dates(start_date):
@@ -431,15 +447,17 @@ class Deployer:
         self.pg.wait_for_timeout(2500)
         return True
 
-    def settle_public_page(self):
-        """Purge until a signed-out request stops being served the disabled page."""
+    def settle_public_page(self, event):
+        """Purge until a signed-out request is served this week's event."""
         for attempt in range(1, PURGE_ATTEMPTS + 1):
             self.purge_cache()
+            state = UNAVAILABLE
             for _ in range(PURGE_CHECKS):
                 self.pg.wait_for_timeout(PURGE_CHECK_WAIT_MS)
-                if not public_page_disabled(self.base):
+                state = public_page_state(self.base, event)
+                if state == LIVE:
                     return True
-            log(f"  signed-out page still cached as disabled (purge {attempt}/{PURGE_ATTEMPTS})")
+            log(f"  signed-out page reads '{state}' after purge {attempt}/{PURGE_ATTEMPTS}")
         return False
 
     def verify(self, tournament_slug, sample_rows):
@@ -583,8 +601,8 @@ def main():
             sample = [(a, b, rows[(a, b)]) for a, b in random.sample(list(rows), min(3, len(rows)))]
             if d.verify(slug, sample):
                 d.set_status("enabled")
-                if not d.settle_public_page():
-                    log("ERROR: signed-out visitors are still served the disabled page. The "
+                if not d.settle_public_page(event):
+                    log(f"ERROR: signed-out visitors are not being served '{event}'. The "
                         "simulator is enabled — purge SiteGround's cache by hand.")
                     return 6
                 log(f"SUCCESS: '{event}' live with {len(export)} players.")
