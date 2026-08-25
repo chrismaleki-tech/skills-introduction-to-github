@@ -83,10 +83,19 @@ def build_embed(players: list) -> str:
         " #sc-sim .presets button{display:inline-flex!important;align-items:center;justify-content:center;"
         "width:100%!important;margin:0!important;box-sizing:border-box}"
         " @media (max-width:640px){#sc-sim .presets{grid-template-columns:repeat(2,minmax(0,1fr))!important}}"
+        # A <br> inside the grid would occupy a cell and push every button into
+        # its own row; display:none keeps one out of the layout entirely.
+        " #sc-sim .presets br{display:none!important}"
     )
     body = re.search(r"<body>(.*?)</body>", html, re.S).group(1)
     js = re.search(r"<script>(.*?)</script>", body, re.S).group(1)
-    markup = re.sub(r"\n\s*\n+", "\n", re.sub(r"<script.*?</script>", "", body, flags=re.S))
+    markup = re.sub(r"<script.*?</script>", "", body, flags=re.S)
+    # WordPress runs page content through wpautop on every render: a blank line
+    # becomes a <p> break and a single newline becomes <br/>. A <br/> between the
+    # preset buttons lands inside their CSS grid and stacks them one per row
+    # (found on Android: four half-width buttons in a column). No newlines in the
+    # embed means wpautop has nothing to rewrite.
+    markup = re.sub(r"\s*\n\s*", " ", markup).strip()
     data = json.dumps(players, separators=(",", ":"))
     return (f'<div id="sc-sim"><style>{style}</style>{markup}'
             f'<script type="application/json" id="embedded-data">{data}</script>'
