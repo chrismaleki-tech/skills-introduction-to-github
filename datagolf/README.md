@@ -138,6 +138,43 @@ Players with a non-null `T2Green` on **PGA Database** are the current field.
 The field sheet uses the same cross-sheet formulas as Scottish Open Field;
 LibreOffice headless recalc (when installed) restores cached values after save.
 
+## Apple Numbers -> Excel (`numbers_to_excel.py`)
+
+Raw data that arrives as an Apple Numbers file (`.numbers`) cannot be fed to
+`update_workbook.py` or opened in Excel, and **renaming it to `.xlsx` does not
+work** — a `.numbers` file is a zipped bundle of Apple's IWA (protobuf)
+archives, so Excel reports it as corrupt. The data has to be parsed out and
+re-written:
+
+```bash
+pip install numbers-parser
+
+# writes raw_data_pga_2025.xlsx next to the input
+python datagolf/numbers_to_excel.py ~/Downloads/raw_data_pga_2025.numbers
+
+# on Windows, quote the path
+python datagolf\numbers_to_excel.py "C:\Users\me\Downloads\raw_data_pga_2025.numbers"
+
+# explicit destination, or a directory for several files at once
+python datagolf/numbers_to_excel.py in.numbers -o datagolf/workbooks/out.xlsx
+python datagolf/numbers_to_excel.py *.numbers --outdir datagolf/workbooks
+
+# just show what is inside
+python datagolf/numbers_to_excel.py raw_data_pga_2025.numbers --list
+```
+
+No Mac or Numbers install is needed; it runs anywhere Python does. Each table in
+the Numbers document becomes one worksheet, keeping cell values (text, numbers,
+dates, durations, booleans), merged ranges, header rows/columns and column
+widths. Formulas come across as the values Numbers last calculated, since
+Numbers' formula dialect does not always map onto Excel's — worth checking if
+the source relied on live formulas.
+
+Files are identified by content rather than extension, so a bundle already
+renamed to `.xlsx` still converts, and a genuine Excel workbook misnamed
+`.numbers` is reported (just rename that one) instead of being mangled. An
+existing output file is never overwritten without `--overwrite`.
+
 ## Scheduling
 
 `.github/workflows/update-datagolf-csv.yml` runs the script daily and commits
