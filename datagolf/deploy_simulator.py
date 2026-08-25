@@ -57,6 +57,13 @@ DAYS_TO_FINAL_ROUND = 3
 # Spelled out rather than strftime("%B") so the label cannot follow the runner's locale.
 MONTH_NAMES = ("January", "February", "March", "April", "May", "June",
                "July", "August", "September", "October", "November", "December")
+# SiteGround's bot filter can answer /golflogin with a JS interstitial (/.well-known/sgcaptcha/)
+# instead of the form. It clears itself once the challenge script runs, but datacentre IPs —
+# GitHub's runners included — draw a slower variant that outlasts Playwright's default timeout.
+LOGIN_FORM = "#user_login"
+SG_CAPTCHA = "/sgcaptcha/"
+LOGIN_ATTEMPTS = 3
+LOGIN_FORM_TIMEOUT_MS = 60_000
 
 
 def log(msg):
@@ -221,8 +228,24 @@ class Deployer:
         self.base = base.rstrip("/")
         self.SET = f"{self.base}/wp-admin/edit.php?post_type=player&page=additional-settings"
 
+    def open_login(self):
+        """Land on the real login form, sitting out SiteGround's challenge if one is served."""
+        last = None
+        for attempt in range(1, LOGIN_ATTEMPTS + 1):
+            self.pg.goto(f"{self.base}/golflogin", wait_until="domcontentloaded")
+            try:
+                self.pg.wait_for_selector(LOGIN_FORM, timeout=LOGIN_FORM_TIMEOUT_MS)
+                return
+            except Exception as exc:  # noqa: BLE001
+                last = exc
+                held = SG_CAPTCHA in self.pg.url
+                log(f"  login form did not appear (attempt {attempt}/{LOGIN_ATTEMPTS})"
+                    + (" — held at the SiteGround challenge" if held else ""))
+                self.pg.wait_for_timeout(5_000)
+        raise SystemExit(f"could not reach the login form at {self.base}/golflogin: {last}")
+
     def login(self, user, pw):
-        self.pg.goto(f"{self.base}/golflogin", wait_until="domcontentloaded")
+        self.open_login()
         self.pg.fill("#user_login", user)
         self.pg.fill("#user_pass", pw)
         self.pg.click("#wp-submit")
