@@ -70,6 +70,9 @@ LOGIN_FORM_TIMEOUT_MS = 60_000
 ACF_TAB_BUTTON = "a.acf-tab-button:visible"
 ADMIN_TAB = "Admin Functions"
 TAB_TIMEOUT_MS = 60_000
+# Enough pages to hold a full season of tournament terms, and a stop so a list that always
+# offers a "next page" cannot spin forever.
+TERM_PAGE_LIMIT = 20
 
 
 def log(msg):
@@ -319,16 +322,36 @@ class Deployer:
         box.fill(dates)
         return True
 
+    def term_rows(self):
+        """Every tournament term, following the admin list's pagination.
+
+        A full season is more terms than WordPress shows on one screen, and the events that
+        fall off page one are exactly the late-season ones — the TOUR Championship among them.
+        Reading only the first screen left those terms unvisited, so they kept whatever dates
+        they were last given by hand.
+        """
+        rows, page = [], 1
+        while page <= TERM_PAGE_LIMIT:
+            self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player&paged={page}",
+                         wait_until="networkidle")
+            found = self.pg.evaluate("""()=>{const o=[];document.querySelectorAll('a.row-title').forEach(a=>{const m=(a.getAttribute('href')||'').match(/tag_ID=(\\d+)/);if(m)o.push({id:m[1],name:a.textContent.trim()});});return o;}""")
+            if not found:
+                break
+            rows += found
+            if not self.pg.locator("a.next-page").count():
+                break
+            page += 1
+        return rows
+
     def set_active_tournament(self, event, dates=None):
-        slug = re.sub(r"[^a-z0-9]+", "-", event.lower()).strip("-")
-        # ensure the term exists
-        self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
-        if event not in self.pg.content():
+        rows = self.term_rows()
+        if not any(norm_name(r["name"]) == norm_name(event) for r in rows):
+            self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
             self.pg.fill("#tag-name", event)
             self.pg.click("#submit"); self.pg.wait_for_load_state("networkidle"); self.pg.wait_for_timeout(1500)
+            rows = self.term_rows()
+        log(f"tournament terms found: {len(rows)}")
         # deactivate any active, activate ours, and date the one we activate
-        self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
-        rows = self.pg.evaluate("""()=>{const o=[];document.querySelectorAll('a.row-title').forEach(a=>{const m=(a.getAttribute('href')||'').match(/tag_ID=(\\d+)/);if(m)o.push({id:m[1],name:a.textContent.trim()});});return o;}""")
         for r in rows:
             self.pg.goto(f"{self.base}/wp-admin/term.php?taxonomy=tournament&post_type=player&tag_ID={r['id']}", wait_until="networkidle")
             cb = self.pg.locator("input.acf-switch-input").first
