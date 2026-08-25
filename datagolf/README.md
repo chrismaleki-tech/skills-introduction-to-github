@@ -138,6 +138,34 @@ Players with a non-null `T2Green` on **PGA Database** are the current field.
 The field sheet uses the same cross-sheet formulas as Scottish Open Field;
 LibreOffice headless recalc (when installed) restores cached values after save.
 
+## Field Stats page (`build_field_stats_page.py`)
+
+Builds the "what does this week's field look like?" page for the current event
+from the CSV snapshots in `datagolf/data/` — read-only, no API calls. The field
+(`dg_field.csv`) is joined to the skill ratings (on `dg_id`), the schedule (for
+course, location and the Thursday-to-Sunday date label) and the week's StatCaddy
+field sheet (`workbooks/StatCaddy_Field_latest.csv`, for Course Fit / Form /
+History / Points, used only when it was built for the same event). Pre-tournament
+win probabilities are shown only when `dg_predictions.csv` covers the same event;
+a stale snapshot is dropped, not displayed.
+
+```bash
+python datagolf/build_field_stats_page.py          # writes field_stats/
+python datagolf/build_field_stats_page.py --push   # also update the live page
+```
+
+Outputs in `field_stats/` (all self-contained, no external assets):
+
+- `statcaddy-field-stats.html` — standalone page with summary cards and a
+  sortable per-player table (SG components, driving, Course Fit, Form, History,
+  Points; unrated players show em dashes and sort last)
+- `wp-embed.html` — WordPress-safe embed (scoped CSS + base64 JS), same pattern
+  as the simulator embed
+- `players.json` — the merged per-player table
+
+The push step needs `WP_URL`, `WP_USERNAME`, `WP_APP_PASSWORD` and
+`WP_FIELD_STATS_PAGE_ID` (the WordPress page to overwrite).
+
 ## Scheduling
 
 `.github/workflows/update-datagolf-csv.yml` runs the script daily and commits
