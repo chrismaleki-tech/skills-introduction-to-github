@@ -14,6 +14,7 @@ Outputs (all self-contained, no external assets):
     field_stats/statcaddy-field-stats.html   standalone page (open in any browser)
     field_stats/wp-embed.html                WordPress-safe embed (scoped CSS + base64 JS)
     field_stats/players.json                 the merged per-player table
+    field_stats/statcaddy-field-stats.csv    the same table for Excel / Sheets
 
 Env (only needed for the push step):
     WP_URL, WP_USERNAME, WP_APP_PASSWORD, WP_FIELD_STATS_PAGE_ID
@@ -27,6 +28,7 @@ import argparse
 import base64
 import csv
 import html
+import io
 import json
 import os
 import re
@@ -132,6 +134,26 @@ def load_players(data_dir=DATA_DIR, sheet_path=FIELD_SHEET):
         players.append(rec)
     players.sort(key=lambda p: (p["total"] is None, -(p["total"] or 0), p["name"]))
     return ctx, players
+
+
+# Table key -> CSV header, in page-column order. Odds columns appended when present.
+CSV_COLS = [("name", "Player"), ("country", "Country"), ("dg_rank", "DG Rank"),
+            ("owgr", "OWGR"), ("total", "SG Total"), ("ott", "SG OTT"),
+            ("app", "SG APP"), ("arg", "SG ARG"), ("putt", "SG PUTT"),
+            ("dist", "Driving Dist"), ("acc", "Driving Acc"), ("fit", "Course Fit"),
+            ("form", "Form"), ("hist", "History"), ("pts", "Points")]
+ODDS_COLS = [("win", "Win Prob"), ("top5", "Top 5 Prob"), ("top10", "Top 10 Prob")]
+
+
+def render_csv(players):
+    """The merged table as spreadsheet-friendly CSV; unrated players get blanks."""
+    cols = CSV_COLS + (ODDS_COLS if players and "win" in players[0] else [])
+    buf = io.StringIO()
+    writer = csv.writer(buf, lineterminator="\n")
+    writer.writerow(label for _, label in cols)
+    for p in players:
+        writer.writerow("" if p.get(key) is None else p[key] for key, _ in cols)
+    return buf.getvalue()
 
 
 def summarize(players):
@@ -333,6 +355,7 @@ def main():
     embed = build_embed(ctx, players)
     open(os.path.join(args.out_dir, "wp-embed.html"), "w").write(embed)
     json.dump(players, open(os.path.join(args.out_dir, "players.json"), "w"), indent=0)
+    open(os.path.join(args.out_dir, "statcaddy-field-stats.csv"), "w").write(render_csv(players))
     print(f"[ok] {ctx['event']} ({ctx.get('dates')}): {len(players)} players "
           f"({rated} rated) -> {args.out_dir}")
 

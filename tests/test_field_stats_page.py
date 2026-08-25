@@ -8,6 +8,7 @@ through the builder so a snapshot that stops joining fails loudly.
 """
 
 import csv
+import io
 import json
 import re
 import sys
@@ -183,6 +184,24 @@ def test_the_embed_is_one_scoped_div_with_no_body_styles(snapshots):
     assert "eval(atob(" in embed  # JS survives WordPress content filters
 
 
+def test_the_csv_mirrors_the_table_with_blanks_for_unrated(snapshots):
+    _, players = load(snapshots)
+    rows = list(csv.DictReader(io.StringIO(bfs.render_csv(players))))
+    assert [r["Player"] for r in rows] == ["Aaron Alpha", "Bo Beta", "Gus Gamma"]
+    assert rows[0]["SG Total"] == "2.7" and rows[0]["Win Prob"] == "0.2512"
+    assert rows[-1]["SG Total"] == "" and rows[-1]["DG Rank"] == ""  # blank, not zero
+
+
+def test_the_csv_has_no_odds_columns_when_predictions_are_stale(snapshots):
+    rows = list(csv.reader(open(snapshots / "dg_predictions.csv")))
+    for r in rows[1:]:
+        r[0] = "Last Week's Championship"
+    write_csv(snapshots / "dg_predictions.csv", rows[0], rows[1:])
+    _, players = load(snapshots)
+    header = bfs.render_csv(players).splitlines()[0]
+    assert "Win Prob" not in header and header.startswith("Player,")
+
+
 def test_the_page_says_when_odds_were_left_out(snapshots):
     rows = list(csv.reader(open(snapshots / "dg_predictions.csv")))
     for r in rows[1:]:
@@ -230,3 +249,4 @@ def test_the_committed_artifacts_are_current():
     page = (out / "statcaddy-field-stats.html").read_text()
     assert bfs.render_page(ctx, players) == page
     assert bfs.build_embed(ctx, players) == (out / "wp-embed.html").read_text()
+    assert bfs.render_csv(players) == (out / "statcaddy-field-stats.csv").read_text()

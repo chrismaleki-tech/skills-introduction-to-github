@@ -162,6 +162,8 @@ Outputs in `field_stats/` (all self-contained, no external assets):
 - `wp-embed.html` — WordPress-safe embed (scoped CSS + base64 JS), same pattern
   as the simulator embed
 - `players.json` — the merged per-player table
+- `statcaddy-field-stats.csv` — the same table as a downloadable CSV for
+  Excel / Google Sheets (odds columns included only when predictions are current)
 
 The push step needs `WP_URL`, `WP_USERNAME`, `WP_APP_PASSWORD` and
 `WP_FIELD_STATS_PAGE_ID` (the WordPress page to overwrite).
