@@ -158,7 +158,35 @@ def test_an_event_without_strokes_gained_still_contributes_its_scores():
 def test_a_stat_a_tour_does_not_carry_is_absent_rather_than_zero():
     """Blank means "not measured"; a zero would read as a league-average round."""
     row = next(iter(event_rows(SCORES_ONLY_EVENT, SCORES_ONLY_PAYLOAD)))
-    assert "sg_total" not in row and "driving_dist" not in row
+    assert "driving_dist" not in row and "sg_putt" not in row
+
+
+def test_total_strokes_gained_survives_even_where_the_category_split_does_not():
+    """Data Golf derives the total from a score against the field, so it needs no shot data."""
+    payload = {"scores": [{"dg_id": 4, "player_name": "S", "fin_text": "12",
+                           "round_1": {"score": 70, "sg_total": 1.25}}]}
+    row = next(iter(event_rows(SCORES_ONLY_EVENT, payload)))
+    assert row["sg_total"] == 1.25 and "sg_app" not in row
+
+
+def test_a_round_at_the_untracked_course_of_a_covered_event_keeps_what_it_has():
+    """The American Express rotates courses and only the ShotLink one gets a split."""
+    payload = {"scores": [{"dg_id": 1, "player_name": "P", "fin_text": "1",
+                           "round_1": {"course_name": "Pete Dye Stadium", "score": 64,
+                                       "sg_total": 4.654, "sg_app": 1.2},
+                           "round_2": {"course_name": "La Quinta", "score": 66, "sg_total": 2.1}}]}
+    tracked, untracked = list(event_rows(PGA_EVENT, payload))
+    assert tracked["sg_app"] == 1.2
+    assert untracked["sg_total"] == 2.1 and "sg_app" not in untracked
+
+
+def test_a_team_event_round_is_kept_even_though_no_one_has_an_individual_score():
+    """The Zurich Classic is four-ball and foursomes; sg_total is all a player gets."""
+    payload = {"scores": [{"dg_id": 1, "player_name": "Novak, Andrew", "fin_text": "1",
+                           "round_1": {"course_name": "TPC Louisiana", "sg_total": 2.964}}]}
+    rows = list(event_rows(PGA_EVENT, payload))
+    assert len(rows) == 1
+    assert rows[0]["sg_total"] == 2.964 and "score" not in rows[0]
 
 
 # ── the header ───────────────────────────────────────────────────────────────
@@ -261,10 +289,13 @@ def test_a_round_is_recognised_by_its_key(key, expected):
     assert round_number(key) == expected
 
 
-def test_a_fifth_round_playoff_is_kept():
-    payload = {**PGA_PAYLOAD, "scores": [{"dg_id": 1, "player_name": "P", "fin_text": "1",
-                                          "round_4": {"score": 70}, "round_5": {"score": 68}}]}
-    assert [r["round_num"] for r in event_rows(PGA_EVENT, payload)] == [4, 5]
+def test_the_six_rounds_of_a_qualifying_school_are_all_kept():
+    """DP World Tour Qualifying (Final Stage) is six rounds, not four."""
+    player = {"dg_id": 1, "player_name": "P", "fin_text": "1"}
+    player.update({f"round_{n}": {"score": 70 + n} for n in range(1, 7)})
+    rows = list(event_rows(PGA_EVENT, {**PGA_PAYLOAD, "scores": [player]}))
+    assert [r["round_num"] for r in rows] == [1, 2, 3, 4, 5, 6]
+    assert [r["score"] for r in rows] == [71, 72, 73, 74, 75, 76]
 
 
 # ── malformed responses ──────────────────────────────────────────────────────
@@ -340,6 +371,35 @@ def test_an_event_missing_from_the_cache_is_skipped_rather_than_failing_the_run(
     absent = {**PGA_EVENT, "event_id": 99999, "event_name": "Never fetched"}
     rows, events, _ = write_csv([PGA_EVENT, absent, SCORES_ONLY_EVENT], str(cache), str(out), "NOW")
     assert (rows, events) == (6, 2)
+
+
+def test_an_empty_cache_never_replaces_a_good_csv_with_a_bare_header(cache, tmp_path, monkeypatch):
+    """A header-only file over a finished pull would read as a successful run."""
+    out = tmp_path / "stats.csv"
+    write_csv([PGA_EVENT, SCORES_ONLY_EVENT], str(cache), str(out), "FIRST")
+    good = out.read_text()
+
+    monkeypatch.setenv("DATAGOLF_KEY", "test-key")
+    monkeypatch.setattr(pull_history, "fetch", lambda path, params: [PGA_EVENT, SCORES_ONLY_EVENT])
+    monkeypatch.setattr(sys, "argv", [
+        "pull_history.py", "--years", "2024,2025", "--skip-download",
+        "--cache-dir", str(tmp_path / "nothing-here"), "--out", str(out),
+    ])
+    assert pull_history.main() == 1
+    assert out.read_text() == good
+
+
+def test_the_cache_belongs_to_the_dataset_not_to_wherever_the_csv_is_written(cache, tmp_path, monkeypatch):
+    """--out elsewhere must still find the cache, or the rebuild silently writes nothing."""
+    out = tmp_path / "elsewhere" / "stats.csv"
+    monkeypatch.setenv("DATAGOLF_KEY", "test-key")
+    monkeypatch.setattr(pull_history, "fetch", lambda path, params: [PGA_EVENT, SCORES_ONLY_EVENT])
+    monkeypatch.setattr(sys, "argv", [
+        "pull_history.py", "--years", "2024,2025", "--skip-download",
+        "--cache-dir", str(cache), "--out", str(out),
+    ])
+    assert pull_history.main() == 0
+    assert len(read_csv(out)) == 6
 
 
 def test_a_half_written_csv_never_replaces_a_good_one(cache, tmp_path, monkeypatch):

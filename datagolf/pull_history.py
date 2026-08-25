@@ -10,10 +10,16 @@ and writes one row per player per round to a single CSV.
 Every stat Data Golf records for a round is a column: the score and its
 breakdown (birdies, bogies, pars, eagles, doubles), the traditional stats
 (driving distance and accuracy, GIR, scrambling, proximity from fairway and
-rough), and the strokes-gained categories (off the tee, approach, around the
-green, putting, tee-to-green, total). Events on tours that Data Golf does not
-model to that depth still contribute their scores; the stat columns they do not
-carry are left empty rather than dropped, so one schema covers every tour.
+rough), and strokes gained both in total and split by category (off the tee,
+approach, around the green, putting, tee-to-green).
+
+Score and total strokes gained come back for every tour, because the total only
+needs a score measured against the field. The rest depends on Data Golf having
+shot-level data, which it has for a minority of the events it lists. Those
+events still contribute their rows, and the stats they do not carry are left
+empty rather than zero — a zero would read as an average round rather than an
+unmeasured one. `sg_categories` and `traditional_stats` on each row say which
+case it is, so one schema covers every tour without hiding the difference.
 
 Responses are cached under the output directory, so an interrupted run resumes
 from where it stopped instead of re-paying for a thousand requests. Only the
@@ -295,9 +301,12 @@ def parse_years(raw: str) -> set:
         raise argparse.ArgumentTypeError(f"years must be a comma-separated list of numbers, got {raw!r}")
 
 
+HISTORY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "history")
+
+
 def default_out_path(years) -> str:
     span = f"{min(years)}_{max(years)}" if len(years) > 1 else f"{min(years)}"
-    return os.path.join(os.path.dirname(__file__), "data", "history", f"dg_stats_{span}.csv")
+    return os.path.join(HISTORY_DIR, f"dg_stats_{span}.csv")
 
 
 def main() -> int:
@@ -308,8 +317,9 @@ def main() -> int:
                         help="Comma-separated tour codes, or 'all' (default) for every tour Data Golf covers.")
     parser.add_argument("--out", default=None,
                         help="Path of the CSV to write (default: data/history/dg_stats_<years>.csv).")
-    parser.add_argument("--cache-dir", default=None,
-                        help="Where raw responses are cached (default: <out dir>/_cache).")
+    parser.add_argument("--cache-dir", default=os.path.join(HISTORY_DIR, "_cache"),
+                        help="Where raw responses are cached. Belongs to the dataset rather than to "
+                             "any one CSV, so writing elsewhere with --out still reuses it.")
     parser.add_argument("--refresh", action="store_true",
                         help="Re-fetch events already in the cache (use for years still in progress).")
     parser.add_argument("--skip-download", action="store_true",
@@ -325,7 +335,7 @@ def main() -> int:
         return 2
     out_path = args.out or default_out_path(args.years)
     tours = None if args.tours.strip().lower() == "all" else {t.strip() for t in args.tours.split(",") if t.strip()}
-    cache_dir = args.cache_dir or os.path.join(os.path.dirname(os.path.abspath(out_path)), "_cache")
+    cache_dir = args.cache_dir
     pulled_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     try:
@@ -345,6 +355,14 @@ def main() -> int:
           f"for {sorted(args.years)}\n")
 
     failures = {} if args.skip_download else download(events, cache_dir, args.refresh)
+
+    # Writing a header-only CSV over a good one would look like a successful run.
+    if not any(os.path.exists(cache_path(cache_dir, e)) for e in events):
+        hint = ("drop --skip-download to fetch them" if args.skip_download
+                else "every request failed; check DATAGOLF_KEY and the network")
+        print(f"ERROR: no response cached under {cache_dir} for any selected event — {hint}.",
+              file=sys.stderr)
+        return 1
 
     rows, events_written, header = write_csv(events, cache_dir, out_path, pulled_at)
     size_mb = os.path.getsize(out_path) / 1e6
