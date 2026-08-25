@@ -64,6 +64,12 @@ LOGIN_FORM = "#user_login"
 SG_CAPTCHA = "/sgcaptcha/"
 LOGIN_ATTEMPTS = 3
 LOGIN_FORM_TIMEOUT_MS = 60_000
+# ACF renders the settings tab bar with JS after the page loads. Before it exists the only
+# nodes carrying a tab's text are a hidden <label> and its hidden source anchor, so a plain
+# text= click can pick one of those and wait out its timeout on something never made visible.
+ACF_TAB_BUTTON = "a.acf-tab-button:visible"
+ADMIN_TAB = "Admin Functions"
+TAB_TIMEOUT_MS = 60_000
 
 
 def log(msg):
@@ -263,7 +269,9 @@ class Deployer:
 
     def _admin_functions(self):
         self.pg.goto(self.SET, wait_until="networkidle")
-        self.pg.click("text=Admin Functions")
+        tab = self.pg.locator(ACF_TAB_BUTTON).filter(has_text=ADMIN_TAB).first
+        tab.wait_for(state="visible", timeout=TAB_TIMEOUT_MS)
+        tab.click()
         self.pg.wait_for_timeout(900)
 
     def set_status(self, value):
