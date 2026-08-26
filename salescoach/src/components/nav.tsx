@@ -19,7 +19,7 @@ export function NavLinks({ items }: { items: NavItem[] }) {
             key={item.href}
             href={item.href}
             className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              active ? "bg-accent/15 text-accent-hover" : "text-muted hover:text-foreground hover:bg-surface-2"
+              active ? "bg-brand/10 text-brand font-medium" : "text-muted hover:text-foreground hover:bg-surface-2"
             }`}
           >
             {item.label}

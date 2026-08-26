@@ -84,8 +84,8 @@ export function OverrideForm({
         <Button type="submit" variant="secondary" disabled={pending}>
           {pending ? "Saving…" : "Save override"}
         </Button>
-        {saved && <span className="text-xs text-emerald-400">Saved.</span>}
-        {error && <span className="text-xs text-rose-400">{error}</span>}
+        {saved && <span className="text-xs text-emerald-700">Saved.</span>}
+        {error && <span className="text-xs text-rose-700">{error}</span>}
       </div>
     </form>
   );

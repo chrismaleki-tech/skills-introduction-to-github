@@ -42,7 +42,7 @@ export function GradeNowButton({
       <Button variant={variant} onClick={gradeNow} disabled={pending}>
         {pending ? "Grading…" : label}
       </Button>
-      {error && <p className="text-xs text-rose-400">{error}</p>}
+      {error && <p className="text-xs text-rose-700">{error}</p>}
     </div>
   );
 }

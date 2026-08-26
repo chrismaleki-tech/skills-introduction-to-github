@@ -64,9 +64,9 @@ export default async function SettingsPage() {
                   {engine.envVar}
                 </code>
                 {engine.ok ? (
-                  <span className="ml-auto text-emerald-400">configured</span>
+                  <span className="ml-auto text-emerald-700">configured</span>
                 ) : (
-                  <span className="ml-auto text-amber-400">not set — demo engine active</span>
+                  <span className="ml-auto text-amber-700">not set — demo engine active</span>
                 )}
               </li>
             ))}
@@ -74,11 +74,11 @@ export default async function SettingsPage() {
           <div className="mt-4 border-t border-line pt-4 text-sm">
             <span className="text-muted">Active methodology: </span>
             {activeMethodology ? (
-              <Link href="/rubrics" className="text-accent-hover hover:underline">
+              <Link href="/rubrics" className="text-brand hover:underline">
                 {activeMethodology.name}
               </Link>
             ) : (
-              <Link href="/rubrics" className="text-amber-400 hover:underline">
+              <Link href="/rubrics" className="text-amber-700 hover:underline">
                 none set — choose one in Rubrics
               </Link>
             )}

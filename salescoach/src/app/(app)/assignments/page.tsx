@@ -57,7 +57,7 @@ function AssignmentRow({
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={a.status} />
           {showRep && (
-            <Link href={`/team/${a.assignedTo.id}`} className="text-sm font-medium hover:text-accent-hover transition-colors">
+            <Link href={`/team/${a.assignedTo.id}`} className="text-sm font-medium hover:text-brand transition-colors">
               {a.assignedTo.name}
             </Link>
           )}
@@ -66,7 +66,7 @@ function AssignmentRow({
               <>
                 Role-play:{" "}
                 {a.scenario ? (
-                  <Link href="/roleplay" className="text-accent-hover hover:underline">
+                  <Link href="/roleplay" className="text-brand hover:underline">
                     {a.scenario.title}
                   </Link>
                 ) : (
@@ -84,7 +84,7 @@ function AssignmentRow({
             <> · completed {fmtDate(a.completedAt)}</>
           ) : a.dueDate ? (
             <>
-              {" "}· <span className={overdue ? "text-rose-400 font-medium" : ""}>due {fmtDate(a.dueDate)}{overdue ? " (overdue)" : ""}</span>
+              {" "}· <span className={overdue ? "text-rose-700 font-medium" : ""}>due {fmtDate(a.dueDate)}{overdue ? " (overdue)" : ""}</span>
             </>
           ) : (
             <> · no due date</>

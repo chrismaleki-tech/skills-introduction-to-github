@@ -29,7 +29,7 @@ export function CompleteButton({ id, done, target }: { id: string; done: number;
       <Button variant="secondary" onClick={complete} disabled={busy}>
         {busy ? "Saving…" : "Mark complete"}
       </Button>
-      {error && <span className="text-xs text-rose-400">Failed — try again</span>}
+      {error && <span className="text-xs text-rose-700">Failed — try again</span>}
     </span>
   );
 }

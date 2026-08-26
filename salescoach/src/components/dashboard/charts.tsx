@@ -1,8 +1,10 @@
 // Chart primitives for the dashboard slice. Inline SVG / styled divs only —
 // no chart library. All are server-renderable (no client hooks).
 
-const CALL_COLOR = "#00a4bd"; // HubSpot Calypso
-const ROLEPLAY_COLOR = "#516f90"; // HubSpot slate blue
+const CALL_COLOR = "#0091ae"; // HubSpot Calypso
+const ROLEPLAY_COLOR = "#2d3e50"; // HubSpot navy
+const GRID_COLOR = "#cbd6e2";
+const LABEL_COLOR = "#516f90";
 
 export interface WeekPoint {
   label: string; // e.g. "May 12"
@@ -42,8 +44,8 @@ export function WeeklyTrendChart({ weeks }: { weeks: WeekPoint[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Weekly average score, calls vs role-plays">
       {[0, 50, 100].map((tick) => (
         <g key={tick}>
-          <line x1={padL} x2={W - 8} y1={y(tick)} y2={y(tick)} stroke="#2a455c" strokeWidth={1} />
-          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill="#7c98b3">
+          <line x1={padL} x2={W - 8} y1={y(tick)} y2={y(tick)} stroke={GRID_COLOR} strokeWidth={1} />
+          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill={LABEL_COLOR}>
             {tick}
           </text>
         </g>
@@ -63,11 +65,11 @@ export function WeeklyTrendChart({ weeks }: { weeks: WeekPoint[] }) {
               </rect>
             )}
             {w.call == null && w.roleplay == null && (
-              <text x={cx} y={y(0) - 4} textAnchor="middle" fontSize={10} fill="#7c98b3">
+              <text x={cx} y={y(0) - 4} textAnchor="middle" fontSize={10} fill={LABEL_COLOR}>
                 –
               </text>
             )}
-            <text x={cx} y={H - 6} textAnchor="middle" fontSize={10} fill="#7c98b3">
+            <text x={cx} y={H - 6} textAnchor="middle" fontSize={10} fill={LABEL_COLOR}>
               {w.label}
             </text>
           </g>
@@ -110,16 +112,16 @@ export function ScoreTimeline({ points, start, end }: { points: TimelinePoint[];
             x2={W - 12}
             y1={y(tick)}
             y2={y(tick)}
-            stroke="#2a455c"
+            stroke={GRID_COLOR}
             strokeWidth={1}
             strokeDasharray={tick === 0 ? undefined : "3 4"}
           />
-          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill="#7c98b3">
+          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill={LABEL_COLOR}>
             {tick}
           </text>
         </g>
       ))}
-      {sorted.length > 1 && <polyline points={line} fill="none" stroke="#7c98b3" strokeOpacity={0.35} strokeWidth={1.5} />}
+      {sorted.length > 1 && <polyline points={line} fill="none" stroke={LABEL_COLOR} strokeOpacity={0.35} strokeWidth={1.5} />}
       {sorted.map((p, i) => (
         <circle key={i} cx={x(p.t)} cy={y(p.score)} r={4.5} fill={p.type === "CALL" ? CALL_COLOR : ROLEPLAY_COLOR} fillOpacity={0.9}>
           <title>{p.label}</title>
@@ -132,7 +134,7 @@ export function ScoreTimeline({ points, start, end }: { points: TimelinePoint[];
           y={H - 5}
           textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
           fontSize={10}
-          fill="#7c98b3"
+          fill={LABEL_COLOR}
         >
           {new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         </text>
@@ -162,11 +164,11 @@ export function PairedBars({
     <div className="space-y-4">
       <div className="flex items-center gap-4 text-xs text-muted">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-accent-hover" />
+          <span className="h-2.5 w-2.5 rounded-sm bg-brand" />
           {primaryLabel}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-slate-500" />
+          <span className="h-2.5 w-2.5 rounded-sm bg-slate-400" />
           {secondaryLabel}
         </span>
       </div>
@@ -181,12 +183,12 @@ export function PairedBars({
           <div className="space-y-1">
             <div className="h-2.5 rounded-full bg-surface-2 overflow-hidden">
               {row.primary != null && (
-                <div className="h-full rounded-full bg-accent-hover" style={{ width: `${width(row.primary)}%` }} />
+                <div className="h-full rounded-full bg-brand" style={{ width: `${width(row.primary)}%` }} />
               )}
             </div>
             <div className="h-2.5 rounded-full bg-surface-2 overflow-hidden">
               {row.secondary != null && (
-                <div className="h-full rounded-full bg-slate-500" style={{ width: `${width(row.secondary)}%` }} />
+                <div className="h-full rounded-full bg-slate-400" style={{ width: `${width(row.secondary)}%` }} />
               )}
             </div>
           </div>
@@ -201,8 +203,8 @@ export function TrendArrow({ delta }: { delta: number | null }) {
   if (delta == null) return <span className="text-xs text-muted">no prior data</span>;
   const rounded = Math.round(delta);
   if (rounded > 0)
-    return <span className="text-xs font-medium text-emerald-400 tabular-nums">▲ {rounded}</span>;
+    return <span className="text-xs font-medium text-emerald-700 tabular-nums">▲ {rounded}</span>;
   if (rounded < 0)
-    return <span className="text-xs font-medium text-rose-400 tabular-nums">▼ {Math.abs(rounded)}</span>;
+    return <span className="text-xs font-medium text-rose-700 tabular-nums">▼ {Math.abs(rounded)}</span>;
   return <span className="text-xs text-muted">– 0</span>;
 }

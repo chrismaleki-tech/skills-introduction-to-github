@@ -83,7 +83,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
                 <ul className="space-y-1 text-sm">
                   {persona.painPoints.map((p, i) => (
                     <li key={i} className="flex gap-2">
-                      <span className="text-amber-400 shrink-0">•</span>
+                      <span className="text-amber-700 shrink-0">•</span>
                       {p}
                     </li>
                   ))}
@@ -99,7 +99,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
               <ul className="space-y-2 text-sm">
                 {persona.objections.map((o, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="text-rose-400 shrink-0">!</span>
+                    <span className="text-rose-700 shrink-0">!</span>
                     {o}
                   </li>
                 ))}
@@ -114,7 +114,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
               <ul className="space-y-2 text-sm">
                 {winConditions.map((w, i) => (
                   <li key={i} className="flex gap-2">
-                    <span className="text-emerald-400 shrink-0">✓</span>
+                    <span className="text-emerald-700 shrink-0">✓</span>
                     {w}
                   </li>
                 ))}

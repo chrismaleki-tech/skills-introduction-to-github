@@ -84,7 +84,7 @@ export function WebhookCard({ secret }: { secret: string }) {
             {rotating ? "Rotating…" : "Rotate secret"}
           </Button>
         </div>
-        {error && <p className="text-xs text-rose-400 mt-1.5">{error}</p>}
+        {error && <p className="text-xs text-rose-700 mt-1.5">{error}</p>}
       </div>
       <div>
         <div className="text-xs font-medium text-muted uppercase tracking-wider mb-1.5">Example request</div>

@@ -143,7 +143,7 @@ export function NewAssignmentForm({
         <Button type="submit" disabled={busy}>
           {busy ? "Creating…" : "Create assignment"}
         </Button>
-        {error && <span className="text-sm text-rose-400">{error}</span>}
+        {error && <span className="text-sm text-rose-700">{error}</span>}
       </div>
     </form>
   );

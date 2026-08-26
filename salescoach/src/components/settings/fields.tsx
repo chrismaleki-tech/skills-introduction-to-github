@@ -38,10 +38,10 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
 
 export function InlineError({ message }: { message: string }) {
   if (!message) return null;
-  return <p className="text-sm text-rose-400">{message}</p>;
+  return <p className="text-sm text-rose-700">{message}</p>;
 }
 
 export function InlineSuccess({ message }: { message: string }) {
   if (!message) return null;
-  return <p className="text-sm text-emerald-400">{message}</p>;
+  return <p className="text-sm text-emerald-700">{message}</p>;
 }

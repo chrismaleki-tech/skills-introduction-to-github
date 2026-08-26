@@ -34,7 +34,7 @@ export function GradeSessionButton({ sessionId }: { sessionId: string }) {
       <Button onClick={() => void grade()} disabled={grading}>
         {grading ? "Grading..." : "Grade session"}
       </Button>
-      {error && <span className="text-xs text-rose-400">{error}</span>}
+      {error && <span className="text-xs text-rose-700">{error}</span>}
     </div>
   );
 }

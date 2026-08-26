@@ -53,7 +53,7 @@ export default async function RoleplayPage() {
               return (
                 <div key={s.id} className="bg-surface border border-line rounded-xl p-5 flex flex-col gap-3">
                   <div className="flex items-start justify-between gap-2">
-                    <Link href={`/scenarios/${s.id}`} className="font-medium hover:text-accent-hover transition-colors">
+                    <Link href={`/scenarios/${s.id}`} className="font-medium hover:text-brand transition-colors">
                       {s.title}
                     </Link>
                     <DifficultyPill difficulty={s.difficulty} />
@@ -101,13 +101,13 @@ export default async function RoleplayPage() {
                   {sessions.map((s) => (
                     <tr key={s.id} className="border-b border-line last:border-0 hover:bg-surface-2/50 transition-colors">
                       <td className="px-5 py-3 whitespace-nowrap">
-                        <Link href={`/roleplay/${s.id}`} className="hover:text-accent-hover transition-colors">
+                        <Link href={`/roleplay/${s.id}`} className="hover:text-brand transition-colors">
                           {fmtDateTime(s.startedAt)}
                         </Link>
                       </td>
                       {manager && <td className="px-5 py-3">{s.rep.name}</td>}
                       <td className="px-5 py-3">
-                        <Link href={`/roleplay/${s.id}`} className="hover:text-accent-hover transition-colors">
+                        <Link href={`/roleplay/${s.id}`} className="hover:text-brand transition-colors">
                           {s.scenario.title}
                         </Link>
                       </td>

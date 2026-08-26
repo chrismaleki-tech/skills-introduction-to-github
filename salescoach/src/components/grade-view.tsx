@@ -25,7 +25,7 @@ export function GradeView({ grade }: { grade: Grade }) {
             <div className="flex items-center gap-2">
               <BandPill score={effective} />
               {grade.managerOverrideScore != null && (
-                <span className="text-xs text-amber-400">
+                <span className="text-xs text-amber-700">
                   Manager override (AI scored {grade.overallScore})
                 </span>
               )}
@@ -39,7 +39,7 @@ export function GradeView({ grade }: { grade: Grade }) {
         </div>
         {grade.managerComment && (
           <div className="mt-4 rounded-lg border border-amber-400/30 bg-amber-400/5 p-3 text-sm">
-            <span className="font-medium text-amber-400">Manager note: </span>
+            <span className="font-medium text-amber-700">Manager note: </span>
             {grade.managerComment}
           </div>
         )}
@@ -60,7 +60,7 @@ export function GradeView({ grade }: { grade: Grade }) {
               {d.quotes.length > 0 && (
                 <div className="mt-2 space-y-1">
                   {d.quotes.map((q, i) => (
-                    <blockquote key={i} className="text-xs text-foreground/70 border-l-2 border-accent/50 pl-2 italic">
+                    <blockquote key={i} className="text-xs text-foreground/70 border-l-2 border-brand/50 pl-2 italic">
                       <span className="text-muted not-italic mr-1.5 tabular-nums">{fmtTs(q.atSec)}</span>
                       &ldquo;{q.text}&rdquo;
                     </blockquote>
@@ -78,7 +78,7 @@ export function GradeView({ grade }: { grade: Grade }) {
             {strengths.length === 0 && <li className="text-muted">None identified at 4+ this time.</li>}
             {strengths.map((s, i) => (
               <li key={i} className="flex gap-2">
-                <span className="text-emerald-400 shrink-0">+</span>
+                <span className="text-emerald-700 shrink-0">+</span>
                 {s}
               </li>
             ))}
@@ -89,7 +89,7 @@ export function GradeView({ grade }: { grade: Grade }) {
             {improvements.length === 0 && <li className="text-muted">Nothing scored 3 or below.</li>}
             {improvements.map((s, i) => (
               <li key={i} className="flex gap-2">
-                <span className="text-amber-400 shrink-0">→</span>
+                <span className="text-amber-700 shrink-0">→</span>
                 {s}
               </li>
             ))}
@@ -116,7 +116,7 @@ function DimensionDots({ score }: { score: number }) {
       {[1, 2, 3, 4, 5].map((i) => (
         <span
           key={i}
-          className={`h-2 w-2 rounded-full ${i <= score ? "bg-accent" : "bg-line"}`}
+          className={`h-2 w-2 rounded-full ${i <= score ? "bg-brand" : "bg-line"}`}
         />
       ))}
     </div>
@@ -126,7 +126,7 @@ function DimensionDots({ score }: { score: number }) {
 function Mech({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
   return (
     <div>
-      <div className={`text-xl font-semibold tabular-nums ${warn ? "text-amber-400" : ""}`}>{value}</div>
+      <div className={`text-xl font-semibold tabular-nums ${warn ? "text-amber-700" : ""}`}>{value}</div>
       <div className="text-xs text-muted mt-0.5">{label}</div>
     </div>
   );

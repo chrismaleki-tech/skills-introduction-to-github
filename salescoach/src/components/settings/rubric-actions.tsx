@@ -29,7 +29,7 @@ export function ActivateRubricButton({ id }: { id: string }) {
       <Button variant="secondary" onClick={activate} disabled={busy}>
         {busy ? "Setting active…" : "Set active"}
       </Button>
-      {error && <p className="text-xs text-rose-400 mt-1.5">{error}</p>}
+      {error && <p className="text-xs text-rose-700 mt-1.5">{error}</p>}
     </div>
   );
 }
@@ -67,7 +67,7 @@ export function CloneRubricButton({
       <Button variant={variant} onClick={clone} disabled={busy}>
         {busy ? "Cloning…" : label}
       </Button>
-      {error && <p className="text-xs text-rose-400 mt-1.5">{error}</p>}
+      {error && <p className="text-xs text-rose-700 mt-1.5">{error}</p>}
     </div>
   );
 }

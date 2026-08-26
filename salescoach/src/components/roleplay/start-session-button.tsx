@@ -43,7 +43,7 @@ export function StartSessionButton({
       <Button variant={variant} onClick={() => void start()} disabled={starting}>
         {starting ? "Starting..." : "Start session"}
       </Button>
-      {error && <span className="text-xs text-rose-400">{error}</span>}
+      {error && <span className="text-xs text-rose-700">{error}</span>}
     </div>
   );
 }

@@ -29,7 +29,7 @@ function ReadOnlyDimensions({ dims }: { dims: RubricDimension[] }) {
                 {d.key}
               </code>
               {d.companySpecific && (
-                <span className="inline-flex rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent-hover">
+                <span className="inline-flex rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
                   Company-specific
                 </span>
               )}
@@ -88,7 +88,7 @@ export default async function RubricDetailPage({ params }: { params: Promise<{ i
         subtitle={rubric.description}
         actions={
           isActive ? (
-            <span className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400">
+            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">
               Active
             </span>
           ) : undefined

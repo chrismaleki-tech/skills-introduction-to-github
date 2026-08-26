@@ -194,7 +194,7 @@ export default async function DashboardPage() {
                 <li key={entry.rep.id} className="flex items-center gap-3 py-2.5">
                   <span className="w-5 text-sm text-muted tabular-nums">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <Link href={`/team/${entry.rep.id}`} className="text-sm font-medium hover:text-accent-hover transition-colors">
+                    <Link href={`/team/${entry.rep.id}`} className="text-sm font-medium hover:text-brand transition-colors">
                       {entry.rep.name}
                     </Link>
                     <div className="text-xs text-muted">
@@ -218,15 +218,15 @@ export default async function DashboardPage() {
                 <li key={c.rep.id} className="flex items-center gap-3 py-2.5">
                   <Link
                     href={`/team/${c.rep.id}`}
-                    className="w-32 shrink-0 text-sm font-medium truncate hover:text-accent-hover transition-colors"
+                    className="w-32 shrink-0 text-sm font-medium truncate hover:text-brand transition-colors"
                   >
                     {c.rep.name}
                   </Link>
                   <div className="flex-1 h-2 rounded-full bg-surface-2 overflow-hidden flex">
                     {c.ingested > 0 && (
                       <>
-                        <div className="h-full bg-emerald-400/70" style={{ width: `${(c.graded / c.ingested) * 100}%` }} />
-                        <div className="h-full bg-sky-400/70" style={{ width: `${(c.flagged / c.ingested) * 100}%` }} />
+                        <div className="h-full bg-emerald-500" style={{ width: `${(c.graded / c.ingested) * 100}%` }} />
+                        <div className="h-full bg-brand" style={{ width: `${(c.flagged / c.ingested) * 100}%` }} />
                         <div className="h-full bg-slate-500/70" style={{ width: `${(c.skipped / c.ingested) * 100}%` }} />
                       </>
                     )}
@@ -273,7 +273,7 @@ export default async function DashboardPage() {
                       {weakest ? `${weakest.name} (${weakest.score}/5)` : "–"}
                     </td>
                     <td className="py-2.5 text-right">
-                      <Link href={href} className="text-accent-hover hover:underline text-xs font-medium">
+                      <Link href={href} className="text-brand hover:underline text-xs font-medium">
                         Review
                       </Link>
                     </td>

@@ -231,7 +231,7 @@ export function RubricEditor({
                   {d.key}
                 </code>
                 {d.companySpecific && (
-                  <span className="inline-flex rounded-full border border-accent/40 bg-accent/10 px-2 py-0.5 text-[11px] font-medium text-accent-hover">
+                  <span className="inline-flex rounded-full border border-brand/30 bg-brand/10 px-2 py-0.5 text-[11px] font-medium text-brand">
                     Company-specific
                   </span>
                 )}
@@ -261,7 +261,7 @@ export function RubricEditor({
                     title={
                       dims.length <= 3 ? "A rubric needs at least 3 dimensions" : "Remove this dimension"
                     }
-                    className="text-xs text-rose-400 hover:text-rose-300 disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="text-xs text-rose-700 hover:text-rose-800 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Remove
                   </button>
@@ -344,7 +344,7 @@ export function RubricEditor({
           <Button onClick={saveDimensions} disabled={dimsBusy || !dirty}>
             {dimsBusy ? "Saving…" : "Save dimensions"}
           </Button>
-          {dirty && <span className="text-sm text-amber-400">Unsaved dimension changes</span>}
+          {dirty && <span className="text-sm text-amber-700">Unsaved dimension changes</span>}
           <InlineError message={dimsError} />
           {dimsSaved && !dirty && <InlineSuccess message="Dimensions saved." />}
         </div>

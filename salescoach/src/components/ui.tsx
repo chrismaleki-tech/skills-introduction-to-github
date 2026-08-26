@@ -78,21 +78,21 @@ export function BandPill({ score }: { score: number }) {
 
 export function StatusPill({ status }: { status: string }) {
   const styles: Record<string, string> = {
-    GRADED: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
-    GRADING: "text-sky-400 bg-sky-400/10 border-sky-400/30",
-    TRANSCRIBING: "text-sky-400 bg-sky-400/10 border-sky-400/30",
-    QUEUED: "text-amber-400 bg-amber-400/10 border-amber-400/30",
-    INGESTED: "text-slate-400 bg-slate-400/10 border-slate-400/30",
-    SKIPPED: "text-slate-500 bg-slate-500/10 border-slate-500/30",
-    FAILED: "text-rose-400 bg-rose-400/10 border-rose-400/30",
-    ACTIVE: "text-sky-400 bg-sky-400/10 border-sky-400/30",
-    COMPLETED: "text-amber-400 bg-amber-400/10 border-amber-400/30",
-    PENDING: "text-amber-400 bg-amber-400/10 border-amber-400/30",
-    IN_PROGRESS: "text-sky-400 bg-sky-400/10 border-sky-400/30",
+    GRADED: "text-emerald-700 bg-emerald-50 border-emerald-200",
+    GRADING: "text-brand bg-brand/10 border-brand/30",
+    TRANSCRIBING: "text-brand bg-brand/10 border-brand/30",
+    QUEUED: "text-amber-700 bg-amber-50 border-amber-200",
+    INGESTED: "text-slate-600 bg-slate-100 border-slate-200",
+    SKIPPED: "text-slate-600 bg-slate-100 border-slate-200",
+    FAILED: "text-rose-700 bg-rose-50 border-rose-200",
+    ACTIVE: "text-brand bg-brand/10 border-brand/30",
+    COMPLETED: "text-amber-700 bg-amber-50 border-amber-200",
+    PENDING: "text-amber-700 bg-amber-50 border-amber-200",
+    IN_PROGRESS: "text-brand bg-brand/10 border-brand/30",
   };
   return (
     <span
-      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium tracking-wide ${styles[status] ?? "text-slate-400 bg-slate-400/10 border-slate-400/30"}`}
+      className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium tracking-wide ${styles[status] ?? "text-slate-600 bg-slate-100 border-slate-200"}`}
     >
       {status.replaceAll("_", " ")}
     </span>
@@ -121,9 +121,9 @@ export function Button({
   variant?: "primary" | "secondary" | "danger";
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const styles = {
-    primary: "bg-accent hover:bg-accent-hover text-white",
-    secondary: "bg-surface-2 hover:bg-line text-foreground border border-line",
-    danger: "bg-rose-600/80 hover:bg-rose-600 text-white",
+    primary: "bg-accent hover:bg-accent-hover text-white shadow-sm",
+    secondary: "bg-white hover:bg-surface-2 text-foreground border border-line",
+    danger: "bg-rose-600 hover:bg-rose-700 text-white shadow-sm",
   };
   return (
     <button
@@ -145,8 +145,8 @@ export function LinkButton({
   variant?: "primary" | "secondary";
 }) {
   const styles = {
-    primary: "bg-accent hover:bg-accent-hover text-white",
-    secondary: "bg-surface-2 hover:bg-line text-foreground border border-line",
+    primary: "bg-accent hover:bg-accent-hover text-white shadow-sm",
+    secondary: "bg-white hover:bg-surface-2 text-foreground border border-line",
   };
   return (
     <Link

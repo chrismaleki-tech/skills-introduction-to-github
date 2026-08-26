@@ -25,10 +25,10 @@ export const BAND_LABELS: Record<ScoreBand, string> = {
 };
 
 export const BAND_COLORS: Record<ScoreBand, string> = {
-  exceptional: "text-emerald-400 bg-emerald-400/10 border-emerald-400/30",
-  strong: "text-accent-hover bg-accent/10 border-accent/30",
-  developing: "text-amber-400 bg-amber-400/10 border-amber-400/30",
-  needs_coaching: "text-rose-400 bg-rose-400/10 border-rose-400/30",
+  exceptional: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  strong: "text-brand bg-brand/10 border-brand/30",
+  developing: "text-amber-700 bg-amber-50 border-amber-200",
+  needs_coaching: "text-rose-700 bg-rose-50 border-rose-200",
 };
 
 function clamp(n: number, lo: number, hi: number) {

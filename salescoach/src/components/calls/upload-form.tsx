@@ -215,7 +215,7 @@ export function UploadForm({
         <Button type="submit" disabled={pending}>
           {pending ? "Uploading and grading…" : "Upload call"}
         </Button>
-        {error && <span className="text-xs text-rose-400">{error}</span>}
+        {error && <span className="text-xs text-rose-700">{error}</span>}
       </div>
     </form>
   );

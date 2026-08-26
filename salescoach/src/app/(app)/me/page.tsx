@@ -35,7 +35,7 @@ export default async function MePage() {
         <Card
           title="Open assignments"
           action={
-            <Link href="/assignments" className="text-xs font-medium text-accent-hover hover:underline">
+            <Link href="/assignments" className="text-xs font-medium text-brand hover:underline">
               View all
             </Link>
           }
@@ -58,7 +58,7 @@ export default async function MePage() {
                       <div className="text-xs text-muted mt-0.5">
                         {a.doneCount} of {a.targetCount} done · assigned by {a.assignedBy.name}
                         {a.dueDate && (
-                          <span className={overdue ? "text-rose-400" : ""}>
+                          <span className={overdue ? "text-rose-700" : ""}>
                             {" "}· due {fmtDate(a.dueDate)}{overdue ? " (overdue)" : ""}
                           </span>
                         )}
@@ -76,7 +76,7 @@ export default async function MePage() {
         </Card>
 
         {gradedCallsThisMonth === 0 && (
-          <div className="rounded-xl border border-sky-400/30 bg-sky-400/5 px-4 py-3 text-sm text-sky-300/90">
+          <div className="rounded-xl border border-brand/30 bg-brand/5 px-4 py-3 text-sm text-brand">
             None of your calls have been graded this month. Flag an important call for feedback or{" "}
             <Link href="/calls/upload" className="font-medium underline underline-offset-2 hover:text-sky-200">
               upload one directly

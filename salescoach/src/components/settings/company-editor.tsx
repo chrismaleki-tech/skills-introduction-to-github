@@ -96,7 +96,7 @@ export function CompanyEditor({ profile }: { profile: CompanyProfile }) {
     <button
       type="button"
       onClick={onClick}
-      className="text-xs text-rose-400 hover:text-rose-300 shrink-0"
+      className="text-xs text-rose-700 hover:text-rose-800 shrink-0"
     >
       Remove
     </button>

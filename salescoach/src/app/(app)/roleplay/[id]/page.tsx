@@ -50,7 +50,7 @@ export default async function RoleplaySessionPage({ params }: { params: Promise<
           <ul className="space-y-1 text-sm">
             {winConditions.map((w, i) => (
               <li key={i} className="flex gap-2">
-                <span className="text-accent-hover shrink-0">•</span>
+                <span className="text-brand shrink-0">•</span>
                 {w}
               </li>
             ))}

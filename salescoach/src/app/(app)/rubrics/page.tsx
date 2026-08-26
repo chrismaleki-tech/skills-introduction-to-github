@@ -49,12 +49,12 @@ export default async function RubricsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <Link
                     href={`/rubrics/${rubric.id}`}
-                    className="font-medium hover:text-accent-hover transition-colors"
+                    className="font-medium hover:text-brand transition-colors"
                   >
                     {rubric.name}
                   </Link>
                   {isActive && (
-                    <span className="inline-flex rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-0.5 text-xs font-medium text-emerald-400 shrink-0">
+                    <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 shrink-0">
                       Active
                     </span>
                   )}
@@ -66,7 +66,7 @@ export default async function RubricsPage() {
                 <div className="flex items-center gap-2 mt-4">
                   <Link
                     href={`/rubrics/${rubric.id}`}
-                    className="inline-flex items-center rounded-lg px-3.5 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white transition-colors"
+                    className="inline-flex items-center rounded-lg px-3.5 py-2 text-sm font-medium bg-accent hover:bg-accent-hover text-white shadow-sm transition-colors"
                   >
                     Edit
                   </Link>
@@ -89,7 +89,7 @@ export default async function RubricsPage() {
             <Card key={preset.id}>
               <Link
                 href={`/rubrics/${preset.id}`}
-                className="font-medium hover:text-accent-hover transition-colors"
+                className="font-medium hover:text-brand transition-colors"
               >
                 {preset.name}
               </Link>

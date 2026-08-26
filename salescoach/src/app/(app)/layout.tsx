@@ -34,7 +34,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="w-60 shrink-0 border-r border-line bg-surface flex flex-col">
         <div className="px-4 py-5 border-b border-line">
           <div className="font-semibold tracking-tight text-lg">
-            <span className="text-accent-hover">Sales</span>Coach AI
+            <span className="text-brand">Sales</span>Coach AI
           </div>
           <div className="text-xs text-muted mt-0.5">{user.org.name}</div>
         </div>
@@ -43,7 +43,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
         <div className="p-3 border-t border-line space-y-2">
           {!aiAvailable() && (
-            <div className="rounded-lg border border-amber-400/30 bg-amber-400/5 px-2.5 py-2 text-[11px] text-amber-300/90">
+            <div className="rounded-lg border border-amber-500/40 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-800">
               Demo mode: no OPENAI_API_KEY set. Grading and role-play use deterministic engines.
             </div>
           )}

@@ -36,7 +36,7 @@ export function DeleteScenarioButton({ scenarioId }: { scenarioId: string }) {
       <Button variant="danger" onClick={() => void remove()} disabled={deleting}>
         {deleting ? "Deleting..." : "Delete scenario"}
       </Button>
-      {error && <span className="text-xs text-rose-400">{error}</span>}
+      {error && <span className="text-xs text-rose-700">{error}</span>}
     </div>
   );
 }

@@ -101,7 +101,7 @@ export function RoleplayChat({
     <div className="bg-surface border border-line rounded-xl flex flex-col">
       <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-line">
         <div className="text-sm font-medium">
-          Live session with <span className="text-accent-hover">{personaName || "the prospect"}</span>
+          Live session with <span className="text-brand">{personaName || "the prospect"}</span>
         </div>
         <div className="flex items-center gap-4 text-xs text-muted tabular-nums">
           <span>{fmtClock(elapsedSec)} elapsed</span>
@@ -122,11 +122,11 @@ export function RoleplayChat({
             <div
               className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${
                 m.role === "rep"
-                  ? "bg-accent/15 border border-accent/20"
+                  ? "bg-brand/10 border border-brand/25"
                   : "bg-surface-2 border border-line"
               }`}
             >
-              <div className={`text-xs font-medium mb-0.5 ${m.role === "rep" ? "text-accent-hover" : "text-muted"}`}>
+              <div className={`text-xs font-medium mb-0.5 ${m.role === "rep" ? "text-brand" : "text-muted"}`}>
                 {m.role === "rep" ? repName : personaName || "Prospect"}
               </div>
               {m.text}
@@ -143,7 +143,7 @@ export function RoleplayChat({
       </div>
 
       {error && (
-        <div className="mx-5 mb-2 rounded-lg border border-rose-400/30 bg-rose-400/10 px-3 py-2 text-sm text-rose-300">
+        <div className="mx-5 mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
           {error}
         </div>
       )}

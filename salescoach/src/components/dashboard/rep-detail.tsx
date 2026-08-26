@@ -170,7 +170,7 @@ export async function RepDetail({
                       <ScoreBadge score={effectiveScore(g)} size="sm" />
                     </td>
                     <td className="py-2.5 text-right">
-                      <Link href={href} className="text-accent-hover hover:underline text-xs font-medium">
+                      <Link href={href} className="text-brand hover:underline text-xs font-medium">
                         View
                       </Link>
                     </td>

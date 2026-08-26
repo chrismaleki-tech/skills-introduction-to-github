@@ -48,9 +48,9 @@ export default async function CallReviewPage({
       />
 
       {call.status === "FAILED" && (
-        <div className="mb-6 rounded-xl border border-rose-400/30 bg-rose-400/5 p-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6 rounded-xl border border-rose-200 bg-rose-50 p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p className="text-sm font-medium text-rose-400">Processing failed</p>
+            <p className="text-sm font-medium text-rose-700">Processing failed</p>
             <p className="text-sm text-muted mt-0.5">
               {call.failReason ?? "The pipeline reported an error without details."}
             </p>

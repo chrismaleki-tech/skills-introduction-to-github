@@ -1,15 +1,19 @@
 @import "tailwindcss";
 
-/* HubSpot-aligned product blues: Calypso accent on navy surfaces */
+/* HubSpot-style blue & white product theme */
 :root {
-  --background: #0b1a24;
-  --surface: #132337;
-  --surface-2: #1c3148;
-  --border: #2a455c;
-  --foreground: #eaf0f6;
-  --muted: #7c98b3;
-  --accent: #0091ae;
-  --accent-hover: #00a4bd;
+  --background: #f5f8fa;
+  --surface: #ffffff;
+  --surface-2: #eaf0f6;
+  --border: #cbd6e2;
+  --foreground: #2d3e50;
+  --muted: #516f90;
+  /* Deep navy for high-contrast primary buttons on white */
+  --accent: #2d3e50;
+  --accent-hover: #1e2d3d;
+  /* Brand Calypso for links / highlights */
+  --brand: #0091ae;
+  --brand-hover: #007a94;
 }
 
 @theme inline {
@@ -21,6 +25,8 @@
   --color-muted: var(--muted);
   --color-accent: var(--accent);
   --color-accent-hover: var(--accent-hover);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -32,5 +38,5 @@ body {
 }
 
 ::selection {
-  background: rgba(0, 145, 174, 0.35);
+  background: rgba(0, 145, 174, 0.25);
 }
