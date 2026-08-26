@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* HubSpot-style blue & white product theme */
+/* HubSpot-style blue & white — product + marketing */
 :root {
   --background: #f5f8fa;
   --surface: #ffffff;
@@ -8,12 +8,13 @@
   --border: #cbd6e2;
   --foreground: #2d3e50;
   --muted: #516f90;
-  /* Deep navy for high-contrast primary buttons on white */
   --accent: #2d3e50;
   --accent-hover: #1e2d3d;
-  /* Brand Calypso for links / highlights */
   --brand: #0091ae;
   --brand-hover: #007a94;
+  --marketing-bg: #ffffff;
+  --marketing-ink: #2d3e50;
+  --marketing-wash: #e8f6f9;
 }
 
 @theme inline {
@@ -27,16 +28,82 @@
   --color-accent-hover: var(--accent-hover);
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-marketing-bg: var(--marketing-bg);
+  --color-marketing-ink: var(--marketing-ink);
+  --color-marketing-wash: var(--marketing-wash);
+  --font-sans: var(--font-plus-jakarta);
+  --font-display: var(--font-fraunces);
+  --font-mono: var(--font-plus-jakarta);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-plus-jakarta), ui-sans-serif, sans-serif;
 }
 
 ::selection {
   background: rgba(0, 145, 174, 0.25);
+}
+
+@keyframes mkt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes mkt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mkt-sheen {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.mkt-rise {
+  animation: mkt-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.mkt-rise-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.mkt-rise-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.mkt-rise-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.mkt-fade {
+  animation: mkt-fade 1s ease both;
+}
+
+.mkt-hero-wash {
+  background:
+    radial-gradient(120% 80% at 70% 0%, rgba(0, 145, 174, 0.18), transparent 55%),
+    radial-gradient(90% 60% at 10% 20%, rgba(45, 62, 80, 0.08), transparent 50%),
+    linear-gradient(180deg, #ffffff 0%, #f5f8fa 100%);
+  background-size: 140% 140%, 120% 120%, 100% 100%;
+  animation: mkt-sheen 14s ease-in-out infinite alternate;
+}
+
+.font-display {
+  font-family: var(--font-display), ui-serif, Georgia, serif;
 }

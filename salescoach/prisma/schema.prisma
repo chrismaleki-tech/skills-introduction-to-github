@@ -234,3 +234,15 @@ model Assignment {
 
   @@index([orgId, assignedToId, status])
 }
+
+// Marketing site demo / Google Ads lead capture
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String   @default("")
+  source    String   @default("website")
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
