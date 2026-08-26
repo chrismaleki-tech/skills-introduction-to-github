@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
+/* HubSpot-aligned product blues: Calypso accent on navy surfaces */
 :root {
-  --background: #0b0e14;
-  --surface: #12161f;
-  --surface-2: #1a1f2b;
-  --border: #232a3a;
-  --foreground: #e7ebf3;
-  --muted: #8b94a7;
-  --accent: #6366f1;
-  --accent-hover: #818cf8;
+  --background: #0b1a24;
+  --surface: #132337;
+  --surface-2: #1c3148;
+  --border: #2a455c;
+  --foreground: #eaf0f6;
+  --muted: #7c98b3;
+  --accent: #0091ae;
+  --accent-hover: #00a4bd;
 }
 
 @theme inline {
@@ -31,5 +32,5 @@ body {
 }
 
 ::selection {
-  background: rgba(99, 102, 241, 0.35);
+  background: rgba(0, 145, 174, 0.35);
 }

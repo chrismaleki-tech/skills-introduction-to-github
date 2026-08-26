@@ -1,8 +1,8 @@
 // Chart primitives for the dashboard slice. Inline SVG / styled divs only —
 // no chart library. All are server-renderable (no client hooks).
 
-const CALL_COLOR = "#38bdf8"; // sky-400
-const ROLEPLAY_COLOR = "#a78bfa"; // violet-400
+const CALL_COLOR = "#00a4bd"; // HubSpot Calypso
+const ROLEPLAY_COLOR = "#516f90"; // HubSpot slate blue
 
 export interface WeekPoint {
   label: string; // e.g. "May 12"
@@ -42,8 +42,8 @@ export function WeeklyTrendChart({ weeks }: { weeks: WeekPoint[] }) {
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Weekly average score, calls vs role-plays">
       {[0, 50, 100].map((tick) => (
         <g key={tick}>
-          <line x1={padL} x2={W - 8} y1={y(tick)} y2={y(tick)} stroke="#232a3a" strokeWidth={1} />
-          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill="#8b94a7">
+          <line x1={padL} x2={W - 8} y1={y(tick)} y2={y(tick)} stroke="#2a455c" strokeWidth={1} />
+          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill="#7c98b3">
             {tick}
           </text>
         </g>
@@ -63,11 +63,11 @@ export function WeeklyTrendChart({ weeks }: { weeks: WeekPoint[] }) {
               </rect>
             )}
             {w.call == null && w.roleplay == null && (
-              <text x={cx} y={y(0) - 4} textAnchor="middle" fontSize={10} fill="#8b94a7">
+              <text x={cx} y={y(0) - 4} textAnchor="middle" fontSize={10} fill="#7c98b3">
                 –
               </text>
             )}
-            <text x={cx} y={H - 6} textAnchor="middle" fontSize={10} fill="#8b94a7">
+            <text x={cx} y={H - 6} textAnchor="middle" fontSize={10} fill="#7c98b3">
               {w.label}
             </text>
           </g>
@@ -110,16 +110,16 @@ export function ScoreTimeline({ points, start, end }: { points: TimelinePoint[];
             x2={W - 12}
             y1={y(tick)}
             y2={y(tick)}
-            stroke="#232a3a"
+            stroke="#2a455c"
             strokeWidth={1}
             strokeDasharray={tick === 0 ? undefined : "3 4"}
           />
-          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill="#8b94a7">
+          <text x={padL - 6} y={y(tick) + 3.5} textAnchor="end" fontSize={10} fill="#7c98b3">
             {tick}
           </text>
         </g>
       ))}
-      {sorted.length > 1 && <polyline points={line} fill="none" stroke="#8b94a7" strokeOpacity={0.35} strokeWidth={1.5} />}
+      {sorted.length > 1 && <polyline points={line} fill="none" stroke="#7c98b3" strokeOpacity={0.35} strokeWidth={1.5} />}
       {sorted.map((p, i) => (
         <circle key={i} cx={x(p.t)} cy={y(p.score)} r={4.5} fill={p.type === "CALL" ? CALL_COLOR : ROLEPLAY_COLOR} fillOpacity={0.9}>
           <title>{p.label}</title>
@@ -132,7 +132,7 @@ export function ScoreTimeline({ points, start, end }: { points: TimelinePoint[];
           y={H - 5}
           textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"}
           fontSize={10}
-          fill="#8b94a7"
+          fill="#7c98b3"
         >
           {new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         </text>
