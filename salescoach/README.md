@@ -2,13 +2,22 @@
 
 AI sales training platform: reps upload (or auto-ingest) real phone calls and practice against an AI role-play prospect; both are graded 0–100 against a configurable methodology rubric grounded in the company's own products, objections, and competitors; managers track team progress on a coaching dashboard.
 
+## Marketing site
+
+The public site lives at `/` (blue & white HubSpot-style branding):
+
+- Landing page with product screenshots, how-it-works, **$50/mo** pricing, and demo lead form
+- Privacy policy at `/privacy` (for Google Ads)
+- Lead capture API: `POST /api/leads`
+- Product demo: `/dashboard` (and the rest of the app)
+
 ## Quick start
 
 ```bash
 npm install
 npm run db:push     # create SQLite dev database
 npm run db:seed     # demo tenant: 5 reps, ~7 weeks of graded calls, role-plays, assignments
-npm run dev         # http://localhost:3000
+npm run dev         # http://localhost:3000  (marketing) · http://localhost:3000/dashboard (app)
 ```
 
 No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mode with a deterministic heuristic grader and a scripted role-play prospect, so every flow is usable immediately. Use the user switcher (bottom of the sidebar) to experience each role — manager, trainer, admin, and reps.
