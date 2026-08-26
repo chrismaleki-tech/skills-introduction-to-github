@@ -1,31 +1,31 @@
 event_name,am,country,dg_id,dg_rank,owgr_rank,player_name,player_num,pre_tourn_pageviews,teetimes,tour_rank,updated_at
-TOUR Championship,0,SWE,23950,8,17,"Aberg, Ludvig",52955,55,[],10,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,26096,62,33,"Bhatia, Akshay",56630,32,[],15,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,29433,35,31,"Bridgeman, Jacob",60004,31,[],13,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,19483,3,7,"Burns, Sam",47504,63,[],8,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,15466,10,38,"Cantlay, Patrick",35450,86,[],19,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,23604,14,8,"Clark, Wyndham",51766,161,[],3,2026-08-24T10:29:18+00:00
-TOUR Championship,0,ENG,25362,58,70,"Fitzpatrick, Alex",55721,24,[],24,2026-08-24T10:29:18+00:00
-TOUR Championship,0,ENG,17646,4,4,"Fitzpatrick, Matt",40098,48,[],2,2026-08-24T10:29:18+00:00
-TOUR Championship,0,ENG,12294,2,5,"Fleetwood, Tommy",30911,98,[],9,2026-08-24T10:29:18+00:00
-TOUR Championship,0,NZL,11889,47,24,"Fox, Ryan",29936,22,[],30,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,29767,19,26,"Gerard, Ryan",59018,27,[],17,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,27774,15,9,"Gotterup, Chris",59095,63,[],6,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,14578,9,6,"Henley, Russell",34098,59,[],14,2026-08-24T10:29:18+00:00
-TOUR Championship,0,NOR,18841,16,14,"Hovland, Viktor",46717,70,[],26,2026-08-24T10:29:18+00:00
-TOUR Championship,0,KOR,14609,6,13,"Kim, Si Woo",37455,49,[],5,2026-08-24T10:29:18+00:00
-TOUR Championship,0,KOR,24766,28,28,"Kim, Tom",55182,39,[],29,2026-08-24T10:29:18+00:00
-TOUR Championship,0,AUS,16841,40,27,"Lee, Min Woo",37378,27,[],21,2026-08-24T10:29:18+00:00
-TOUR Championship,0,SCO,23323,31,19,"MacIntyre, Robert",52215,40,[],25,2026-08-24T10:29:18+00:00
-TOUR Championship,0,JPN,13562,12,25,"Matsuyama, Hideki",32839,58,[],16,2026-08-24T10:29:18+00:00
-TOUR Championship,0,NIR,10091,5,2,"McIlroy, Rory",28237,116,[],11,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,22085,13,11,"Morikawa, Collin",50525,72,[],7,2026-08-24T10:29:18+00:00
-TOUR Championship,0,NOR,21407,48,29,"Reitan, Kristoffer",49855,28,[],20,2026-08-24T10:29:18+00:00
-TOUR Championship,0,ENG,6093,29,12,"Rose, Justin",22405,51,[],27,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,19895,7,10,"Schauffele, Xander",48081,84,[],12,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,18417,1,1,"Scheffler, Scottie",46046,82,[],1,2026-08-24T10:29:18+00:00
-TOUR Championship,0,AUS,6430,34,51,"Scott, Adam",24502,48,[],28,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,18474,37,45,"Smalley, Alex",46340,35,[],23,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,17536,20,16,"Spaun, J.J.",39324,36,[],22,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,12577,68,47,"Woodland, Gary",31323,49,[],18,2026-08-24T10:29:18+00:00
-TOUR Championship,0,USA,26651,11,3,"Young, Cameron",57366,54,[],4,2026-08-24T10:29:18+00:00
+TOUR Championship,0,SWE,23950,10,17,"Aberg, Ludvig",52955,681,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:12', 'wave': 'late'}]",10,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,26096,50,33,"Bhatia, Akshay",56630,471,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:30', 'wave': 'late'}]",15,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,29433,25,28,"Bridgeman, Jacob",60004,496,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:42', 'wave': 'late'}]",13,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,19483,3,9,"Burns, Sam",47504,1077,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:24', 'wave': 'late'}]",8,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,15466,6,26,"Cantlay, Patrick",35450,1336,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:06', 'wave': 'early'}]",19,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,23604,7,5,"Clark, Wyndham",51766,1572,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:48', 'wave': 'late'}]",3,2026-08-25T10:19:45+00:00
+TOUR Championship,0,ENG,25362,65,68,"Fitzpatrick, Alex",55721,349,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:36', 'wave': 'early'}]",24,2026-08-25T10:19:45+00:00
+TOUR Championship,0,ENG,17646,4,4,"Fitzpatrick, Matt",40098,730,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 14:00', 'wave': 'late'}]",2,2026-08-25T10:19:45+00:00
+TOUR Championship,0,ENG,12294,5,7,"Fleetwood, Tommy",30911,851,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:12', 'wave': 'late'}]",9,2026-08-25T10:19:45+00:00
+TOUR Championship,0,NZL,11889,61,25,"Fox, Ryan",29936,331,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:00', 'wave': 'early'}]",30,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,29767,20,27,"Gerard, Ryan",59018,497,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:18', 'wave': 'early'}]",17,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,27774,13,8,"Gotterup, Chris",59095,814,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:36', 'wave': 'late'}]",6,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,14578,12,6,"Henley, Russell",34098,875,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:42', 'wave': 'late'}]",14,2026-08-25T10:19:45+00:00
+TOUR Championship,0,NOR,18841,19,15,"Hovland, Viktor",46717,858,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:24', 'wave': 'early'}]",26,2026-08-25T10:19:45+00:00
+TOUR Championship,0,KOR,14609,11,13,"Kim, Si Woo",37455,707,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:36', 'wave': 'late'}]",5,2026-08-25T10:19:45+00:00
+TOUR Championship,0,KOR,24766,29,29,"Kim, Tom",55182,541,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:00', 'wave': 'early'}]",29,2026-08-25T10:19:45+00:00
+TOUR Championship,0,AUS,16841,48,31,"Lee, Min Woo",37378,358,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:48', 'wave': 'early'}]",21,2026-08-25T10:19:45+00:00
+TOUR Championship,0,SCO,23323,22,18,"MacIntyre, Robert",52215,496,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:24', 'wave': 'early'}]",25,2026-08-25T10:19:45+00:00
+TOUR Championship,0,JPN,13562,14,24,"Matsuyama, Hideki",32839,707,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:30', 'wave': 'late'}]",16,2026-08-25T10:19:45+00:00
+TOUR Championship,0,NIR,10091,2,2,"McIlroy, Rory",28237,1205,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:54', 'wave': 'late'}]",11,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,22085,9,10,"Morikawa, Collin",50525,1225,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:24', 'wave': 'late'}]",7,2026-08-25T10:19:45+00:00
+TOUR Championship,0,NOR,21407,41,30,"Reitan, Kristoffer",49855,309,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:06', 'wave': 'early'}]",20,2026-08-25T10:19:45+00:00
+TOUR Championship,0,ENG,6093,27,14,"Rose, Justin",22405,597,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:12', 'wave': 'early'}]",27,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,19895,8,11,"Schauffele, Xander",48081,1151,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:54', 'wave': 'late'}]",12,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,18417,1,1,"Scheffler, Scottie",46046,1308,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 14:00', 'wave': 'late'}]",1,2026-08-25T10:19:45+00:00
+TOUR Championship,0,AUS,6430,31,51,"Scott, Adam",24502,624,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:12', 'wave': 'early'}]",28,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,18474,33,46,"Smalley, Alex",46340,468,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:36', 'wave': 'early'}]",23,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,17536,21,16,"Spaun, J.J.",39324,481,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 11:48', 'wave': 'early'}]",22,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,12577,47,42,"Woodland, Gary",31323,649,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 12:18', 'wave': 'early'}]",18,2026-08-25T10:19:45+00:00
+TOUR Championship,0,USA,26651,15,3,"Young, Cameron",57366,743,"[{'course_code': '', 'course_name': 'East Lake Golf Club', 'course_num': 688, 'round_num': 1, 'start_hole': 1, 'teetime': '2026-08-27 13:48', 'wave': 'late'}]",4,2026-08-25T10:19:45+00:00
