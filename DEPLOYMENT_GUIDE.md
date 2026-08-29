@@ -171,6 +171,7 @@ aws s3 ls s3://rearc-quest-population-data/population-data/
 # Manually invoke data processor
 aws lambda invoke \
   --function-name rearc-quest-data-processor \
+  --cli-binary-format raw-in-base64-out \
   --payload '{}' \
   response.json
 
@@ -180,6 +181,7 @@ cat response.json
 # Manually invoke analytics processor
 aws lambda invoke \
   --function-name rearc-quest-analytics-processor \
+  --cli-binary-format raw-in-base64-out \
   --payload '{
     "Records": [{
       "body": "{\"test\": true}"

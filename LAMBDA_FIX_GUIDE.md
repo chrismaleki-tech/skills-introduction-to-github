@@ -121,6 +121,7 @@ After deployment, test the Lambda function:
 ```bash
 aws lambda invoke \
   --function-name rearc-quest-data-processor \
+  --cli-binary-format raw-in-base64-out \
   --payload '{}' \
   response.json
 
