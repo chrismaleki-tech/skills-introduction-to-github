@@ -71,7 +71,7 @@ jobs:
           aws s3 ls || echo "No S3 buckets found"
 
       - name: Cache Python Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
