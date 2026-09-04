@@ -29,13 +29,21 @@ Rebuild the SalesCoach landing (blue & white):
 - Use product screenshots from `salescoach/public/marketing/`
 
 ### 3. Deploy the app to Vercel
-From `salescoach/`:
+
+**Important:** this GitHub repo root is not the Next.js app. See [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md).
+
+In Vercel project settings:
+- **Root Directory:** `salescoach`
+- **Production Branch:** `cursor/sales-training-platform-29f3` (until merged to `main`)
+
+Then redeploy. Add env vars: `DATABASE_URL` (required), optional `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`.
+
+Or from CLI:
 
 ```bash
+cd salescoach
 npx vercel --prod
 ```
-
-Add env vars on Vercel: `DATABASE_URL` (Postgres), optional `OPENAI_API_KEY`, `DEEPGRAM_API_KEY`.
 
 ### 4. Attach `app.erota.io`
 In Wix Domains (or your DNS host if you move DNS later), create:
