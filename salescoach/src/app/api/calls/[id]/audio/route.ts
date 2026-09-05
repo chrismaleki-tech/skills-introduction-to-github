@@ -28,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const filePath = path.isAbsolute(call.audioPath)
     ? call.audioPath
-    : path.join(process.cwd(), call.audioPath);
+    : path.join(/* turbopackIgnore: true */ process.cwd(), call.audioPath);
 
   let buffer: Buffer;
   try {
