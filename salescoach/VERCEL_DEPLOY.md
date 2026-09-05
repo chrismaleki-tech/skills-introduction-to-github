@@ -1,61 +1,47 @@
-# Deploy SalesCoach to Vercel (fix for the Python entrypoint error)
+# Deploy SalesCoach to Vercel
 
-## Why the build failed
+## Why `/` works but `/dashboard` fails
 
-Vercel cloned **`main`** at the **repo root**. That root is the old Rearc Python/CDK project (`part4_infrastructure/cdk/app.py`), so Vercel tried a Python runtime.
+The marketing page (`/`) is static HTML — no database.
 
-SalesCoach lives in **`salescoach/`** on branch **`cursor/sales-training-platform-29f3`** (not on `main` yet).
+App routes (`/dashboard`, `/calls`, `/me`, …) need the Prisma demo DB. On Vercel the filesystem is read-only, so a bare `file:./dev.db` with no seed crashes those pages.
 
-## Fix in the Vercel dashboard
+**Fix (already in this branch):** `npm run build` creates a seeded `prisma/demo.db`. At runtime each serverless function copies it to `/tmp/salescoach.db` and serves the demo team data.
 
-1. Open your Vercel project → **Settings** → **General**
-2. **Root Directory** → set to:
-   ```
-   salescoach
-   ```
-   (click Edit → enter `salescoach` → Save)
-3. **Settings** → **Git**
-   - **Production Branch** → `cursor/sales-training-platform-29f3`
-     (until PR #56 is merged into `main`)
-4. Redeploy:
-   - **Deployments** → latest → **Redeploy**
-   - or push a new commit on that branch
+## Project settings (required)
 
-Framework should detect **Next.js** automatically once the root is `salescoach`.
+1. **Root Directory** = `salescoach`
+2. **Production Branch** = `cursor/sales-training-platform-29f3` (until merged to `main`)
+3. Framework: Next.js (auto-detected)
 
-## Environment variables (Settings → Environment Variables)
+## Turn off Deployment Protection (or the URL looks like a Vercel login page)
+
+If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of SalesCoach:
+
+1. Project → **Settings** → **Deployment Protection**
+2. Set **Vercel Authentication** to **Only Preview Deployments** (or Off)
+3. Save, then open the Production URL again in a private window
+
+## Environment variables
 
 | Name | Value | Required |
 |---|---|---|
-| `DATABASE_URL` | `file:./dev.db` for a quick demo, or a Postgres URL for production | Yes |
-| `OPENAI_API_KEY` | your key | Optional (demo mode without it) |
+| `DATABASE_URL` | `file:./prisma/demo.db` | Recommended for the SQLite demo. Runtime remaps to `/tmp` on Vercel. |
+| `OPENAI_API_KEY` | your key | Optional (demo graders work without it) |
 | `DEEPGRAM_API_KEY` | your key | Optional (real audio transcription) |
 
-For a real production DB, use Vercel Postgres / Neon / Supabase and set `DATABASE_URL` to that Postgres URL. Update `salescoach/prisma/schema.prisma` `provider` to `postgresql` when you switch off SQLite.
+You can omit `DATABASE_URL` — the app defaults to `file:./dev.db` locally and still picks up `prisma/demo.db` on Vercel via the runtime copy.
 
-After first deploy with SQLite demo, you may still want to run seed via a one-off job; the app can boot without seed but will be empty until seeded.
+For real production data, use **Vercel Postgres / Neon / Supabase**, set `DATABASE_URL` to that URL, and change `provider` in `prisma/schema.prisma` to `postgresql`.
 
-## CLI alternative
+## After deploy
 
-```bash
-cd salescoach
-npx vercel --prod
-```
-
-When prompted, set the project root to the `salescoach` folder (or link an existing project that already has Root Directory = `salescoach`).
-
-## After it deploys
-
-- App URL will look like `https://your-project.vercel.app`
-- Add domain `app.erota.io` in Vercel → Domains
-- In DNS (Wix Domains), add:
-  ```
-  CNAME  app  →  cname.vercel-dns.com
-  ```
-  (use the exact target Vercel shows)
+- Production URL: `https://<project>.vercel.app`
+- App entry: `https://<project>.vercel.app/dashboard` (manager demo) or `/me` (rep view)
+- Custom domain: add `app.erota.io` in Vercel → Domains, then CNAME `app` → `cname.vercel-dns.com` in Wix DNS
 
 ## Don’t do this
 
-- Don’t set Root Directory to `/` or leave it blank on this repo
+- Don’t set Root Directory blank / `/` on this monorepo
 - Don’t deploy `main` until `salescoach/` is merged
-- Don’t add a Python `pyproject.toml` entrypoint — that error is a red herring from the wrong folder
+- Don’t leave **Standard Protection / Vercel Authentication** on for Production if you want a public demo

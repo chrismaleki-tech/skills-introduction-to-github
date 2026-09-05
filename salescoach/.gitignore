@@ -2,5 +2,7 @@ node_modules/
 .next/
 dev.db
 dev.db-journal
+prisma/demo.db
+prisma/demo.db-journal
 uploads/
 .env
