@@ -6,7 +6,9 @@ The marketing page (`/`) is static HTML — no database.
 
 App routes (`/dashboard`, `/calls`, `/me`, …) need the Prisma demo DB. On Vercel the filesystem is read-only, so a bare `file:./dev.db` with no seed crashes those pages.
 
-**Fix (already in this branch):** `npm run build` creates a seeded `prisma/demo.db`. At runtime each serverless function copies it to `/tmp/salescoach.db` and serves the demo team data.
+**Fix (already in this branch):** `vercel.json` / `npm run build` runs `db:demo`, which creates a seeded `prisma/demo.db`. At runtime each serverless function copies it to `/tmp/salescoach.db` and serves the demo team data.
+
+Check `/api/health` after deploy — it should return `"ok": true` with user/call counts.
 
 ## Project settings (required)
 
