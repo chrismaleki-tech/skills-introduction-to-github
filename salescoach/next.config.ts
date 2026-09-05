@@ -22,6 +22,7 @@ const nextConfig: NextConfig = {
     "/settings": ["./prisma/demo.db"],
     "/team/[id]": ["./prisma/demo.db"],
     "/api/:path*": ["./prisma/demo.db"],
+    "/api/health": ["./prisma/demo.db"],
   },
 };
 
