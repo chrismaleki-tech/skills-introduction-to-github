@@ -26,7 +26,7 @@ If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of Sa
 
 | Name | Value | Required |
 |---|---|---|
-| `DATABASE_URL` | `file:./prisma/demo.db` | Recommended for the SQLite demo. Runtime remaps to `/tmp` on Vercel. |
+| `DATABASE_URL` | `file:./demo.db` | Recommended for the SQLite demo (path is relative to `prisma/`). Runtime remaps to `/tmp` on Vercel. |
 | `OPENAI_API_KEY` | your key | Optional (demo graders work without it) |
 | `DEEPGRAM_API_KEY` | your key | Optional (real audio transcription) |
 

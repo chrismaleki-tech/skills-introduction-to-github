@@ -31,7 +31,7 @@ export async function currentUser() {
     const msg = err instanceof Error ? err.message : String(err);
     if (/not seeded|Unable to open|no such table|SQLITE|datasource/i.test(msg)) {
       throw new Error(
-        `Demo database unavailable (${msg}). On Vercel, set DATABASE_URL=file:./prisma/demo.db and redeploy.`,
+        `Demo database unavailable (${msg}). On Vercel, set DATABASE_URL=file:./demo.db and redeploy.`,
       );
     }
     throw err;

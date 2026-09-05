@@ -20,10 +20,11 @@ function resolveDatabaseUrl(): string {
 
   const tmpPath = "/tmp/salescoach.db";
   if (!existsSync(tmpPath)) {
+    // cwd is the salescoach project root on Vercel (Root Directory = salescoach).
+    const root = /* turbopackIgnore: true */ process.cwd();
     const candidates = [
-      path.join(process.cwd(), "prisma", "demo.db"),
-      path.join(process.cwd(), "prisma", "dev.db"),
-      path.join(process.cwd(), "dev.db"),
+      path.join(root, "prisma", "demo.db"),
+      path.join(root, "prisma", "dev.db"),
     ];
     const src = candidates.find((p) => existsSync(p));
     if (src) {

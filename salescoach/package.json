@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && npm run db:demo && next build",
-    "db:demo": "DATABASE_URL=\"file:./prisma/demo.db\" prisma db push --accept-data-loss && DATABASE_URL=\"file:./prisma/demo.db\" tsx prisma/seed.ts",
+    "db:demo": "DATABASE_URL=\"file:./demo.db\" prisma db push --accept-data-loss && DATABASE_URL=\"file:./demo.db\" tsx prisma/seed.ts",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
