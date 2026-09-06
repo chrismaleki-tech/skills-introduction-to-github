@@ -79,6 +79,88 @@ points) requires the historical-data subscription tier; with a base key those
 detail pulls return HTTP 403 and are skipped, but the historical event *lists*
 above are still available.
 
+## Whole seasons of stats: `pull_history.py`
+
+`pull_all.py` snapshots what the API is serving right now. `pull_history.py`
+goes the other way: it walks Data Golf's historical event list, pulls
+`/historical-raw-data/rounds` for every event in the requested calendar years,
+and writes **one row per player per round** into a single CSV.
+
+```bash
+python datagolf/pull_history.py                        # 2024-2026, every tour
+python datagolf/pull_history.py --years 2025
+python datagolf/pull_history.py --years 2024,2025 --tours pga,euro
+python datagolf/pull_history.py --skip-download        # rebuild the CSV from the cache
+```
+
+The default run covers 1,327 events across all 26 tours Data Golf tracks and
+lands in `datagolf/data/history/dg_stats_2024_2026.csv`.
+
+| Column group | Columns |
+|---|---|
+| Event | `tour`, `calendar_year`, `season`, `event_id`, `event_name`, `event_date`, `event_completed`, `sg_categories`, `traditional_stats` |
+| Player | `dg_id`, `player_name`, `fin_text` |
+| Round | `round_num`, `course_name`, `course_num`, `course_par`, `start_hole`, `teetime` |
+| Scoring | `score`, `birdies`, `bogies`, `pars`, `eagles_or_better`, `doubles_or_worse` |
+| Traditional | `driving_dist`, `driving_acc`, `gir`, `scrambling`, `prox_fw`, `prox_rgh`, `great_shots`, `poor_shots` |
+| Strokes gained | `sg_ott`, `sg_app`, `sg_arg`, `sg_putt`, `sg_t2g`, `sg_total` |
+
+`dg_id` joins to every other CSV in `datagolf/data/`. Rows are ordered by event
+date, so the file reads chronologically from January 2024 onwards.
+
+### How much of each row is filled in
+
+Score and `sg_total` are on every row: Data Golf derives total strokes gained
+from a score against the field, which needs no shot-level data. The rest depends
+on how closely it tracks the tour, and the 2024-2026 file works out at:
+
+| Columns | Filled | Available when |
+|---|---|---|
+| `sg_total` | 100% | always |
+| `score` | 99.8% | the player has an individual score |
+| `course_par` | 44% | Data Golf knows the course |
+| hole counts (`birdies`, `bogies`, `pars`, ...) | 28% | hole-by-hole scoring was collected |
+| `start_hole`, `teetime` | 20% | tee sheets were published |
+| `sg_ott`, `sg_app`, `sg_arg`, `sg_putt`, `sg_t2g` | 11% | `sg_categories == "yes"` |
+| `driving_dist`, `driving_acc`, `gir`, `scrambling`, `prox_*` | 9-12% | `traditional_stats == "yes"` |
+
+Unavailable stats are left **blank, never zero** — a zero in `sg_putt` would read
+as an average putting round rather than an unmeasured one. The `sg_categories`
+and `traditional_stats` columns on every row say which case it is, so narrowing
+to the fully-covered events is a filter on those rather than a guess.
+
+### Quirks that are Data Golf's, not the extractor's
+
+The CSV reproduces the feed verbatim, rough edges included. The ones worth
+knowing before writing a query against it:
+
+- **The Zurich Classic has no individual scores.** It is four-ball and
+  foursomes, so the 900 rows from its 2025 and 2026 editions carry `sg_total`
+  but an empty `score`. These are the only scoreless rows in the file.
+- **A covered event can still have uncovered rounds.** The American Express,
+  the Farmers Insurance Open and the RSM Classic rotate across courses, and only
+  the ShotLink one is tracked; rounds at the others have `sg_total` but no
+  category split even though the event is flagged `sg_categories == "yes"`. The
+  2024 AT&T Pebble Beach Pro-Am is flagged `partial` for the same reason.
+- **Nine-hole and shortened rounds** appear as scores in the thirties, and a few
+  TPGA pro-am events report a cumulative total in `round_4` rather than a round
+  score. 99.85% of scores fall in the normal 55-100 range.
+- **Minor-tour events** frequently come back with `course_name` of `Unknown`,
+  `course_num` of `-1` and a null par.
+- **`round_num` goes to 6** at DP World Tour Qualifying (Final Stage).
+
+### Runtime
+
+A full run is about 1,300 requests throttled to Data Golf's 45/minute limit and
+takes roughly 40 minutes. Each response is cached under
+`datagolf/data/history/_cache/` (gitignored), so an interrupted run resumes
+instead of starting over, and `--skip-download` rebuilds the CSV from that cache
+in about five seconds without touching the network. Pass `--refresh` to re-fetch
+events already cached, which is what an in-progress season needs.
+
+Three seasons come to 87 MB. GitHub rejects files over 100 MB, so a fourth
+season wants either `--years` narrowed or one file per season.
+
 ## Load step: CSV -> WordPress (statcaddygolf.com)
 
 `load_wordpress.py` merges the CSVs into one record per golfer (keyed on `dg_id`)
