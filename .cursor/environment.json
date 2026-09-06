@@ -1,0 +1,11 @@
+{
+  "name": "Rearc Data Quest",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "simulator",
+      "command": "cd /workspace/simulator && python3 -m http.server 8000"
+    }
+  ],
+  "ports": [8000]
+}
