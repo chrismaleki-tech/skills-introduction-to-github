@@ -79,6 +79,34 @@ points) requires the historical-data subscription tier; with a base key those
 detail pulls return HTTP 403 and are skipped, but the historical event *lists*
 above are still available.
 
+## Field stats for the current event (`field_stats.py`)
+
+`field_stats.py` reads the snapshots already in `datagolf/data/` and reports the
+week's field: who is in it, how strong it is, and where that strength sits. It
+joins `dg_field.csv` to `dg_skill_ratings.csv`, `dg_predictions.csv` and
+`dg_schedule.csv` on `dg_id`, and never calls the API, so refresh with
+`update_csv.py` first if the snapshot is stale.
+
+```bash
+python datagolf/field_stats.py                    # report for the current field
+python datagolf/field_stats.py --top 20           # longer leaderboards
+python datagolf/field_stats.py --json             # same numbers, machine-readable
+python datagolf/field_stats.py --export-csv field.csv --chart field.png
+python datagolf/field_stats.py --export-xlsx field.xlsx   # spreadsheet to hand over
+```
+
+The report covers field size and composition (countries, amateurs, DG/OWGR rank
+buckets), field strength (the field's mean SG: Total against every player Data
+Golf rates, and its percentile among them), a mean/median/stdev/min/max table per
+skill metric with the field leader, per-category strokes-gained leaders,
+pre-tournament win and top-N probabilities with how much of the win pool the
+favourites hold, and the tee window and wave split for each round.
+
+Driving distance and accuracy are Data Golf's skill-rating values — a deviation
+from the tour average, not the raw per-round number. Field players Data Golf
+cannot rate are counted and excluded from the averages rather than treated as
+zero.
+
 ## Load step: CSV -> WordPress (statcaddygolf.com)
 
 `load_wordpress.py` merges the CSVs into one record per golfer (keyed on `dg_id`)
