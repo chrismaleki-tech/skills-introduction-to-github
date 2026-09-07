@@ -160,12 +160,12 @@ export default function MarketingHomePage() {
                 <span className="text-brand font-semibold">✓</span> Custom methodology + company profile
               </li>
             </ul>
-            <a
-              href="#demo"
+            <Link
+              href={appHref}
               className="mt-8 inline-flex w-full items-center justify-center rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-white hover:bg-accent-hover transition-colors"
             >
-              Start with a demo
-            </a>
+              {isClerkEnabled() ? "Start 14-day free trial" : "Start with a demo"}
+            </Link>
           </div>
         </div>
       </section>

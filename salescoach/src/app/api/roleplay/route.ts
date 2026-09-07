@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
+import { billingError } from "@/lib/billing";
 
 // Start a text role-play session against a scenario.
 export async function POST(req: Request) {
   const user = await currentUser();
+  const paymentError = billingError(user.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
   const body = (await req.json().catch(() => ({}))) as { scenarioId?: string };
   if (!body.scenarioId) {
     return NextResponse.json({ error: "scenarioId required" }, { status: 400 });

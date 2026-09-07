@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { prospectReply } from "@/lib/roleplay";
 import { currentUser } from "@/lib/session";
 import { parseMessages, type RoleplayMessage } from "@/lib/types";
+import { billingError } from "@/lib/billing";
 
 const MAX_MESSAGE_CHARS = 2000;
 
@@ -12,6 +13,8 @@ const MAX_MESSAGE_CHARS = 2000;
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await currentUser();
+  const paymentError = billingError(user.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const session = await db.roleplaySession.findUnique({ where: { id } });
   if (!session || session.orgId !== user.orgId) {

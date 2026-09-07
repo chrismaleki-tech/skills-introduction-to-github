@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isClerkEnabled } from "@/lib/auth-mode";
 import { storageBackend } from "@/lib/storage";
+import { stripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,7 @@ export async function GET() {
     ok: false,
     auth: isClerkEnabled() ? "clerk" : "demo",
     storage: storageBackend(),
+    billing: stripeConfigured() ? "stripe" : "not_configured",
     databaseUrlScheme: (process.env.DATABASE_URL || "").split(":")[0] || null,
   };
 

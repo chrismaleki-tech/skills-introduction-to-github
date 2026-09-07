@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { storeAudio } from "@/lib/storage";
+import { billingError } from "@/lib/billing";
 
 // Manual call upload: multipart form with either an audio file or a pasted
 // transcript. Uploads bypass sampling per policy (gradeManualUploads), so the
@@ -19,6 +20,8 @@ const CALL_TYPES = new Set(["cold_call", "discovery", "demo", "negotiation", "re
 
 export async function POST(req: Request) {
   const user = await currentUser();
+  const paymentError = billingError(user.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
   const form = await req.formData();
 
   // Managers may upload on behalf of a rep in their org.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
+import { billingError } from "@/lib/billing";
 
 // Generic auto-ingestion front door for dialers / call providers. Authenticated
 // by the org's webhook secret (shown in Settings). The pipeline runs inline in
@@ -39,6 +40,8 @@ export async function POST(req: Request) {
   if (!org) {
     return NextResponse.json({ error: "Unknown webhook secret." }, { status: 401 });
   }
+  const paymentError = billingError(org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const rep = await db.user.findFirst({ where: { orgId: org.id, email: repEmail } });
   if (!rep) {

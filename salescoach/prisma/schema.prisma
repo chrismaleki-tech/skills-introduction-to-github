@@ -20,8 +20,13 @@ model Org {
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
   onboardingComplete  Boolean @default(false)
-  // Phase 1 will wire Stripe; keep a simple status now.
-  planStatus          String  @default("trialing") // trialing | active | past_due | canceled
+  planStatus          String   @default("trialing") // trialing | active | past_due | canceled | unpaid
+  trialEndsAt         DateTime?
+  stripeCustomerId    String?  @unique
+  stripeSubscriptionId String? @unique
+  stripePriceId       String?
+  subscriptionEndsAt  DateTime?
+  cancelAtPeriodEnd   Boolean  @default(false)
 
   users          User[]
   methodologies  Methodology[]
@@ -32,6 +37,7 @@ model Org {
   grades         Grade[]
   assignments    Assignment[]
   signupEvents   SignupEvent[]
+  billingEvents  BillingEvent[]
 
   createdAt DateTime @default(now())
 }
@@ -296,4 +302,17 @@ model SignupEvent {
   @@index([email])
   @@index([status, signedUpAt])
   @@index([utmSource, utmCampaign])
+}
+
+// Stripe webhook inbox. stripeEventId is unique, making webhook processing
+// idempotent when Stripe retries delivery.
+model BillingEvent {
+  id            String   @id @default(cuid())
+  stripeEventId String   @unique
+  type          String
+  orgId         String?
+  org           Org?     @relation(fields: [orgId], references: [id])
+  processedAt   DateTime @default(now())
+
+  @@index([orgId, processedAt])
 }

@@ -3,6 +3,7 @@ import { aiAvailable, chatJSON } from "@/lib/ai";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseCompanyProfile, type ScenarioPersona } from "@/lib/types";
+import { billingError } from "@/lib/billing";
 
 // Build a draft scenario from the org's company profile so a trainer can go
 // from "we onboarded our company context" to "reps have something realistic
@@ -37,6 +38,8 @@ const COMPANY_NAMES = [
 
 export async function GET() {
   const user = await currentUser();
+  const paymentError = billingError(user.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
   if (!isManagerRole(user.role)) {
     return NextResponse.json({ error: "Only managers and trainers can generate scenarios" }, { status: 403 });
   }

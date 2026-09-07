@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { processCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { billingError } from "@/lib/billing";
 
 // On-demand grading: "grade this call now" for ungraded calls and retry for
 // FAILED ones. A rep grading their own call is the rep-flag path; a manager
@@ -11,6 +12,8 @@ import { currentUser, isManagerRole } from "@/lib/session";
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await currentUser();
+  const paymentError = billingError(user.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
   const manager = isManagerRole(user.role);
 
   const call = await db.call.findFirst({

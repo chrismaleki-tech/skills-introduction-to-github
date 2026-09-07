@@ -6,6 +6,7 @@ import { UserSwitcher } from "@/components/user-switcher";
 import { ClerkUserMenu } from "@/components/clerk-user-menu";
 import { aiAvailable } from "@/lib/ai";
 import { storageBackend } from "@/lib/storage";
+import { billingAccess } from "@/lib/billing";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -27,6 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ? [
           { href: "/rubrics", label: "Rubrics" },
           { href: "/company", label: "Company Profile" },
+          { href: "/billing", label: "Billing" },
           { href: "/settings", label: "Settings" },
         ]
       : []),
@@ -66,7 +68,31 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {isDemoAuth() && <UserSwitcher users={users} currentId={user.id} />}
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl">{children}</main>
+      <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl">
+        {(() => {
+          const access = billingAccess(user.org);
+          if (access.status === "active") return null;
+          return (
+            <div
+              className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
+                access.entitled
+                  ? "border-brand/30 bg-brand/5 text-marketing-ink"
+                  : "border-rose-200 bg-rose-50 text-rose-800"
+              }`}
+            >
+              {access.entitled
+                ? `Free trial: ${access.daysLeft} day${access.daysLeft === 1 ? "" : "s"} remaining.`
+                : "Your trial or subscription is inactive."}{" "}
+              {manager && (
+                <a href="/billing" className="font-semibold underline underline-offset-2">
+                  {access.entitled ? "Choose a plan" : "Restore access"}
+                </a>
+              )}
+            </div>
+          );
+        })()}
+        {children}
+      </main>
     </div>
   );
 }

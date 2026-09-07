@@ -3,12 +3,15 @@ import { db } from "@/lib/db";
 import { gradeRoleplay } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseMessages } from "@/lib/types";
+import { billingError } from "@/lib/billing";
 
 // End a session and grade it. Idempotent: an already-COMPLETED session is
 // simply graded; an already-GRADED session returns its existing score.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await currentUser();
+  const paymentError = billingError(user.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const session = await db.roleplaySession.findUnique({
     where: { id },

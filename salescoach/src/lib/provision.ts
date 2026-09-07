@@ -91,6 +91,7 @@ export async function provisionOrgForUser(opts: {
         slug,
         onboardingComplete: false,
         planStatus: "trialing",
+        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         companyContext: {
           create: { profileJson: JSON.stringify(EMPTY_COMPANY_PROFILE) },
         },
