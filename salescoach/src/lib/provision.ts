@@ -1,6 +1,7 @@
 import { db } from "./db";
 import { METHODOLOGY_PRESETS } from "./presets";
 import { EMPTY_COMPANY_PROFILE } from "./types";
+import { markSignupProvisioned, recordSignup, type Attribution } from "./signups";
 
 function slugify(input: string) {
   const base = input
@@ -43,14 +44,25 @@ export async function ensureGlobalPresets() {
 /**
  * Provision a brand-new customer org for a signed-up user.
  * Clones the Discovery preset as their active rubric and creates empty company context.
+ * Also advances the SignupEvent funnel to `provisioned`.
  */
 export async function provisionOrgForUser(opts: {
   clerkId: string;
   email: string;
   name: string;
   orgName?: string;
+  source?: "clerk_webhook" | "first_login" | "invite";
+  attribution?: Attribution;
 }) {
   await ensureGlobalPresets();
+
+  await recordSignup({
+    clerkUserId: opts.clerkId,
+    email: opts.email,
+    name: opts.name,
+    source: opts.source ?? "first_login",
+    attribution: opts.attribution,
+  });
 
   const displayName = opts.name?.trim() || opts.email.split("@")[0] || "Founder";
   const orgName = opts.orgName?.trim() || `${displayName}'s team`;
@@ -88,7 +100,7 @@ export async function provisionOrgForUser(opts: {
     });
   }
 
-  return db.user.create({
+  const user = await db.user.create({
     data: {
       clerkId: opts.clerkId,
       orgId: org.id,
@@ -99,4 +111,12 @@ export async function provisionOrgForUser(opts: {
     },
     include: { org: true },
   });
+
+  await markSignupProvisioned({
+    clerkUserId: opts.clerkId,
+    orgId: org.id,
+    userId: user.id,
+  });
+
+  return user;
 }

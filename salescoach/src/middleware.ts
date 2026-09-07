@@ -14,6 +14,7 @@ const isPublic = createRouteMatcher([
   "/api/health",
   "/api/ingest(.*)",
   "/api/vapi(.*)",
+  "/api/webhooks(.*)",
 ]);
 
 const clerk = clerkMiddleware(async (auth, req) => {

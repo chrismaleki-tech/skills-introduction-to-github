@@ -31,6 +31,7 @@ model Org {
   roleplays      RoleplaySession[]
   grades         Grade[]
   assignments    Assignment[]
+  signupEvents   SignupEvent[]
 
   createdAt DateTime @default(now())
 }
@@ -251,4 +252,48 @@ model Lead {
   createdAt DateTime @default(now())
 
   @@index([email])
+}
+
+// Immutable signup funnel record — identity (Clerk) + tenant (Org/User) + attribution.
+// Status advances: signed_up → provisioned → activated → converted (Stripe, Phase 1).
+model SignupEvent {
+  id          String @id @default(cuid())
+  clerkUserId String
+  email       String
+  name        String @default("")
+
+  // How we learned about them
+  source String @default("clerk_webhook") // clerk_webhook | first_login | invite
+
+  // Funnel status
+  status String @default("signed_up") // signed_up | provisioned | activated | converted | churned
+
+  // Attribution (from landing cookie / UTM)
+  utmSource   String @default("")
+  utmMedium   String @default("")
+  utmCampaign String @default("")
+  utmContent  String @default("")
+  utmTerm     String @default("")
+  referrer    String @default("")
+  landingPath String @default("")
+
+  // Linked tenant once provisioned
+  orgId  String?
+  org    Org?    @relation(fields: [orgId], references: [id])
+  userId String?
+
+  // Optional link to a prior marketing Lead row
+  leadId String?
+
+  signedUpAt     DateTime  @default(now())
+  provisionedAt  DateTime?
+  activatedAt    DateTime?
+  convertedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([clerkUserId])
+  @@index([email])
+  @@index([status, signedUpAt])
+  @@index([utmSource, utmCampaign])
 }

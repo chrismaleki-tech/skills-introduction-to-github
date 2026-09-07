@@ -2,6 +2,11 @@ import { cookies } from "next/headers";
 import { db } from "./db";
 import { isClerkEnabled } from "./auth-mode";
 import { provisionOrgForUser } from "./provision";
+import {
+  ATTRIBUTION_COOKIE,
+  markSignupActivated,
+  parseAttributionCookie,
+} from "./signups";
 
 // Session resolution:
 // - Clerk mode: map Clerk user → DB user (auto-provision org on first login)
@@ -26,7 +31,10 @@ async function resolveClerkUser() {
     where: { clerkId: userId },
     include: { org: true },
   });
-  if (existing) return existing;
+  if (existing) {
+    await markSignupActivated(userId);
+    return existing;
+  }
 
   const clerkUser = await clerkCurrentUser();
   const email =
@@ -40,11 +48,19 @@ async function resolveClerkUser() {
     clerkUser?.fullName ||
     email.split("@")[0];
 
-  return provisionOrgForUser({
+  const store = await cookies();
+  const attribution = parseAttributionCookie(store.get(ATTRIBUTION_COOKIE)?.value);
+
+  const user = await provisionOrgForUser({
     clerkId: userId,
     email,
     name: name || "Founder",
+    source: "first_login",
+    attribution,
   });
+
+  await markSignupActivated(userId);
+  return user;
 }
 
 async function resolveDemoUser() {
