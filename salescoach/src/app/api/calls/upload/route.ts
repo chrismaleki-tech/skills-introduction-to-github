@@ -1,10 +1,8 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { storeAudio } from "@/lib/storage";
 
 // Manual call upload: multipart form with either an audio file or a pasted
 // transcript. Uploads bypass sampling per policy (gradeManualUploads), so the
@@ -62,10 +60,13 @@ export async function POST(req: Request) {
       );
     }
     const buffer = Buffer.from(await audioFile.arrayBuffer());
-    const relativePath = path.join("uploads", `${randomUUID()}.${ext}`);
-    await mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
-    await writeFile(path.join(process.cwd(), relativePath), buffer);
-    audio = { buffer, mimeType: audioFile.type || AUDIO_EXTENSIONS[ext], path: relativePath };
+    const storedPath = await storeAudio({
+      orgId: user.orgId,
+      ext,
+      buffer,
+      contentType: audioFile.type || AUDIO_EXTENSIONS[ext],
+    });
+    audio = { buffer, mimeType: audioFile.type || AUDIO_EXTENSIONS[ext], path: storedPath };
   }
 
   if (!audio && !transcriptText) {

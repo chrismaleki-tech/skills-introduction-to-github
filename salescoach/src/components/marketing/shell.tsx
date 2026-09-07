@@ -1,6 +1,9 @@
 import Link from "next/link";
+import { isClerkEnabled } from "@/lib/auth-mode";
+import { ClerkAuthNav } from "./auth-nav";
 
 export function MarketingHeader() {
+  const clerk = isClerkEnabled();
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
@@ -14,15 +17,21 @@ export function MarketingHeader() {
           <a href="#pricing" className="hidden sm:inline hover:text-marketing-ink transition-colors">
             Pricing
           </a>
-          <Link href="/dashboard" className="hover:text-marketing-ink transition-colors">
-            Open app
-          </Link>
-          <a
-            href="#demo"
-            className="rounded-lg bg-accent px-3.5 py-2 text-white shadow-sm hover:bg-accent-hover transition-colors"
-          >
-            Book a demo
-          </a>
+          {clerk ? (
+            <ClerkAuthNav />
+          ) : (
+            <>
+              <Link href="/dashboard" className="hover:text-marketing-ink transition-colors">
+                Open app
+              </Link>
+              <a
+                href="#demo"
+                className="rounded-lg bg-accent px-3.5 py-2 text-white shadow-sm hover:bg-accent-hover transition-colors"
+              >
+                Book a demo
+              </a>
+            </>
+          )}
         </nav>
       </div>
     </header>
@@ -46,8 +55,11 @@ export function MarketingFooter() {
           <Link href="/privacy" className="hover:text-marketing-ink">
             Privacy
           </Link>
-          <Link href="/dashboard" className="hover:text-marketing-ink">
-            Open app
+          <Link
+            href={isClerkEnabled() ? "/sign-up" : "/dashboard"}
+            className="hover:text-marketing-ink"
+          >
+            {isClerkEnabled() ? "Sign up" : "Open app"}
           </Link>
           <a href="mailto:hello@salescoach.ai" className="hover:text-marketing-ink">
             hello@salescoach.ai

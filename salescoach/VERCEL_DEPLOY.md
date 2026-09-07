@@ -28,13 +28,13 @@ If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of Sa
 
 | Name | Value | Required |
 |---|---|---|
-| `DATABASE_URL` | `file:./demo.db` | Recommended for the SQLite demo (path is relative to `prisma/`). Runtime remaps to `/tmp` on Vercel. |
+| `DATABASE_URL` | Postgres URL (Neon/Supabase/Vercel Postgres) | **Yes** |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Clerk app keys | **Yes** for signup |
+| `S3_BUCKET` + access keys (+ `S3_ENDPOINT` for R2) | Durable audio | Recommended |
 | `OPENAI_API_KEY` | your key | Optional (demo graders work without it) |
 | `DEEPGRAM_API_KEY` | your key | Optional (real audio transcription) |
 
-You can omit `DATABASE_URL` — the app defaults to `file:./dev.db` locally and still picks up `prisma/demo.db` on Vercel via the runtime copy.
-
-For real production data, use **Vercel Postgres / Neon / Supabase**, set `DATABASE_URL` to that URL, and change `provider` in `prisma/schema.prisma` to `postgresql`.
+See [`PHASE0.md`](./PHASE0.md) for full Phase 0 setup.
 
 ## After deploy
 

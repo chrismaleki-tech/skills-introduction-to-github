@@ -1,42 +1,45 @@
-// SalesCoach AI — data model
-// NOTE ON JSON COLUMNS: SQLite (dev database) does not support Prisma's Json
-// type, so structured payloads are stored as JSON strings. Typed parse/serialize
-// helpers live in src/lib/types.ts. The schema is otherwise Postgres-portable:
-// switch the datasource provider and migrate String json columns to Json.
+// SalesCoach AI — data model (PostgreSQL)
+// Structured payloads stay as JSON strings with typed helpers in src/lib/types.ts
+// so the app stays portable; columns can move to Prisma Json later.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Org {
   id                  String  @id @default(cuid())
   name                String
+  slug                String  @unique
   // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
   ingestionPolicyJson String  @default("{}")
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
+  onboardingComplete  Boolean @default(false)
+  // Phase 1 will wire Stripe; keep a simple status now.
+  planStatus          String  @default("trialing") // trialing | active | past_due | canceled
 
-  users         User[]
-  methodologies Methodology[]
+  users          User[]
+  methodologies  Methodology[]
   companyContext CompanyContext?
-  calls         Call[]
-  scenarios     Scenario[]
-  roleplays     RoleplaySession[]
-  grades        Grade[]
-  assignments   Assignment[]
+  calls          Call[]
+  scenarios      Scenario[]
+  roleplays      RoleplaySession[]
+  grades         Grade[]
+  assignments    Assignment[]
 
   createdAt DateTime @default(now())
 }
 
 model User {
-  id    String @id @default(cuid())
-  orgId String
-  org   Org    @relation(fields: [orgId], references: [id])
+  id      String  @id @default(cuid())
+  orgId   String
+  org     Org     @relation(fields: [orgId], references: [id])
+  clerkId String? @unique
 
   name  String
   email String @unique
@@ -49,6 +52,8 @@ model User {
   assignedById Assignment[]      @relation("AssignedBy")
 
   createdAt DateTime @default(now())
+
+  @@index([orgId])
 }
 
 // A methodology is a rubric: a set of weighted, scored dimensions.
@@ -57,9 +62,9 @@ model Methodology {
   orgId String?
   org   Org?    @relation(fields: [orgId], references: [id])
 
-  name        String
-  description String @default("")
-  isPreset    Boolean @default(false)
+  name           String
+  description    String  @default("")
+  isPreset       Boolean @default(false)
   // JSON: RubricDimension[] (src/lib/types.ts)
   dimensionsJson String
 
@@ -91,12 +96,13 @@ model Call {
   repId String
   rep   User   @relation("RepCalls", fields: [repId], references: [id])
 
-  source      String // UPLOAD | WEBHOOK | API | DIALER
-  direction   String @default("outbound") // outbound | inbound
-  callType    String @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
-  durationSec Int    @default(0)
-  externalId  String? // provider call id, used for dedup
-  audioPath   String? // stored audio file (local uploads dir in dev)
+  source       String // UPLOAD | WEBHOOK | API | DIALER
+  direction    String @default("outbound") // outbound | inbound
+  callType     String @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
+  durationSec  Int    @default(0)
+  externalId   String? // provider call id, used for dedup
+  // local:uploads/... or s3:object-key
+  audioPath    String?
   prospectName String @default("")
 
   status String @default("INGESTED") // INGESTED | SKIPPED | QUEUED | TRANSCRIBING | GRADING | GRADED | FAILED
@@ -181,9 +187,9 @@ model Grade {
   org   Org    @relation(fields: [orgId], references: [id])
 
   subjectType String // CALL | ROLEPLAY
-  callId      String? @unique
-  call        Call?   @relation(fields: [callId], references: [id])
-  roleplayId  String? @unique
+  callId      String?          @unique
+  call        Call?            @relation(fields: [callId], references: [id])
+  roleplayId  String?          @unique
   roleplay    RoleplaySession? @relation(fields: [roleplayId], references: [id])
 
   methodologyId String

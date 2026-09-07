@@ -1,8 +1,11 @@
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
+import { isDemoAuth, isClerkEnabled } from "@/lib/auth-mode";
 import { NavLinks, type NavItem } from "@/components/nav";
 import { UserSwitcher } from "@/components/user-switcher";
+import { ClerkUserMenu } from "@/components/clerk-user-menu";
 import { aiAvailable } from "@/lib/ai";
+import { storageBackend } from "@/lib/storage";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -47,8 +50,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
               Demo mode: no OPENAI_API_KEY set. Grading and role-play use deterministic engines.
             </div>
           )}
-          <div className="text-[11px] text-muted px-1">Viewing as ({user.role.toLowerCase()})</div>
-          <UserSwitcher users={users} currentId={user.id} />
+          {storageBackend() === "local" && (
+            <div className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] text-muted">
+              Audio storage: local disk (set S3_* for durable uploads).
+            </div>
+          )}
+          <div className="text-[11px] text-muted px-1">
+            {user.name} · {user.role.toLowerCase()}
+          </div>
+          {isClerkEnabled() && (
+            <div className="px-1">
+              <ClerkUserMenu />
+            </div>
+          )}
+          {isDemoAuth() && <UserSwitcher users={users} currentId={user.id} />}
         </div>
       </aside>
       <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl">{children}</main>

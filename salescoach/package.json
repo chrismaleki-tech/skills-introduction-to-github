@@ -4,16 +4,19 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && npm run db:demo && next build",
-    "db:demo": "DATABASE_URL=\"file:./demo.db\" prisma db push --accept-data-loss && DATABASE_URL=\"file:./demo.db\" tsx prisma/seed.ts",
+    "build": "prisma generate && prisma db push && next build",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts"
+    "db:reset": "prisma db push --force-reset && tsx prisma/seed.ts",
+    "db:presets": "tsx -e \"import { ensureGlobalPresets } from './src/lib/provision'; ensureGlobalPresets().then(()=>console.log('presets ok'))\""
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.888.0",
+    "@aws-sdk/s3-request-presigner": "^3.888.0",
+    "@clerk/nextjs": "^6.31.10",
     "@prisma/client": "^6.19.3",
     "next": "16.2.10",
     "openai": "^6.45.0",

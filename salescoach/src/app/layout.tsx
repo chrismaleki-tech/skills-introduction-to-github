@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
+import { ClerkProvider } from "@clerk/nextjs";
+import { isClerkEnabled } from "@/lib/auth-mode";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -29,9 +31,24 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
+  const tree = (
     <html lang="en" className={`${plusJakarta.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );
+
+  if (isClerkEnabled()) {
+    return (
+      <ClerkProvider
+        signInUrl="/sign-in"
+        signUpUrl="/sign-up"
+        signInFallbackRedirectUrl="/dashboard"
+        signUpFallbackRedirectUrl="/dashboard"
+        afterSignOutUrl="/"
+      >
+        {tree}
+      </ClerkProvider>
+    );
+  }
+  return tree;
 }

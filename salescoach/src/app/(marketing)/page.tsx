@@ -1,8 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { DemoForm } from "@/components/marketing/demo-form";
+import { isClerkEnabled } from "@/lib/auth-mode";
 
 export default function MarketingHomePage() {
+  const appHref = isClerkEnabled() ? "/sign-up" : "/dashboard";
+  const appLabel = isClerkEnabled() ? "Start free" : "Try the live demo";
+
   return (
     <>
       {/* Hero — one composition: brand, headline, support, CTAs, full-bleed product */}
@@ -25,10 +29,10 @@ export default function MarketingHomePage() {
               Book a demo
             </a>
             <Link
-              href="/dashboard"
+              href={appHref}
               className="rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-marketing-ink hover:bg-surface-2 transition-colors"
             >
-              Try the live demo
+              {appLabel}
             </Link>
           </div>
         </div>
@@ -177,8 +181,8 @@ export default function MarketingHomePage() {
               Tell us who you coach. We’ll walk you through call grading, role-play, and the manager dashboard — or jump
               straight into the interactive demo.
             </p>
-            <Link href="/dashboard" className="mt-6 inline-block text-sm font-semibold text-brand hover:text-brand-hover">
-              Prefer to click around first? Open the live demo →
+            <Link href={appHref} className="mt-6 inline-block text-sm font-semibold text-brand hover:text-brand-hover">
+              Prefer to click around first? {isClerkEnabled() ? "Create an account" : "Open the live demo"} →
             </Link>
           </div>
           <DemoForm />

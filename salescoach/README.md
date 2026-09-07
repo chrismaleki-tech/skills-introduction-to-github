@@ -15,17 +15,25 @@ The public site lives at `/` (blue & white HubSpot-style branding):
 
 ```bash
 npm install
-npm run db:push     # create SQLite dev database
-npm run db:seed     # demo tenant: 5 reps, ~7 weeks of graded calls, role-plays, assignments
-npm run dev         # http://localhost:3000  (marketing) · http://localhost:3000/dashboard (app)
+# Start Postgres (Docker) or point DATABASE_URL at Neon/Supabase
+docker compose up -d   # optional local Postgres
+cp .env.example .env   # set DATABASE_URL
+npm run db:push
+npm run db:seed        # optional Meridian demo tenant (demo auth only)
+npm run dev            # http://localhost:3000
 ```
 
-No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mode with a deterministic heuristic grader and a scripted role-play prospect, so every flow is usable immediately. Use the user switcher (bottom of the sidebar) to experience each role — manager, trainer, admin, and reps.
+**Auth:** without Clerk keys the app uses demo cookie auth + user switcher. With `CLERK_*` keys, signup/signin provision a real org automatically. See [`PHASE0.md`](./PHASE0.md).
 
-### Optional environment (`.env`)
+**Storage:** without `S3_*` audio lands in `./uploads`. With S3/R2 env, uploads are durable.
+
+### Environment (`.env`)
 
 | Variable | Enables |
 |---|---|
+| `DATABASE_URL` | **Required** — PostgreSQL connection string |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` + `CLERK_SECRET_KEY` | Real signup/login (production) |
+| `S3_BUCKET` + `S3_ACCESS_KEY_ID` + `S3_SECRET_ACCESS_KEY` | Durable call audio (S3/R2) |
 | `OPENAI_API_KEY` (+ `OPENAI_MODEL`) | Real LLM grading and a live role-play persona |
 | `DEEPGRAM_API_KEY` | Real audio transcription with speaker diarization |
 | `VAPI_WEBHOOK_SECRET` | Voice role-play ingestion via the Vapi webhook |
@@ -48,8 +56,9 @@ No API keys are required: without `OPENAI_API_KEY` the platform runs in demo mod
 
 - **Grading is a pure function** of (transcript + rubric + company context) — `src/lib/grading.ts` — so uploaded calls and role-plays are directly comparable, and the voice layer is swappable without touching anything downstream.
 - **Sampling** logic is pure and unit-testable in `src/lib/sampling.ts`; the pipeline orchestration lives in `src/lib/pipeline.ts`.
-- **Demo auth**: a cookie + user switcher stands in for a real auth provider. Production would swap `src/lib/session.ts` for NextAuth/WorkOS and add tenant-scoped middleware.
-- **SQLite in dev**; the Prisma schema is Postgres-portable (JSON payloads are stored as strings with typed parse helpers in `src/lib/types.ts`).
+- **Auth**: Clerk in production (`clerkId` on users, middleware protection). Demo cookie + user switcher when Clerk keys are unset — see `src/lib/session.ts` and `PHASE0.md`.
+- **PostgreSQL** via Prisma (`DATABASE_URL`). Local: `docker compose up -d`.
+- **Audio storage**: S3/R2 when configured, else local `uploads/` — `src/lib/storage.ts`.
 - **Inline processing in dev**; production moves transcription/grading behind a queue (SQS/BullMQ) — the pipeline entry points are already the natural job boundaries.
 
 ## Not yet implemented (known gaps)

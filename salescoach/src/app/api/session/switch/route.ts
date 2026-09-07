@@ -1,9 +1,13 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { isDemoAuth } from "@/lib/auth-mode";
 import { SESSION_COOKIE } from "@/lib/session";
 
 export async function POST(req: Request) {
+  if (!isDemoAuth()) {
+    return NextResponse.json({ error: "User switching is disabled outside demo mode." }, { status: 403 });
+  }
   const { userId } = (await req.json()) as { userId?: string };
   if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
   const user = await db.user.findUnique({ where: { id: userId } });
