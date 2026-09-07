@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { METHODOLOGY_PRESETS } from "./presets";
 import { EMPTY_COMPANY_PROFILE } from "./types";
@@ -12,11 +13,11 @@ function slugify(input: string) {
   return base || "workspace";
 }
 
-async function uniqueSlug(base: string) {
+async function uniqueSlug(tx: Prisma.TransactionClient, base: string) {
   const slug = slugify(base);
   for (let i = 0; i < 20; i++) {
     const candidate = i === 0 ? slug : `${slug}-${i + 1}`;
-    const exists = await db.org.findUnique({ where: { slug: candidate } });
+    const exists = await tx.org.findUnique({ where: { slug: candidate } });
     if (!exists) return candidate;
   }
   return `${slug}-${Date.now().toString(36)}`;
@@ -64,57 +65,70 @@ export async function provisionOrgForUser(opts: {
     attribution: opts.attribution,
   });
 
-  const displayName = opts.name?.trim() || opts.email.split("@")[0] || "Founder";
-  const orgName = opts.orgName?.trim() || `${displayName}'s team`;
-  const slug = await uniqueSlug(orgName);
+  const user = await db.$transaction(async (tx) => {
+    // Next.js can render a page and its layout in parallel. Serialize initial
+    // provisioning per Clerk user so exactly one Org/User is ever created.
+    await tx.$queryRaw`
+      SELECT pg_advisory_xact_lock(hashtext(${opts.clerkId}))::text AS acquired
+    `;
 
-  const discovery = await db.methodology.findFirst({
-    where: { isPreset: true, orgId: null, name: "Discovery Call Fundamentals" },
-  });
+    const existing = await tx.user.findUnique({
+      where: { clerkId: opts.clerkId },
+      include: { org: true },
+    });
+    if (existing) return existing;
 
-  const org = await db.org.create({
-    data: {
-      name: orgName,
-      slug,
-      onboardingComplete: false,
-      planStatus: "trialing",
-      companyContext: {
-        create: { profileJson: JSON.stringify(EMPTY_COMPANY_PROFILE) },
-      },
-    },
-  });
+    const displayName = opts.name?.trim() || opts.email.split("@")[0] || "Founder";
+    const orgName = opts.orgName?.trim() || `${displayName}'s team`;
+    const slug = await uniqueSlug(tx, orgName);
+    const discovery = await tx.methodology.findFirst({
+      where: { isPreset: true, orgId: null, name: "Discovery Call Fundamentals" },
+    });
 
-  if (discovery) {
-    const cloned = await db.methodology.create({
+    const org = await tx.org.create({
       data: {
-        orgId: org.id,
-        name: discovery.name,
-        description: discovery.description,
-        isPreset: false,
-        dimensionsJson: discovery.dimensionsJson,
+        name: orgName,
+        slug,
+        onboardingComplete: false,
+        planStatus: "trialing",
+        companyContext: {
+          create: { profileJson: JSON.stringify(EMPTY_COMPANY_PROFILE) },
+        },
       },
     });
-    await db.org.update({
-      where: { id: org.id },
-      data: { activeMethodologyId: cloned.id },
-    });
-  }
 
-  const user = await db.user.create({
-    data: {
-      clerkId: opts.clerkId,
-      orgId: org.id,
-      email: opts.email.toLowerCase(),
-      name: displayName,
-      role: "ADMIN",
-      title: "Founder",
-    },
-    include: { org: true },
-  });
+    if (discovery) {
+      const cloned = await tx.methodology.create({
+        data: {
+          orgId: org.id,
+          name: discovery.name,
+          description: discovery.description,
+          isPreset: false,
+          dimensionsJson: discovery.dimensionsJson,
+        },
+      });
+      await tx.org.update({
+        where: { id: org.id },
+        data: { activeMethodologyId: cloned.id },
+      });
+    }
+
+    return tx.user.create({
+      data: {
+        clerkId: opts.clerkId,
+        orgId: org.id,
+        email: opts.email.toLowerCase(),
+        name: displayName,
+        role: "ADMIN",
+        title: "Founder",
+      },
+      include: { org: true },
+    });
+  }, { maxWait: 10_000, timeout: 20_000 });
 
   await markSignupProvisioned({
     clerkUserId: opts.clerkId,
-    orgId: org.id,
+    orgId: user.orgId,
     userId: user.id,
   });
 

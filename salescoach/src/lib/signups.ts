@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { db } from "./db";
 import {
   type Attribution,
@@ -50,23 +51,33 @@ export async function recordSignup(opts: {
     });
   }
 
-  return db.signupEvent.create({
-    data: {
-      clerkUserId: opts.clerkUserId,
-      email,
-      name: opts.name ?? "",
-      source: opts.source,
-      status: "signed_up",
-      leadId: leadId ?? undefined,
-      utmSource: attr.utmSource ?? "",
-      utmMedium: attr.utmMedium ?? "",
-      utmCampaign: attr.utmCampaign ?? "",
-      utmContent: attr.utmContent ?? "",
-      utmTerm: attr.utmTerm ?? "",
-      referrer: attr.referrer ?? "",
-      landingPath: attr.landingPath ?? "",
-    },
-  });
+  try {
+    return await db.signupEvent.create({
+      data: {
+        clerkUserId: opts.clerkUserId,
+        email,
+        name: opts.name ?? "",
+        source: opts.source,
+        status: "signed_up",
+        leadId: leadId ?? undefined,
+        utmSource: attr.utmSource ?? "",
+        utmMedium: attr.utmMedium ?? "",
+        utmCampaign: attr.utmCampaign ?? "",
+        utmContent: attr.utmContent ?? "",
+        utmTerm: attr.utmTerm ?? "",
+        referrer: attr.referrer ?? "",
+        landingPath: attr.landingPath ?? "",
+      },
+    });
+  } catch (error) {
+    // Server Components may resolve the layout and page concurrently on the
+    // first request. If both attempt to record the same Clerk user, the unique
+    // constraint makes one lose; retry as an update instead of failing signup.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return recordSignup(opts);
+    }
+    throw error;
+  }
 }
 
 export async function markSignupProvisioned(opts: {
