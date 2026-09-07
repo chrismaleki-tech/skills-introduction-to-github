@@ -13,6 +13,7 @@ export async function POST(req: Request) {
 
   const session = await getStripe().billingPortal.sessions.create({
     customer: user.org.stripeCustomerId,
+    configuration: process.env.STRIPE_PORTAL_CONFIGURATION_ID || undefined,
     return_url: `${appUrl(req)}/billing`,
   });
   return NextResponse.redirect(session.url, 303);
