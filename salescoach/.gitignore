@@ -1,8 +1,10 @@
-node_modules/
-.next/
 dev.db
 dev.db-journal
+.env
+.env*
+.next/
+node_modules/
 prisma/demo.db
 prisma/demo.db-journal
 uploads/
-.env
+.vercel
