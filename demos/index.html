@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Industry CRM Demo — SalesCoach</title>
+  <meta name="description" content="Public demo of SalesCoach industry-configurable CRM (Harborview Realty vs Meridian Software)." />
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --text: #eef3f7;
+      --muted: #9aabba;
+      --accent: #d97706;
+      --line: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(217, 119, 6, 0.18), transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, rgba(56, 189, 248, 0.12), transparent 50%),
+        var(--bg);
+    }
+    main {
+      width: min(960px, calc(100% - 2rem));
+      margin: 0 auto;
+      padding: 2.5rem 0 3rem;
+    }
+    .brand {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.78rem;
+      color: var(--accent);
+      margin: 0 0 0.75rem;
+    }
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.15;
+      font-weight: 600;
+      margin: 0 0 0.75rem;
+    }
+    .lede {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.55;
+      max-width: 42rem;
+      margin: 0 0 1.75rem;
+    }
+    .player {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    video {
+      display: block;
+      width: 100%;
+      height: auto;
+      background: #000;
+      aspect-ratio: 16 / 10;
+    }
+    .meta {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      padding: 0.95rem 1.1rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .meta a {
+      color: var(--text);
+      text-underline-offset: 0.15em;
+    }
+    .actions {
+      margin-top: 1.25rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .actions a {
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      display: inline-block;
+      padding: 0.7rem 1rem;
+      text-decoration: none;
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .actions a.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #111;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <p class="brand">SalesCoach</p>
+    <h1>Industry CRM demo</h1>
+    <p class="lede">
+      Same CRM platform, two industry packs: Harborview Realty (Transactions / Properties)
+      and Meridian Software (Pipeline / Accounts), plus the owner console industry pack setting.
+    </p>
+    <div class="player">
+      <video controls playsinline preload="metadata" poster="">
+        <source src="./industry-crm-demo.mp4" type="video/mp4" />
+        Your browser does not support embedded video.
+        <a href="./industry-crm-demo.mp4">Download the MP4</a>.
+      </video>
+      <div class="meta">
+        <span>~8.5 minutes</span>
+        <span>No login required</span>
+        <a href="./industry-crm-demo.mp4">Direct MP4 link</a>
+      </div>
+    </div>
+    <div class="actions">
+      <a class="primary" href="./industry-crm-demo.mp4">Open / download MP4</a>
+      <a href="https://github.com/chrismaleki-tech/skills-introduction-to-github">View repository</a>
+    </div>
+  </main>
+</body>
+</html>
