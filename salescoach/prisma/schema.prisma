@@ -1,0 +1,248 @@
+// SalesCoach AI — data model
+// NOTE ON JSON COLUMNS: SQLite (dev database) does not support Prisma's Json
+// type, so structured payloads are stored as JSON strings. Typed parse/serialize
+// helpers live in src/lib/types.ts. The schema is otherwise Postgres-portable:
+// switch the datasource provider and migrate String json columns to Json.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Org {
+  id                  String  @id @default(cuid())
+  name                String
+  // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
+  ingestionPolicyJson String  @default("{}")
+  webhookSecret       String  @default(cuid())
+  activeMethodologyId String?
+
+  users         User[]
+  methodologies Methodology[]
+  companyContext CompanyContext?
+  calls         Call[]
+  scenarios     Scenario[]
+  roleplays     RoleplaySession[]
+  grades        Grade[]
+  assignments   Assignment[]
+
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  name  String
+  email String @unique
+  role  String // REP | MANAGER | TRAINER | ADMIN
+  title String @default("")
+
+  calls        Call[]            @relation("RepCalls")
+  roleplays    RoleplaySession[]
+  assignments  Assignment[]      @relation("AssignedTo")
+  assignedById Assignment[]      @relation("AssignedBy")
+
+  createdAt DateTime @default(now())
+}
+
+// A methodology is a rubric: a set of weighted, scored dimensions.
+model Methodology {
+  id    String  @id @default(cuid())
+  orgId String?
+  org   Org?    @relation(fields: [orgId], references: [id])
+
+  name        String
+  description String @default("")
+  isPreset    Boolean @default(false)
+  // JSON: RubricDimension[] (src/lib/types.ts)
+  dimensionsJson String
+
+  grades    Grade[]
+  scenarios Scenario[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Everything the customer tells us about their business. Grounds grading
+// feedback and role-play persona generation.
+model CompanyContext {
+  id    String @id @default(cuid())
+  orgId String @unique
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  // JSON: CompanyProfile (src/lib/types.ts): description, products, personas,
+  // objections (with approved responses), competitors, talkTracks, valueProps
+  profileJson String @default("{}")
+
+  updatedAt DateTime @updatedAt
+}
+
+model Call {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  repId String
+  rep   User   @relation("RepCalls", fields: [repId], references: [id])
+
+  source      String // UPLOAD | WEBHOOK | API | DIALER
+  direction   String @default("outbound") // outbound | inbound
+  callType    String @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
+  durationSec Int    @default(0)
+  externalId  String? // provider call id, used for dedup
+  audioPath   String? // stored audio file (local uploads dir in dev)
+  prospectName String @default("")
+
+  status String @default("INGESTED") // INGESTED | SKIPPED | QUEUED | TRANSCRIBING | GRADING | GRADED | FAILED
+  // Why this call was (not) graded under the sampling policy:
+  // SAMPLED | NOT_SAMPLED | BELOW_MIN_DURATION | MANUAL_UPLOAD | REP_FLAGGED | MANAGER_REQUESTED | WITHIN_THRESHOLD
+  samplingStatus String @default("NOT_SAMPLED")
+  failReason     String?
+
+  transcript Transcript?
+  grade      Grade?
+
+  callDate  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([orgId, repId, callDate])
+  @@unique([orgId, externalId])
+}
+
+model Transcript {
+  id     String @id @default(cuid())
+  callId String @unique
+  call   Call   @relation(fields: [callId], references: [id])
+
+  // JSON: TranscriptSegment[] ({ speaker: "rep"|"prospect", startSec, endSec, text })
+  segmentsJson String
+  fullText     String
+  engine       String @default("mock") // deepgram | whisper | provided | mock
+
+  createdAt DateTime @default(now())
+}
+
+model Scenario {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  title       String
+  callType    String @default("discovery")
+  difficulty  String @default("medium") // easy | medium | hard
+  // JSON: ScenarioPersona (src/lib/types.ts)
+  personaJson String
+  // JSON: string[] — what a winning conversation accomplishes
+  winConditionsJson String @default("[]")
+
+  methodologyId String?
+  methodology   Methodology? @relation(fields: [methodologyId], references: [id])
+
+  roleplays   RoleplaySession[]
+  assignments Assignment[]
+
+  createdAt DateTime @default(now())
+}
+
+model RoleplaySession {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+  repId String
+  rep   User   @relation(fields: [repId], references: [id])
+
+  scenarioId String
+  scenario   Scenario @relation(fields: [scenarioId], references: [id])
+
+  mode   String @default("TEXT") // TEXT | VOICE
+  status String @default("ACTIVE") // ACTIVE | COMPLETED | GRADED | FAILED
+  // JSON: RoleplayMessage[] ({ role: "rep"|"prospect", text, atMs })
+  messagesJson String @default("[]")
+  vapiCallId   String?
+  durationSec  Int    @default(0)
+
+  grade Grade?
+
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([orgId, repId, startedAt])
+}
+
+model Grade {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  subjectType String // CALL | ROLEPLAY
+  callId      String? @unique
+  call        Call?   @relation(fields: [callId], references: [id])
+  roleplayId  String? @unique
+  roleplay    RoleplaySession? @relation(fields: [roleplayId], references: [id])
+
+  methodologyId String
+  methodology   Methodology @relation(fields: [methodologyId], references: [id])
+
+  // JSON: DimensionScore[] ({ key, score 1..5, rationale, quotes })
+  dimensionScoresJson String
+  overallScore        Int // 0..100, weighted rollup — see src/lib/scoring.ts
+  band                String // exceptional | strong | developing | needs_coaching
+  // JSON: string[]
+  strengthsJson    String @default("[]")
+  improvementsJson String @default("[]")
+  summary          String @default("")
+  // JSON: Mechanics ({ talkRatio, questionCount, longestMonologueSec, fillerWords, interruptions })
+  mechanicsJson String @default("{}")
+  gradedBy      String @default("mock") // model id, or "mock"
+
+  // Manager calibration layer
+  managerOverrideScore Int?
+  managerComment       String?
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId, subjectType, createdAt])
+}
+
+model Assignment {
+  id    String @id @default(cuid())
+  orgId String
+  org   Org    @relation(fields: [orgId], references: [id])
+
+  assignedToId String
+  assignedTo   User   @relation("AssignedTo", fields: [assignedToId], references: [id])
+  assignedById String
+  assignedBy   User   @relation("AssignedBy", fields: [assignedById], references: [id])
+
+  type        String // ROLEPLAY | UPLOAD_CALLS
+  scenarioId  String?
+  scenario    Scenario? @relation(fields: [scenarioId], references: [id])
+  targetCount Int       @default(1)
+  doneCount   Int       @default(0)
+  note        String    @default("")
+  status      String    @default("PENDING") // PENDING | IN_PROGRESS | COMPLETED
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([orgId, assignedToId, status])
+}
+
+// Marketing site demo / Google Ads lead capture
+model Lead {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  company   String   @default("")
+  source    String   @default("website")
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
