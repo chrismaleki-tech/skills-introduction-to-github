@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StatCaddy — TOUR Championship Field Stats</title>
+<style>
+  :root {
+    --green: #1b4332; --green-2: #2d6a4f; --fairway: #40916c; --light: #d8f3dc;
+    --bg: #f6f8f6; --card: #ffffff; --ink: #1b2a24; --muted: #6b7f76; --accent: #b7791f;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Segoe UI", system-ui, sans-serif; background: var(--bg); color: var(--ink); padding: 24px 16px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { color: var(--green); font-size: 1.5rem; }
+  .sub { color: var(--muted); margin: 4px 0 18px; font-size: .95rem; }
+  .sub b { color: var(--green-2); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .kcard { background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(27,67,50,.08); padding: 14px 16px; }
+  .kcard .k { font-size: .72rem; font-weight: 700; color: var(--green-2); text-transform: uppercase; letter-spacing: .05em; }
+  .kcard .v { font-size: 1.25rem; font-weight: 800; color: var(--green); margin-top: 2px; }
+  .kcard .d { font-size: .78rem; color: var(--muted); margin-top: 1px; }
+  .card { background: var(--card); border-radius: 14px; box-shadow: 0 2px 10px rgba(27,67,50,.08); padding: 8px 4px 4px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 900px; }
+  th, td { padding: 7px 9px; text-align: right; border-bottom: 1px solid #eef4f0; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: .72rem; text-transform: uppercase; letter-spacing: .03em;
+       cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--card); }
+  th:hover { color: var(--green-2); }
+  th.on { color: var(--green); }
+  th .arr { font-size: .6rem; }
+  th.pl, td.pl { text-align: left; }
+  td.pl { font-weight: 600; }
+  td.pl small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+  tr:hover td { background: #f2f7f3; }
+  td.pos { color: var(--fairway); font-weight: 600; } td.neg { color: #b3261e; }
+  td .bar { display: inline-block; vertical-align: middle; height: 8px; border-radius: 999px;
+            background: linear-gradient(90deg, var(--green-2), var(--fairway)); margin-right: 7px; }
+  .foot { color: var(--muted); font-size: .8rem; margin-top: 10px; }
+</style>
+</head>
+<body>
+<div id="sc-field"><div class="wrap"><h1>TOUR Championship — Field Stats</h1><div class="sub"><b>East Lake Golf Club · Atlanta, GA · August 27-30, 2026</b></div><div class="cards"><div class="kcard"><div class="k">Field size</div><div class="v">30 players</div></div><div class="kcard"><div class="k">Field avg SG: Total</div><div class="v">+1.32</div><div class="d">per round vs. all rated players</div></div><div class="kcard"><div class="k">Highest rated</div><div class="v">Scottie Scheffler</div><div class="d">+2.94 SG: Total</div></div><div class="kcard"><div class="k">Best course fit</div><div class="v">Rory McIlroy</div><div class="d">+0.09 T2Green</div></div></div><div class="card"><table></table></div><div class="foot">Strokes-gained columns are per-round skill vs. the field; Dist/Acc vs. tour baseline (Data Golf). Course Fit (T2Green), Form, History and Points are StatCaddy model inputs. Click a column to sort. Snapshot: 2026-08-24. Win probabilities are omitted: the predictions snapshot is for an earlier event.</div></div><script type="application/json" id="field-data">[{"name":"Scottie Scheffler","country":"USA","dg_rank":1,"owgr":1,"total":2.944,"ott":0.811,"app":1.154,"arg":0.334,"putt":0.646,"dist":7.177,"acc":0.055,"fit":0.02,"form":3.115,"hist":-0.04,"pts":4.831},{"name":"Ludvig Aberg","country":"SWE","dg_rank":8,"owgr":17,"total":1.884,"ott":0.757,"app":0.797,"arg":0.122,"putt":0.208,"dist":12.697,"acc":0.014,"fit":0.06,"form":1.18,"hist":-0.04,"pts":1.411},{"name":"Xander Schauffele","country":"USA","dg_rank":7,"owgr":10,"total":1.858,"ott":0.778,"app":0.694,"arg":0.144,"putt":0.243,"dist":13.543,"acc":0.012,"fit":0.06,"form":1.323,"hist":-0.01,"pts":1.494},{"name":"Tommy Fleetwood","country":"ENG","dg_rank":2,"owgr":5,"total":1.828,"ott":0.491,"app":0.605,"arg":0.386,"putt":0.346,"dist":-1.902,"acc":0.088,"fit":-0.01,"form":2.042,"hist":-0.02,"pts":2.204},{"name":"Matt Fitzpatrick","country":"ENG","dg_rank":4,"owgr":4,"total":1.785,"ott":0.279,"app":0.802,"arg":0.384,"putt":0.32,"dist":-0.12,"acc":0.053,"fit":-0.01,"form":2.208,"hist":-0.03,"pts":2.046},{"name":"Rory McIlroy","country":"NIR","dg_rank":5,"owgr":2,"total":1.759,"ott":0.9,"app":0.5,"arg":0.121,"putt":0.238,"dist":20.536,"acc":-0.027,"fit":0.09,"form":1.135,"hist":-0.03,"pts":1.116},{"name":"Cameron Young","country":"USA","dg_rank":11,"owgr":3,"total":1.713,"ott":0.699,"app":0.755,"arg":0.203,"putt":0.057,"dist":13.068,"acc":-0.0,"fit":0.06,"form":0.855,"hist":-0.04,"pts":0.727},{"name":"Si Woo Kim","country":"KOR","dg_rank":6,"owgr":13,"total":1.703,"ott":0.535,"app":0.826,"arg":0.236,"putt":0.106,"dist":-3.965,"acc":0.095,"fit":-0.01,"form":1.407,"hist":-0.06,"pts":1.726},{"name":"Sam Burns","country":"USA","dg_rank":3,"owgr":7,"total":1.686,"ott":0.289,"app":0.688,"arg":0.069,"putt":0.64,"dist":8.494,"acc":-0.009,"fit":0.02,"form":2.227,"hist":-0.04,"pts":3.84},{"name":"Chris Gotterup","country":"USA","dg_rank":15,"owgr":9,"total":1.535,"ott":0.705,"app":0.549,"arg":0.013,"putt":0.267,"dist":15.653,"acc":-0.032,"fit":0.06,"form":1.202,"hist":-0.04,"pts":1.107},{"name":"Viktor Hovland","country":"NOR","dg_rank":16,"owgr":14,"total":1.493,"ott":0.331,"app":0.817,"arg":0.166,"putt":0.18,"dist":1.629,"acc":0.046,"fit":0.01,"form":1.413,"hist":-0.04,"pts":1.11},{"name":"Patrick Cantlay","country":"USA","dg_rank":10,"owgr":38,"total":1.462,"ott":0.341,"app":0.78,"arg":0.183,"putt":0.158,"dist":2.697,"acc":0.021,"fit":0.0,"form":1.117,"hist":-0.01,"pts":0.907},{"name":"Hideki Matsuyama","country":"JPN","dg_rank":12,"owgr":25,"total":1.447,"ott":0.258,"app":0.656,"arg":0.342,"putt":0.19,"dist":-1.097,"acc":0.035,"fit":-0.02,"form":1.962,"hist":-0.01,"pts":1.314},{"name":"Collin Morikawa","country":"USA","dg_rank":13,"owgr":11,"total":1.387,"ott":0.429,"app":0.792,"arg":0.021,"putt":0.144,"dist":-1.594,"acc":0.087,"fit":0.01,"form":1.56,"hist":-0.04,"pts":0.877},{"name":"Wyndham Clark","country":"USA","dg_rank":14,"owgr":8,"total":1.277,"ott":0.063,"app":0.376,"arg":0.338,"putt":0.5,"dist":6.806,"acc":-0.044,"fit":-0.01,"form":1.558,"hist":-0.04,"pts":2.978},{"name":"Ryan Gerard","country":"USA","dg_rank":19,"owgr":26,"total":1.25,"ott":0.419,"app":0.423,"arg":0.08,"putt":0.329,"dist":2.347,"acc":0.037,"fit":0.01,"form":0.916,"hist":-0.04,"pts":0.809},{"name":"Tom Kim","country":"KOR","dg_rank":28,"owgr":28,"total":1.227,"ott":0.119,"app":0.711,"arg":0.191,"putt":0.207,"dist":-2.511,"acc":0.042,"fit":-0.02,"form":1.708,"hist":-0.04,"pts":1.858},{"name":"Min Woo Lee","country":"AUS","dg_rank":40,"owgr":27,"total":1.222,"ott":0.465,"app":0.341,"arg":0.241,"putt":0.174,"dist":14.742,"acc":-0.02,"fit":0.06,"form":-0.41,"hist":-0.04,"pts":0.425},{"name":"Russell Henley","country":"USA","dg_rank":9,"owgr":6,"total":1.169,"ott":0.309,"app":0.327,"arg":0.107,"putt":0.426,"dist":-10.121,"acc":0.119,"fit":-0.04,"form":1.317,"hist":-0.01,"pts":1.032},{"name":"J.J. Spaun","country":"USA","dg_rank":20,"owgr":16,"total":1.105,"ott":0.434,"app":0.637,"arg":0.167,"putt":-0.133,"dist":0.346,"acc":0.052,"fit":0.01,"form":0.417,"hist":0.0,"pts":0.871},{"name":"Robert MacIntyre","country":"SCO","dg_rank":31,"owgr":19,"total":1.004,"ott":0.224,"app":0.212,"arg":0.156,"putt":0.413,"dist":1.52,"acc":0.01,"fit":-0.01,"form":1.59,"hist":-0.04,"pts":0.561},{"name":"Alex Smalley","country":"USA","dg_rank":37,"owgr":45,"total":0.908,"ott":0.191,"app":0.478,"arg":0.004,"putt":0.235,"dist":1.829,"acc":0.03,"fit":0.01,"form":0.305,"hist":-0.04,"pts":0.816},{"name":"Alex Fitzpatrick","country":"ENG","dg_rank":58,"owgr":70,"total":0.867,"ott":0.456,"app":0.562,"arg":0.044,"putt":-0.195,"dist":1.347,"acc":0.047,"fit":0.02,"form":0.28,"hist":-0.04,"pts":0.887},{"name":"Adam Scott","country":"AUS","dg_rank":34,"owgr":51,"total":0.864,"ott":0.353,"app":0.5,"arg":-0.016,"putt":0.027,"dist":6.295,"acc":-0.009,"fit":0.03,"form":-0.17,"hist":0.03,"pts":0.498},{"name":"Jacob Bridgeman","country":"USA","dg_rank":35,"owgr":31,"total":0.848,"ott":0.107,"app":0.237,"arg":0.045,"putt":0.458,"dist":-0.59,"acc":0.018,"fit":-0.02,"form":1.02,"hist":-0.04,"pts":0.432},{"name":"Justin Rose","country":"ENG","dg_rank":29,"owgr":12,"total":0.821,"ott":0.186,"app":0.538,"arg":0.007,"putt":0.089,"dist":2.639,"acc":0.011,"fit":0.01,"form":0.22,"hist":-0.01,"pts":0.765},{"name":"Kristoffer Reitan","country":"NOR","dg_rank":48,"owgr":29,"total":0.784,"ott":0.488,"app":0.181,"arg":-0.133,"putt":0.247,"dist":7.927,"acc":-0.0,"fit":0.04,"form":-0.228,"hist":-0.04,"pts":0.773},{"name":"Ryan Fox","country":"NZL","dg_rank":47,"owgr":24,"total":0.62,"ott":0.221,"app":0.233,"arg":-0.005,"putt":0.172,"dist":7.484,"acc":-0.043,"fit":0.02,"form":0.833,"hist":0.0,"pts":0.659},{"name":"Akshay Bhatia","country":"USA","dg_rank":62,"owgr":33,"total":0.534,"ott":-0.31,"app":0.323,"arg":0.137,"putt":0.384,"dist":-0.319,"acc":-0.027,"fit":-0.03,"form":0.23,"hist":-0.04,"pts":0.337},{"name":"Gary Woodland","country":"USA","dg_rank":68,"owgr":47,"total":0.499,"ott":0.531,"app":0.181,"arg":-0.239,"putt":0.026,"dist":10.577,"acc":0.003,"fit":0.06,"form":-0.323,"hist":0.01,"pts":0.626}]</script></div>
+<script>
+(function () {
+  var root = document.getElementById("sc-field");
+  var players = JSON.parse(root.querySelector("#field-data").textContent);
+  var hasOdds = players.length && players[0].win !== undefined;
+  var cols = [
+    { key: "name", label: "Player", num: false },
+    { key: "dg_rank", label: "DG Rank", num: true, asc: true, plain: true },
+    { key: "owgr", label: "OWGR", num: true, asc: true, plain: true },
+    { key: "total", label: "SG: Total", num: true, bar: true },
+    { key: "ott", label: "OTT", num: true },
+    { key: "app", label: "APP", num: true },
+    { key: "arg", label: "ARG", num: true },
+    { key: "putt", label: "PUTT", num: true },
+    { key: "dist", label: "Dist", num: true },
+    { key: "acc", label: "Acc", num: true },
+    { key: "fit", label: "Course Fit", num: true },
+    { key: "form", label: "Form", num: true },
+    { key: "hist", label: "History", num: true },
+    { key: "pts", label: "Points", num: true, plain: true }
+  ];
+  if (hasOdds) cols.push({ key: "win", label: "Win %", num: true, pct: true, plain: true },
+                         { key: "top5", label: "Top 5 %", num: true, pct: true, plain: true });
+  var sortKey = "total", sortAsc = false;
+
+  var maxTotal = 0;
+  players.forEach(function (p) { if (p.total != null) maxTotal = Math.max(maxTotal, Math.abs(p.total)); });
+
+  function fmt(c, v) {
+    if (v == null) return "\u2014";
+    if (c.pct) return (100 * v).toFixed(1) + "%";
+    if (c.plain) return c.asc ? String(v) : v.toFixed(2);
+    return (v >= 0 ? "+" : "") + v.toFixed(2);
+  }
+  function render() {
+    var thead = "<tr>" + cols.map(function (c) {
+      var on = c.key === sortKey;
+      return '<th class="' + (c.num ? "" : "pl ") + (on ? "on" : "") + '" data-k="' + c.key + '">' +
+        c.label + (on ? ' <span class="arr">' + (sortAsc ? "\u25b2" : "\u25bc") + "</span>" : "") + "</th>";
+    }).join("") + "</tr>";
+    var sorted = players.slice().sort(function (a, b) {
+      var x = a[sortKey], y = b[sortKey];
+      if (x == null && y == null) return a.name < b.name ? -1 : 1;
+      if (x == null) return 1;                       // blanks always sort last
+      if (y == null) return -1;
+      if (x === y) return a.name < b.name ? -1 : 1;
+      return (x < y ? -1 : 1) * (sortAsc ? 1 : -1);
+    });
+    var rows = sorted.map(function (p, i) {
+      return "<tr>" + cols.map(function (c) {
+        var v = p[c.key];
+        if (!c.num) return '<td class="pl">' + (i + 1) + ". " + p.name + "<small>" + p.country + "</small></td>";
+        var cls = (!c.plain && v != null) ? (v >= 0 ? "pos" : "neg") : "";
+        var bar = "";
+        if (c.bar && v != null && maxTotal > 0)
+          bar = '<span class="bar" style="width:' + Math.round(40 * Math.abs(v) / maxTotal) + 'px"></span>';
+        return '<td class="' + cls + '">' + bar + fmt(c, v) + "</td>";
+      }).join("") + "</tr>";
+    }).join("");
+    root.querySelector("table").innerHTML = "<thead>" + thead + "</thead><tbody>" + rows + "</tbody>";
+    root.querySelectorAll("th").forEach(function (th) {
+      th.addEventListener("click", function () {
+        var k = th.getAttribute("data-k");
+        var col = cols.filter(function (c) { return c.key === k; })[0];
+        if (sortKey === k) { sortAsc = !sortAsc; }
+        else { sortKey = k; sortAsc = col.num ? !!col.asc : true; }
+        render();
+      });
+    });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
