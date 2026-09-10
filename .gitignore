@@ -88,3 +88,7 @@ tmp/
 
 # Built plugin artifact
 wordpress/*.zip
+
+# Raw Data Golf responses cached by pull_history.py so an interrupted season
+# pull resumes instead of re-fetching; the CSV it builds is what gets committed.
+datagolf/data/history/_cache/
