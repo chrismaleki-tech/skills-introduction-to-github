@@ -61,8 +61,8 @@ export function MarketingFooter() {
           >
             {isClerkEnabled() ? "Sign up" : "Open app"}
           </Link>
-          <a href="mailto:hello@salescoach.ai" className="hover:text-marketing-ink">
-            hello@salescoach.ai
+          <a href="mailto:hello@erota.io" className="hover:text-marketing-ink">
+            hello@erota.io
           </a>
         </div>
       </div>
