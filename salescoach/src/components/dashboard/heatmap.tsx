@@ -60,7 +60,7 @@ export function SkillHeatmap({ dimensions, rows }: { dimensions: { key: string; 
           ))}
         </tbody>
       </table>
-      <div className="flex items-center gap-4 mt-3 text-[11px] text-muted">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-muted">
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-sm bg-emerald-400" /> 4.0+
         </span>

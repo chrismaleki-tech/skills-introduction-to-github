@@ -151,7 +151,7 @@ export default async function DashboardPage() {
         subtitle={`Grading activity and skill coverage for ${user.org.name}. Scores reflect manager overrides where present.`}
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="mb-6 grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Team avg this month"
           value={teamAvg != null ? <ScoreBadge score={teamAvg} size="lg" /> : "–"}
@@ -215,14 +215,14 @@ export default async function DashboardPage() {
           ) : (
             <ul className="divide-y divide-line">
               {coverage.map((c) => (
-                <li key={c.rep.id} className="flex items-center gap-3 py-2.5">
+                <li key={c.rep.id} className="flex flex-wrap items-center gap-2 py-2.5 sm:flex-nowrap sm:gap-3">
                   <Link
                     href={`/team/${c.rep.id}`}
-                    className="w-32 shrink-0 text-sm font-medium truncate hover:text-brand transition-colors"
+                    className="w-full text-sm font-medium hover:text-brand sm:w-32 sm:shrink-0 sm:truncate"
                   >
                     {c.rep.name}
                   </Link>
-                  <div className="flex-1 h-2 rounded-full bg-surface-2 overflow-hidden flex">
+                  <div className="order-3 flex h-2 w-full overflow-hidden rounded-full bg-surface-2 sm:order-none sm:w-auto sm:flex-1">
                     {c.ingested > 0 && (
                       <>
                         <div className="h-full bg-emerald-500" style={{ width: `${(c.graded / c.ingested) * 100}%` }} />
@@ -231,7 +231,7 @@ export default async function DashboardPage() {
                       </>
                     )}
                   </div>
-                  <span className="text-xs text-muted tabular-nums whitespace-nowrap">
+                  <span className="text-xs text-muted tabular-nums sm:whitespace-nowrap">
                     {c.ingested} ingested · {c.graded} graded · {c.flagged} flagged · {c.skipped} skipped
                   </span>
                 </li>
@@ -245,7 +245,8 @@ export default async function DashboardPage() {
         {needsCoaching.length === 0 ? (
           <EmptyState title="Nobody scored below 60 in the last 14 days" hint="Low-scoring calls and role-plays land here for follow-up." />
         ) : (
-          <table className="w-full text-sm">
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <table className="min-w-[38rem] w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted uppercase tracking-wider">
                 <th className="pb-2 font-medium">Rep</th>
@@ -282,6 +283,7 @@ export default async function DashboardPage() {
               })}
             </tbody>
           </table>
+          </div>
         )}
         {needsCoachingAll.length > NEEDS_COACHING_LIMIT && (
           <div className="text-xs text-muted mt-3">

@@ -40,7 +40,7 @@ export default async function BillingPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Current plan">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:gap-4">
             <div>
               <div className="text-xl font-semibold">SalesCoach Individual</div>
               <div className="mt-1 text-sm text-muted">$50 per month · cancel anytime</div>
@@ -69,20 +69,20 @@ export default async function BillingPage({
 
           <div className="mt-6 flex flex-wrap gap-3">
             {!user.org.stripeSubscriptionId ? (
-              <form action="/api/billing/checkout" method="post">
+              <form action="/api/billing/checkout" method="post" className="w-full sm:w-auto">
                 <button
                   type="submit"
                   disabled={!checkoutReady}
-                  className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  className="min-h-11 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
                 >
                   Subscribe for $50/month
                 </button>
               </form>
             ) : (
-              <form action="/api/billing/portal" method="post">
+              <form action="/api/billing/portal" method="post" className="w-full sm:w-auto">
                 <button
                   type="submit"
-                  className="rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover"
+                  className="min-h-11 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-accent-hover sm:w-auto"
                 >
                   Manage subscription
                 </button>

@@ -90,7 +90,7 @@ export async function RepDetail({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 lg:grid-cols-3">
         <div className="bg-surface border border-line rounded-xl p-4">
           <div className="text-xs text-muted uppercase tracking-wider">{selfView ? "Your avg this month" : "Avg this month"}</div>
           <div className="mt-2">{repAvg != null ? <ScoreBadge score={repAvg} size="lg" /> : <span className="text-2xl font-semibold text-muted">–</span>}</div>
@@ -146,7 +146,8 @@ export async function RepDetail({
         {recent.length === 0 ? (
           <EmptyState title="Nothing graded yet" hint={`${selfView ? "Your" : "This rep's"} most recent scored calls and role-plays will list here.`} />
         ) : (
-          <table className="w-full text-sm">
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+          <table className="min-w-[34rem] w-full text-sm">
             <thead>
               <tr className="text-left text-xs text-muted uppercase tracking-wider">
                 <th className="pb-2 font-medium">Date</th>
@@ -179,6 +180,7 @@ export async function RepDetail({
               })}
             </tbody>
           </table>
+          </div>
         )}
       </Card>
 

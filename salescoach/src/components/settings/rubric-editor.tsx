@@ -200,7 +200,7 @@ export function RubricEditor({
               rows={2}
             />
           </Field>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Button onClick={saveDetails} disabled={detailsBusy}>
               {detailsBusy ? "Saving…" : "Save details"}
             </Button>
@@ -235,7 +235,7 @@ export function RubricEditor({
                     Company-specific
                   </span>
                 )}
-                <div className="ml-auto flex items-center gap-3">
+                <div className="flex w-full flex-wrap items-center gap-3 sm:ml-auto sm:w-auto sm:flex-nowrap">
                   <label className="flex items-center gap-1.5 text-xs text-muted">
                     Weight
                     <input
@@ -329,7 +329,7 @@ export function RubricEditor({
                   </Field>
                 ))}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button onClick={addDimension}>Add dimension</Button>
                 <Button variant="secondary" onClick={() => setShowAdd(false)}>
                   Cancel

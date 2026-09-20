@@ -6,11 +6,11 @@ export function MarketingHeader() {
   const clerk = isClerkEnabled();
   return (
     <header className="absolute inset-x-0 top-0 z-20">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <Link href="/" className="font-display text-xl font-semibold tracking-tight text-marketing-ink">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-6 sm:px-6 sm:py-5">
+        <Link href="/" className="shrink-0 font-display text-lg font-semibold tracking-tight text-marketing-ink sm:text-xl">
           <span className="text-brand">Sales</span>Coach AI
         </Link>
-        <nav className="flex items-center gap-6 text-sm font-medium text-muted">
+        <nav className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted sm:gap-6">
           <a href="#how-it-works" className="hidden sm:inline hover:text-marketing-ink transition-colors">
             How it works
           </a>

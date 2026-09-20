@@ -15,12 +15,12 @@ export function PageHeader({
   actions?: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
+    <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 sm:flex-row sm:flex-wrap">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {subtitle && <p className="text-muted mt-1 text-sm max-w-2xl">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">{actions}</div>}
     </div>
   );
 }
@@ -39,12 +39,12 @@ export function Card({
   return (
     <section className={`bg-surface border border-line rounded-xl ${className}`}>
       {(title || action) && (
-        <div className="flex items-center justify-between px-5 pt-4 pb-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-0 sm:px-5">
           {title && <h2 className="text-sm font-medium text-muted uppercase tracking-wider">{title}</h2>}
           {action}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-4 sm:p-5">{children}</div>
     </section>
   );
 }
@@ -128,7 +128,7 @@ export function Button({
   return (
     <button
       {...props}
-      className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${props.className ?? ""}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0 ${styles[variant]} ${props.className ?? ""}`}
     >
       {children}
     </button>
@@ -151,7 +151,7 @@ export function LinkButton({
   return (
     <Link
       href={href}
-      className={`inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors ${styles[variant]}`}
+      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors sm:min-h-0 ${styles[variant]}`}
     >
       {children}
     </Link>

@@ -99,11 +99,11 @@ export function RoleplayChat({
 
   return (
     <div className="bg-surface border border-line rounded-xl flex flex-col">
-      <div className="flex items-center justify-between gap-3 px-5 py-3 border-b border-line">
+      <div className="flex flex-col items-start justify-between gap-1 border-b border-line px-4 py-3 sm:flex-row sm:items-center sm:gap-3 sm:px-5">
         <div className="text-sm font-medium">
           Live session with <span className="text-brand">{personaName || "the prospect"}</span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-muted tabular-nums">
+        <div className="flex items-center gap-3 text-xs text-muted tabular-nums sm:gap-4">
           <span>{fmtClock(elapsedSec)} elapsed</span>
           <span>
             {repTurns} {repTurns === 1 ? "turn" : "turns"}
@@ -111,7 +111,7 @@ export function RoleplayChat({
         </div>
       </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-3 min-h-72 max-h-[28rem]">
+      <div ref={scrollRef} className="min-h-64 flex-1 space-y-3 overflow-y-auto p-3 sm:min-h-72 sm:max-h-[28rem] sm:p-5">
         {messages.length === 0 && !sending && (
           <p className="text-sm text-muted text-center py-10">
             No messages yet. Deliver your opener to start the conversation.
@@ -120,7 +120,7 @@ export function RoleplayChat({
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === "rep" ? "justify-end" : "justify-start"}`}>
             <div
-              className={`max-w-[80%] rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap ${
+              className={`max-w-[92%] break-words rounded-xl px-3.5 py-2.5 text-sm whitespace-pre-wrap sm:max-w-[80%] ${
                 m.role === "rep"
                   ? "bg-brand/10 border border-brand/25"
                   : "bg-surface-2 border border-line"
@@ -149,7 +149,7 @@ export function RoleplayChat({
       )}
 
       <div className="border-t border-line p-4 space-y-3">
-        <div className="flex gap-3 items-end">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -165,17 +165,17 @@ export function RoleplayChat({
             disabled={sending || ending}
             className="flex-1 resize-none rounded-lg bg-surface-2 border border-line px-3 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:border-accent disabled:opacity-50"
           />
-          <Button onClick={() => void send()} disabled={sending || ending || !input.trim()}>
+          <Button className="w-full sm:w-auto" onClick={() => void send()} disabled={sending || ending || !input.trim()}>
             Send
           </Button>
         </div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-muted">
             {repTurns < 2
               ? "Grading unlocks after two of your turns."
               : "End whenever the conversation reaches a natural close."}
           </p>
-          <Button variant="secondary" onClick={() => void endSession()} disabled={sending || ending || repTurns < 2}>
+          <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void endSession()} disabled={sending || ending || repTurns < 2}>
             {ending ? "Grading..." : "End session & get graded"}
           </Button>
         </div>

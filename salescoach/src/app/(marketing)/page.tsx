@@ -11,7 +11,7 @@ export default function MarketingHomePage() {
     <>
       {/* Hero — one composition: brand, headline, support, CTAs, full-bleed product */}
       <section className="mkt-hero-wash relative overflow-hidden pt-24">
-        <div className="mx-auto max-w-6xl px-6 pt-10 pb-8 sm:pt-14">
+        <div className="mx-auto max-w-6xl px-4 pt-10 pb-8 sm:px-6 sm:pt-14">
           <p className="mkt-rise font-display text-4xl font-semibold tracking-tight text-marketing-ink sm:text-5xl md:text-6xl">
             <span className="text-brand">Sales</span>Coach AI
           </p>
@@ -53,7 +53,7 @@ export default function MarketingHomePage() {
 
       {/* How it works */}
       <section id="how-it-works" className="border-t border-line bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="font-display text-3xl font-semibold tracking-tight text-marketing-ink sm:text-4xl">
             How it works
           </h2>
@@ -90,7 +90,7 @@ export default function MarketingHomePage() {
 
       {/* Call grading */}
       <section className="border-t border-line bg-marketing-wash py-20 sm:py-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12">
           <div>
             <h2 className="font-display text-3xl font-semibold tracking-tight text-marketing-ink sm:text-4xl">
               Grade real calls against your company context
@@ -112,7 +112,7 @@ export default function MarketingHomePage() {
 
       {/* Role-play */}
       <section className="border-t border-line bg-white py-20 sm:py-24">
-        <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12">
           <Image
             src="/marketing/roleplay.png"
             alt="SalesCoach AI role-play scenarios with difficulty levels"
@@ -134,13 +134,13 @@ export default function MarketingHomePage() {
 
       {/* Pricing */}
       <section id="pricing" className="border-t border-line bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-6xl px-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <h2 className="font-display text-3xl font-semibold tracking-tight text-marketing-ink sm:text-4xl">
             Simple pricing
           </h2>
           <p className="mt-3 max-w-xl text-muted">One seat. Full coaching loop. Cancel anytime.</p>
 
-          <div className="mt-12 max-w-lg border-t-4 border-brand bg-surface-2/60 px-8 py-10">
+          <div className="mt-10 max-w-lg border-t-4 border-brand bg-surface-2/60 px-5 py-8 sm:mt-12 sm:px-8 sm:py-10">
             <div className="text-sm font-semibold uppercase tracking-wider text-brand">Individual</div>
             <div className="mt-3 flex items-baseline gap-1">
               <span className="font-display text-5xl font-semibold tracking-tight text-marketing-ink">$50</span>
@@ -172,7 +172,7 @@ export default function MarketingHomePage() {
 
       {/* Demo CTA */}
       <section id="demo" className="border-t border-line bg-marketing-wash py-20 sm:py-24">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 lg:grid-cols-2 lg:items-start">
+        <div className="mx-auto grid max-w-6xl gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:items-start lg:gap-12">
           <div>
             <h2 className="font-display text-3xl font-semibold tracking-tight text-marketing-ink sm:text-4xl">
               See SalesCoach on your pipeline

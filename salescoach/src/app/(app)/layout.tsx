@@ -7,6 +7,7 @@ import { ClerkUserMenu } from "@/components/clerk-user-menu";
 import { aiAvailable } from "@/lib/ai";
 import { storageBackend } from "@/lib/storage";
 import { billingAccess } from "@/lib/billing";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -35,8 +36,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   ];
 
   return (
-    <div className="flex min-h-screen">
-      <aside className="w-60 shrink-0 border-r border-line bg-surface flex flex-col">
+    <div className="flex min-h-screen flex-col md:flex-row">
+      <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-line bg-surface/95 px-3 py-2 backdrop-blur md:hidden">
+        <div className="flex min-w-0 items-center gap-2">
+          <MobileNav
+            items={items}
+            orgName={user.org.name}
+            userLabel={`${user.name} · ${user.role.toLowerCase()}`}
+          />
+          <div className="min-w-0">
+            <div className="truncate text-sm font-semibold">
+              <span className="text-brand">Sales</span>Coach AI
+            </div>
+            <div className="max-w-40 truncate text-[11px] text-muted">{user.org.name}</div>
+          </div>
+        </div>
+        {isClerkEnabled() && <ClerkUserMenu />}
+      </header>
+
+      <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="px-4 py-5 border-b border-line">
           <div className="font-semibold tracking-tight text-lg">
             <span className="text-brand">Sales</span>Coach AI
@@ -68,7 +86,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           {isDemoAuth() && <UserSwitcher users={users} currentId={user.id} />}
         </div>
       </aside>
-      <main className="flex-1 min-w-0 px-8 py-8 max-w-6xl">
+      <main className="w-full min-w-0 flex-1 px-4 py-5 sm:px-6 md:max-w-6xl md:px-8 md:py-8">
         {(() => {
           const access = billingAccess(user.org);
           if (access.status === "active") return null;

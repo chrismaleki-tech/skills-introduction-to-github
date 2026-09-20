@@ -105,33 +105,37 @@ export default async function CallsPage({
               <Link
                 key={c.id}
                 href={`/calls/${c.id}`}
-                className="flex flex-wrap md:flex-nowrap items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors"
+                className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 transition-colors hover:bg-surface-2 md:flex md:flex-nowrap md:gap-3"
               >
-                <span className="w-28 shrink-0 text-sm text-muted tabular-nums">
+                <span className="col-start-1 row-start-2 text-xs text-muted tabular-nums md:w-28 md:shrink-0 md:text-sm">
                   {fmtDateTime(c.callDate)}
                 </span>
                 {manager && (
-                  <span className="w-24 shrink-0 text-sm truncate">{c.rep.name}</span>
+                  <span className="hidden w-24 shrink-0 truncate text-sm md:block">{c.rep.name}</span>
                 )}
-                <span className="flex-1 min-w-0">
+                <span className="col-start-1 row-start-1 min-w-0 md:flex-1">
                   <span className="block text-sm font-medium truncate">
                     {c.prospectName || "Unknown prospect"}
                   </span>
                   <span className="block text-xs text-muted">
                     {c.callType.replaceAll("_", " ")} · {c.direction}
+                    <span className="md:hidden">
+                      {" "}· {fmtDuration(c.durationSec)} · {c.source.toLowerCase()}
+                      {manager ? ` · ${c.rep.name}` : ""}
+                    </span>
                   </span>
                 </span>
-                <span className="w-16 shrink-0 text-sm text-muted tabular-nums">
+                <span className="hidden w-16 shrink-0 text-sm text-muted tabular-nums md:block">
                   {fmtDuration(c.durationSec)}
                 </span>
-                <span className="w-16 shrink-0 text-xs text-muted">{c.source.toLowerCase()}</span>
-                <span className="w-24 shrink-0">
+                <span className="hidden w-16 shrink-0 text-xs text-muted md:block">{c.source.toLowerCase()}</span>
+                <span className="col-start-2 row-start-2 md:w-24 md:shrink-0">
                   <StatusPill status={c.status} />
                 </span>
-                <span className="w-40 shrink-0">
+                <span className="hidden w-40 shrink-0 md:block">
                   <SamplingPill status={c.samplingStatus} />
                 </span>
-                <span className="w-10 shrink-0 text-right">
+                <span className="col-start-2 row-start-1 text-right md:w-10 md:shrink-0">
                   {c.grade ? (
                     <ScoreBadge
                       score={c.grade.managerOverrideScore ?? c.grade.overallScore}
