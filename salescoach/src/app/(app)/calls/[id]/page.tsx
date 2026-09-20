@@ -40,7 +40,7 @@ export default async function CallReviewPage({
         title={call.prospectName || "Unknown prospect"}
         subtitle={`${call.rep.name} · ${fmtDateTime(call.callDate)} · ${call.callType.replaceAll("_", " ")} · ${call.direction} · ${fmtDuration(call.durationSec)} · via ${call.source.toLowerCase()}`}
         actions={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <SamplingPill status={call.samplingStatus} />
             <StatusPill status={call.status} />
           </div>

@@ -154,14 +154,14 @@ export function ScenarioForm() {
     "w-full rounded-lg bg-surface-2 border border-line px-3 py-2 text-sm placeholder:text-muted focus:outline-none focus:border-accent";
 
   return (
-    <form onSubmit={save} className="bg-surface border border-line rounded-xl p-5 space-y-4">
-      <div className="flex items-center justify-between gap-3">
+    <form onSubmit={save} className="space-y-4 rounded-xl border border-line bg-surface p-4 sm:p-5">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h2 className="text-sm font-medium text-muted uppercase tracking-wider">New scenario</h2>
-        <div className="flex items-center gap-2">
-          <Button type="button" variant="secondary" onClick={() => void generate()} disabled={generating || saving}>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+          <Button className="w-full sm:w-auto" type="button" variant="secondary" onClick={() => void generate()} disabled={generating || saving}>
             {generating ? "Generating..." : "Generate from company profile"}
           </Button>
-          <Button type="button" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
+          <Button className="w-full sm:w-auto" type="button" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
             Cancel
           </Button>
         </div>

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <main className="mx-auto max-w-3xl px-6 pb-24 pt-28">
+    <main className="mx-auto max-w-3xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
       <p className="text-sm text-muted">
         <Link href="/" className="text-brand hover:text-brand-hover">
           ← SalesCoach AI

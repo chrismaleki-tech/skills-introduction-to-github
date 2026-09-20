@@ -53,7 +53,7 @@ function AssignmentRow({
   const pct = Math.min(100, Math.round((a.done / Math.max(a.targetCount, 1)) * 100));
   return (
     <li className="py-4 flex flex-wrap items-start gap-4">
-      <div className="flex-1 min-w-56">
+      <div className="min-w-0 flex-1 basis-full sm:min-w-56 sm:basis-auto">
         <div className="flex flex-wrap items-center gap-2">
           <StatusPill status={a.status} />
           {showRep && (
@@ -92,7 +92,7 @@ function AssignmentRow({
         </div>
         {a.note && <div className="text-xs text-muted mt-1">{a.note}</div>}
       </div>
-      <div className="w-40 shrink-0">
+      <div className="w-full sm:w-40 sm:shrink-0">
         <div className="text-xs text-muted mb-1 tabular-nums">
           {a.done} of {a.targetCount} done
         </div>

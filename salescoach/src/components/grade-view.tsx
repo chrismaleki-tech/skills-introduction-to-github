@@ -21,7 +21,7 @@ export function GradeView({ grade }: { grade: Grade }) {
       <Card>
         <div className="flex flex-wrap items-center gap-4">
           <ScoreBadge score={effective} size="lg" />
-          <div className="flex-1 min-w-48">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <BandPill score={effective} />
               {grade.managerOverrideScore != null && (
@@ -32,7 +32,7 @@ export function GradeView({ grade }: { grade: Grade }) {
             </div>
             <p className="text-sm text-muted mt-2">{grade.summary}</p>
           </div>
-          <div className="text-right text-xs text-muted">
+          <div className="w-full text-left text-xs text-muted sm:w-auto sm:text-right">
             <div>Graded by {grade.gradedBy === "mock" ? "heuristic engine (demo mode)" : grade.gradedBy}</div>
             <div>{new Date(grade.createdAt).toLocaleString()}</div>
           </div>

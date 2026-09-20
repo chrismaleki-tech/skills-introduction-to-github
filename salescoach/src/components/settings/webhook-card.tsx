@@ -74,13 +74,13 @@ export function WebhookCard({ secret }: { secret: string }) {
       <div>
         <div className="text-xs font-medium text-muted uppercase tracking-wider mb-1.5">Webhook secret</div>
         <div className="flex flex-wrap items-center gap-2">
-          <code className="flex-1 min-w-0 bg-surface-2 border border-line rounded-lg px-3 py-2 text-sm font-mono break-all">
+          <code className="w-full min-w-0 flex-1 rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm font-mono break-all sm:w-auto">
             {secret}
           </code>
-          <Button variant="secondary" onClick={copySecret}>
+          <Button className="flex-1 sm:flex-none" variant="secondary" onClick={copySecret}>
             {copied ? "Copied" : "Copy"}
           </Button>
-          <Button variant="danger" onClick={rotate} disabled={rotating}>
+          <Button className="flex-1 sm:flex-none" variant="danger" onClick={rotate} disabled={rotating}>
             {rotating ? "Rotating…" : "Rotate secret"}
           </Button>
         </div>

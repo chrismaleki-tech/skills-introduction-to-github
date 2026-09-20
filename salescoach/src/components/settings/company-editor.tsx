@@ -393,7 +393,7 @@ export function CompanyEditor({ profile }: { profile: CompanyProfile }) {
         </div>
       </Card>
 
-      <div className="sticky bottom-0 -mx-1 px-1 py-3 bg-background/90 backdrop-blur border-t border-line flex items-center gap-3">
+      <div className="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-line bg-background/90 py-3 backdrop-blur">
         <Button onClick={save} disabled={saving}>
           {saving ? "Saving…" : "Save profile"}
         </Button>
