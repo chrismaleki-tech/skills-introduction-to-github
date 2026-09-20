@@ -75,8 +75,8 @@ export default function PrivacyPage() {
           <h2 className="text-lg font-semibold">Your choices</h2>
           <p className="mt-2 text-muted">
             Email{" "}
-            <a className="text-brand hover:text-brand-hover" href="mailto:privacy@salescoach.ai">
-              privacy@salescoach.ai
+            <a className="text-brand hover:text-brand-hover" href="mailto:hello@erota.io">
+              hello@erota.io
             </a>{" "}
             to access, correct, or delete personal information we hold about you.
           </p>
