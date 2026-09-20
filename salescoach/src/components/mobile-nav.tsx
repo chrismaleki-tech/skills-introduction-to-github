@@ -48,7 +48,7 @@ export function MobileNav({
             className="absolute inset-0 bg-slate-950/35"
             onClick={() => setOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[min(19rem,88vw)] flex-col bg-surface shadow-2xl">
+          <aside className="absolute inset-y-0 left-0 flex h-[100dvh] w-[min(19rem,88vw)] flex-col bg-surface shadow-2xl">
             <div className="flex items-start justify-between border-b border-line px-4 py-4">
               <div className="min-w-0">
                 <Link href="/" className="text-lg font-semibold tracking-tight">
