@@ -1,25 +1,25 @@
 event_name,am,country,dg_id,dg_rank,owgr_rank,player_name,player_num,pre_tourn_pageviews,teetimes,tour_rank,updated_at
-Presidents Cup,0,RSA,18103,75,104,"Bezuidenhout, Christiaan",45522,121,[],99,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,29433,15,20,"Bridgeman, Jacob",60004,341,[],T4,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,19483,2,8,"Burns, Sam",47504,223,[],T18,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,15466,6,28,"Cantlay, Patrick",35450,191,[],T21,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,23604,10,5,"Clark, Wyndham",51766,170,[],T21,2026-09-22T14:14:12+00:00
-Presidents Cup,0,CAN,17576,58,55,"Conners, Corey",39997,134,[],60,2026-09-22T14:14:12+00:00
-Presidents Cup,0,COL,22833,126,61,"Echavarria, Nico",51349,118,[],45,2026-09-22T14:14:12+00:00
-Presidents Cup,0,NZL,11889,53,22,"Fox, Ryan",29936,178,[],26,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,27774,12,7,"Gotterup, Chris",59095,173,[],T4,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,14578,5,6,"Henley, Russell",34098,170,[],T4,2026-09-22T14:14:12+00:00
-Presidents Cup,0,JPN,22760,84,67,"Hisatsune, Ryo",51287,126,[],47,2026-09-22T14:14:12+00:00
-Presidents Cup,0,KOR,17488,45,60,"Im, Sungjae",39971,146,[],37,2026-09-22T14:14:12+00:00
-Presidents Cup,0,KOR,14609,9,14,"Kim, Si Woo",37455,182,[],T14,2026-09-22T14:14:12+00:00
-Presidents Cup,0,KOR,24766,28,31,"Kim, Tom",55182,133,[],T14,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,32319,22,57,"Koivun, Jackson",66701,242,[],62,2026-09-22T14:14:12+00:00
-Presidents Cup,0,AUS,16841,41,30,"Lee, Min Woo",37378,153,[],T4,2026-09-22T14:14:12+00:00
-Presidents Cup,0,JPN,13562,16,27,"Matsuyama, Hideki",32839,198,[],T21,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,22085,8,11,"Morikawa, Collin",50525,159,[],T14,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,19895,7,10,"Schauffele, Xander",48081,194,[],T14,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,18417,1,1,"Scheffler, Scottie",46046,383,[],1,2026-09-22T14:14:12+00:00
-Presidents Cup,0,AUS,6430,23,45,"Scott, Adam",24502,277,[],T11,2026-09-22T14:14:12+00:00
-Presidents Cup,0,CAN,13126,74,85,"Taylor, Nick",25493,109,[],65,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,14139,26,25,"Thomas, Justin",33448,280,[],43,2026-09-22T14:14:12+00:00
-Presidents Cup,0,USA,26651,14,3,"Young, Cameron",57366,174,[],T11,2026-09-22T14:14:12+00:00
+Presidents Cup,0,RSA,18103,75,104,"Bezuidenhout, Christiaan",45522,212,[],99,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,29433,15,20,"Bridgeman, Jacob",60004,482,[],T4,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,19483,2,8,"Burns, Sam",47504,367,[],T18,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,15466,6,28,"Cantlay, Patrick",35450,374,[],T21,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,23604,10,5,"Clark, Wyndham",51766,295,[],T21,2026-09-23T14:30:05+00:00
+Presidents Cup,0,CAN,17576,58,55,"Conners, Corey",39997,234,[],60,2026-09-23T14:30:05+00:00
+Presidents Cup,0,COL,22833,126,61,"Echavarria, Nico",51349,179,[],45,2026-09-23T14:30:05+00:00
+Presidents Cup,0,NZL,11889,53,22,"Fox, Ryan",29936,264,[],26,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,27774,12,7,"Gotterup, Chris",59095,270,[],T4,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,14578,5,6,"Henley, Russell",34098,288,[],T4,2026-09-23T14:30:05+00:00
+Presidents Cup,0,JPN,22760,84,67,"Hisatsune, Ryo",51287,229,[],47,2026-09-23T14:30:05+00:00
+Presidents Cup,0,KOR,17488,45,60,"Im, Sungjae",39971,246,[],37,2026-09-23T14:30:05+00:00
+Presidents Cup,0,KOR,14609,9,14,"Kim, Si Woo",37455,325,[],T14,2026-09-23T14:30:05+00:00
+Presidents Cup,0,KOR,24766,28,31,"Kim, Tom",55182,264,[],T14,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,32319,22,57,"Koivun, Jackson",66701,399,[],62,2026-09-23T14:30:05+00:00
+Presidents Cup,0,AUS,16841,41,30,"Lee, Min Woo",37378,269,[],T4,2026-09-23T14:30:05+00:00
+Presidents Cup,0,JPN,13562,16,27,"Matsuyama, Hideki",32839,321,[],T21,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,22085,8,11,"Morikawa, Collin",50525,325,[],T14,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,19895,7,10,"Schauffele, Xander",48081,326,[],T14,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,18417,1,1,"Scheffler, Scottie",46046,724,[],1,2026-09-23T14:30:05+00:00
+Presidents Cup,0,AUS,6430,23,45,"Scott, Adam",24502,465,[],T11,2026-09-23T14:30:05+00:00
+Presidents Cup,0,CAN,13126,74,85,"Taylor, Nick",25493,172,[],65,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,14139,26,25,"Thomas, Justin",33448,516,[],43,2026-09-23T14:30:05+00:00
+Presidents Cup,0,USA,26651,14,3,"Young, Cameron",57366,307,[],T11,2026-09-23T14:30:05+00:00
