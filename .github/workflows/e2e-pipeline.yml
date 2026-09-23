@@ -44,7 +44,7 @@ env:
   AWS_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
   CDK_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
   PYTHON_VERSION: '3.9'
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
   VALIDATION_TIMEOUT: ${{ github.event.inputs.data-validation-timeout || '15' }}
 
 jobs:
@@ -64,15 +64,15 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -197,7 +197,7 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -366,10 +366,10 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
