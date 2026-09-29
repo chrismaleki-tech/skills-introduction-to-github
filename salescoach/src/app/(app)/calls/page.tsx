@@ -86,6 +86,7 @@ export default async function CallsPage({
           <EmptyState
             title="No calls yet"
             hint="Upload a recording or transcript, or point your dialer at the ingestion webhook."
+            action={<LinkButton href="/calls/upload">Upload your first call</LinkButton>}
           />
         </div>
       ) : (

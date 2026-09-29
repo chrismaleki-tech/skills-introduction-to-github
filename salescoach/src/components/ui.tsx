@@ -158,11 +158,20 @@ export function LinkButton({
   );
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+export function EmptyState({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+}) {
   return (
     <div className="text-center py-12 text-muted">
       <p className="font-medium text-foreground/70">{title}</p>
       {hint && <p className="text-sm mt-1">{hint}</p>}
+      {action && <div className="mt-4 flex justify-center">{action}</div>}
     </div>
   );
 }

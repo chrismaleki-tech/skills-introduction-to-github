@@ -4,12 +4,14 @@ import { currentUser } from "@/lib/session";
 import { Card, EmptyState, LinkButton, PageHeader, StatusPill, fmtDate } from "@/components/ui";
 import { RepDetail } from "@/components/dashboard/rep-detail";
 import { monthStart } from "@/components/dashboard/insights";
+import { GettingStartedChecklist } from "@/components/getting-started-checklist";
+import { getGettingStartedSteps } from "@/lib/getting-started";
 
 export default async function MePage() {
   const user = await currentUser();
   const now = new Date();
 
-  const [openAssignments, gradedCallsThisMonth] = await Promise.all([
+  const [openAssignments, gradedCallsThisMonth, gettingStartedSteps] = await Promise.all([
     db.assignment.findMany({
       where: { orgId: user.orgId, assignedToId: user.id, status: { not: "COMPLETED" } },
       include: { scenario: { select: { id: true, title: true } }, assignedBy: { select: { name: true } } },
@@ -22,6 +24,7 @@ export default async function MePage() {
         call: { repId: user.id, callDate: { gte: monthStart(now) } },
       },
     }),
+    getGettingStartedSteps(user),
   ]);
 
   return (
@@ -30,6 +33,8 @@ export default async function MePage() {
         title="My Performance"
         subtitle="Your scores, skill breakdown, and open practice assignments."
       />
+
+      <GettingStartedChecklist steps={gettingStartedSteps} compact />
 
       <div className="space-y-6 mb-6">
         <Card
