@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseDimensions } from "@/lib/types";
-import { Card, EmptyState, PageHeader, ScoreBadge, Stat, fmtDate } from "@/components/ui";
+import { Card, EmptyState, LinkButton, PageHeader, ScoreBadge, Stat, fmtDate } from "@/components/ui";
 import { ChartLegend, TrendArrow, WeeklyTrendChart, type WeekPoint } from "@/components/dashboard/charts";
 import { SkillHeatmap, type HeatmapRow } from "@/components/dashboard/heatmap";
+import { GettingStartedChecklist } from "@/components/getting-started-checklist";
+import { getGettingStartedSteps } from "@/lib/getting-started";
 import {
   activityDate,
   avg,
@@ -31,7 +33,7 @@ export default async function DashboardPage() {
   const last14 = daysAgo(now, 14);
   const earliest = new Date(Math.min(pStart.getTime(), trendStart.getTime(), last30.getTime()));
 
-  const [reps, methodology, grades, monthCalls, activeAssignments] = await Promise.all([
+  const [reps, methodology, grades, monthCalls, activeAssignments, gettingStartedSteps] = await Promise.all([
     db.user.findMany({ where: { orgId: user.orgId, role: "REP" }, orderBy: { name: "asc" } }),
     user.org.activeMethodologyId
       ? db.methodology.findUnique({ where: { id: user.org.activeMethodologyId } })
@@ -57,6 +59,7 @@ export default async function DashboardPage() {
       where: { orgId: user.orgId, status: { not: "COMPLETED" } },
       select: { dueDate: true },
     }),
+    getGettingStartedSteps(user),
   ]);
 
   const repOf = (g: (typeof grades)[number]) => g.call?.repId ?? g.roleplay?.repId ?? null;
@@ -151,6 +154,8 @@ export default async function DashboardPage() {
         subtitle={`Grading activity and skill coverage for ${user.org.name}. Scores reflect manager overrides where present.`}
       />
 
+      <GettingStartedChecklist steps={gettingStartedSteps} compact />
+
       <div className="mb-6 grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Team avg this month"
@@ -176,7 +181,11 @@ export default async function DashboardPage() {
 
       <Card title="Skill heatmap · last 30 days" className="mb-6">
         {dims.length === 0 ? (
-          <EmptyState title="No active methodology" hint="Pick an active rubric in Rubrics to unlock the per-dimension heatmap." />
+          <EmptyState
+            title="No active methodology"
+            hint="Pick an active rubric in Rubrics to unlock the per-dimension heatmap."
+            action={<LinkButton href="/rubrics">Choose a rubric</LinkButton>}
+          />
         ) : reps.length === 0 ? (
           <EmptyState title="No reps on the team yet" />
         ) : (

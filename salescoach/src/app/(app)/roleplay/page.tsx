@@ -2,7 +2,7 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parsePersona } from "@/lib/types";
-import { Card, EmptyState, PageHeader, ScoreBadge, StatusPill, fmtDateTime } from "@/components/ui";
+import { Card, EmptyState, LinkButton, PageHeader, ScoreBadge, StatusPill, fmtDateTime } from "@/components/ui";
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { StartSessionButton } from "@/components/roleplay/start-session-button";
 
@@ -43,6 +43,13 @@ export default async function RoleplayPage() {
                 manager
                   ? "Create one on the Scenarios page to give your team something to practice against."
                   : "Ask your manager to publish a scenario on the Scenarios page."
+              }
+              action={
+                manager ? (
+                  <LinkButton href="/scenarios">Create a scenario</LinkButton>
+                ) : (
+                  <LinkButton href="/getting-started" variant="secondary">View getting started guide</LinkButton>
+                )
               }
             />
           </Card>
