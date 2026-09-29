@@ -19,8 +19,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const manager = isManagerRole(user.role);
   const items: NavItem[] = [
-    ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
     { href: "/getting-started", label: "Getting Started" },
+    ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
     { href: "/me", label: "My Performance" },
     { href: "/calls", label: "Calls" },
     { href: "/roleplay", label: "Role-Play" },
