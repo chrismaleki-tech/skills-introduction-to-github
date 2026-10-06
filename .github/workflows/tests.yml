@@ -28,7 +28,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install pytest openpyxl requests scipy
+        run: pip install pytest openpyxl requests scipy numbers-parser
 
       - name: Simulator upload invariants
         run: python -m pytest tests -q
