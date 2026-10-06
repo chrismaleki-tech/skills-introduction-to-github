@@ -246,6 +246,9 @@ Outputs in `field_stats/` (all self-contained, no external assets):
 - `players.json` — the merged per-player table
 - `statcaddy-field-stats.csv` — the same table as a downloadable CSV for
   Excel / Google Sheets (odds columns included only when predictions are current)
+- `statcaddy-field-stats.xlsx` — the same table as a ready-made Excel workbook
+  (bold frozen header, sized columns), for people who want rows and columns
+  without a CSV import step
 
 The push step needs `WP_URL`, `WP_USERNAME`, `WP_APP_PASSWORD` and
 `WP_FIELD_STATS_PAGE_ID` (the WordPress page to overwrite).

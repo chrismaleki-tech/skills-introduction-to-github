@@ -15,6 +15,7 @@ Outputs (all self-contained, no external assets):
     field_stats/wp-embed.html                WordPress-safe embed (scoped CSS + base64 JS)
     field_stats/players.json                 the merged per-player table
     field_stats/statcaddy-field-stats.csv    the same table for Excel / Sheets
+    field_stats/statcaddy-field-stats.xlsx   ready-made Excel workbook (real columns)
 
 Env (only needed for the push step):
     WP_URL, WP_USERNAME, WP_APP_PASSWORD, WP_FIELD_STATS_PAGE_ID
@@ -154,6 +155,29 @@ def render_csv(players):
     for p in players:
         writer.writerow("" if p.get(key) is None else p[key] for key, _ in cols)
     return buf.getvalue()
+
+
+def write_xlsx(players, path):
+    """The same table as a real Excel workbook — columns land as columns, no import step."""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    from openpyxl.utils import get_column_letter
+
+    cols = CSV_COLS + (ODDS_COLS if players and "win" in players[0] else [])
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Field Stats"
+    ws.append([label for _, label in cols])
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+    for p in players:
+        ws.append([p.get(key) for key, _ in cols])
+    ws.freeze_panes = "A2"
+    for i, (key, label) in enumerate(cols, 1):
+        longest = max((len(str(p[key])) for p in players if p.get(key) is not None),
+                      default=0)
+        ws.column_dimensions[get_column_letter(i)].width = max(len(label), longest) + 2
+    wb.save(path)
 
 
 def summarize(players):
@@ -356,6 +380,7 @@ def main():
     open(os.path.join(args.out_dir, "wp-embed.html"), "w").write(embed)
     json.dump(players, open(os.path.join(args.out_dir, "players.json"), "w"), indent=0)
     open(os.path.join(args.out_dir, "statcaddy-field-stats.csv"), "w").write(render_csv(players))
+    write_xlsx(players, os.path.join(args.out_dir, "statcaddy-field-stats.xlsx"))
     print(f"[ok] {ctx['event']} ({ctx.get('dates')}): {len(players)} players "
           f"({rated} rated) -> {args.out_dir}")
 

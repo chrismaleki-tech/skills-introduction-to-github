@@ -202,6 +202,22 @@ def test_the_csv_has_no_odds_columns_when_predictions_are_stale(snapshots):
     assert "Win Prob" not in header and header.startswith("Player,")
 
 
+def xlsx_rows(path):
+    from openpyxl import load_workbook
+    ws = load_workbook(path, read_only=True).active
+    return [list(row) for row in ws.iter_rows(values_only=True)]
+
+
+def test_the_xlsx_mirrors_the_table(snapshots, tmp_path):
+    _, players = load(snapshots)
+    bfs.write_xlsx(players, tmp_path / "out.xlsx")
+    header, *rows = xlsx_rows(tmp_path / "out.xlsx")
+    assert header[:5] == ["Player", "Country", "DG Rank", "OWGR", "SG Total"]
+    assert header[-3:] == ["Win Prob", "Top 5 Prob", "Top 10 Prob"]
+    assert [r[0] for r in rows] == ["Aaron Alpha", "Bo Beta", "Gus Gamma"]
+    assert rows[0][4] == 2.7 and rows[-1][4] is None  # unrated stays empty, not zero
+
+
 def test_the_page_says_when_odds_were_left_out(snapshots):
     rows = list(csv.reader(open(snapshots / "dg_predictions.csv")))
     for r in rows[1:]:
@@ -250,3 +266,8 @@ def test_the_committed_artifacts_are_current():
     assert bfs.render_page(ctx, players) == page
     assert bfs.build_embed(ctx, players) == (out / "wp-embed.html").read_text()
     assert bfs.render_csv(players) == (out / "statcaddy-field-stats.csv").read_text()
+    # xlsx zip entries embed save timestamps, so compare values rather than bytes.
+    cols = bfs.CSV_COLS + (bfs.ODDS_COLS if players and "win" in players[0] else [])
+    header, *rows = xlsx_rows(out / "statcaddy-field-stats.xlsx")
+    assert header == [label for _, label in cols]
+    assert rows == [[p.get(key) for key, _ in cols] for p in players]
