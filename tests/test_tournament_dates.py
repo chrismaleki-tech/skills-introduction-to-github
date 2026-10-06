@@ -52,8 +52,16 @@ def test_the_last_day_is_three_days_after_round_one():
 
 
 def test_round_one_is_always_a_thursday():
-    """Thursday to Sunday only lines up because Data Golf dates round one, not the pro-am."""
-    assert {datetime.date.fromisoformat(r["start_date"]).weekday() for r in pga_schedule()} == {3}
+    """Thursday to Sunday only lines up because Data Golf dates round one, not the pro-am.
+
+    Team cups are exempt: they play Friday-Sunday and Data Golf dates them by the final
+    day, and the simulator never formats a date label for them (no stroke-play field).
+    """
+    team_cups = ("Ryder Cup", "Presidents Cup")
+    weekdays = {datetime.date.fromisoformat(r["start_date"]).weekday()
+                for r in pga_schedule()
+                if not any(cup in r["event_name"] for cup in team_cups)}
+    assert weekdays == {3}
 
 
 def test_every_event_on_the_schedule_gets_a_sane_label():

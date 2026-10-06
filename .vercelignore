@@ -1,0 +1,5 @@
+# Only the simulator site deploys to Vercel; everything else in this repo
+# (data pipeline, AWS experiments, workbooks) stays out of the deployment.
+/*
+!simulator
+!vercel.json
