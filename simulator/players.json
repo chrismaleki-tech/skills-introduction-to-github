@@ -5,39 +5,99 @@
 "app": 0.287,
 "arg": -0.287,
 "putt": 0.232,
-"form": 0.657,
-"hist": 0.0,
-"pts": 0.655
+"form": 0.818,
+"hist": -0.01,
+"pts": 0.669
 },
 {
-"name": "Cameron Young",
-"ott": 0.579,
-"app": 0.414,
-"arg": 0.167,
-"putt": -0.534,
-"form": 0.625,
-"hist": -0.04,
-"pts": 0.48
+"name": "Aldrich Potgieter",
+"ott": 0.2,
+"app": -0.763,
+"arg": -0.683,
+"putt": 0.117,
+"form": -1.878,
+"hist": -0.01,
+"pts": 0.0
 },
 {
-"name": "Chris Gotterup",
-"ott": 0.736,
-"app": 0.329,
-"arg": -0.007,
-"putt": 0.231,
-"form": 1.32,
+"name": "Alex Smalley",
+"ott": -0.044,
+"app": 0.274,
+"arg": -0.164,
+"putt": -0.174,
+"form": -0.112,
+"hist": 0.02,
+"pts": 0.174
+},
+{
+"name": "Andrew Putnam",
+"ott": -0.89,
+"app": 0.195,
+"arg": 0.073,
+"putt": 0.267,
+"form": -0.083,
+"hist": -0.05,
+"pts": 0.0
+},
+{
+"name": "Beau Hossler",
+"ott": 0.395,
+"app": 0.002,
+"arg": 0.237,
+"putt": 0.083,
+"form": 0.354,
+"hist": -0.02,
+"pts": 0.197
+},
+{
+"name": "Ben Kohles",
+"ott": 0.388,
+"app": 0.495,
+"arg": 0.092,
+"putt": 0.58,
+"form": 1.49,
 "hist": -0.04,
-"pts": 1.29
+"pts": 0.724
+},
+{
+"name": "Billy Horschel",
+"ott": 0.021,
+"app": 0.779,
+"arg": -0.341,
+"putt": 0.161,
+"form": 0.572,
+"hist": -0.03,
+"pts": 0.297
+},
+{
+"name": "Brian Harman",
+"ott": -0.033,
+"app": 0.228,
+"arg": 0.028,
+"putt": 0.143,
+"form": 0.69,
+"hist": -0.04,
+"pts": 0.603
+},
+{
+"name": "Chandler Phillips",
+"ott": 0.157,
+"app": -0.138,
+"arg": 0.598,
+"putt": 0.342,
+"form": 0.61,
+"hist": -0.04,
+"pts": 0.389
 },
 {
 "name": "Christiaan Bezuidenhout",
-"ott": -0.173,
-"app": 0.454,
-"arg": 0.127,
-"putt": 0.089,
-"form": 0.732,
-"hist": -0.04,
-"pts": 0.28
+"ott": -0.298,
+"app": 0.542,
+"arg": 0.102,
+"putt": 0.195,
+"form": 0.64,
+"hist": 0.0,
+"pts": 0.297
 },
 {
 "name": "Collin Morikawa",
@@ -45,39 +105,69 @@
 "app": 0.62,
 "arg": -0.342,
 "putt": 0.866,
-"form": 0.845,
-"hist": -0.03,
-"pts": 1.496
+"form": 0.58,
+"hist": -0.01,
+"pts": 1.273
 },
 {
-"name": "Corey Conners",
-"ott": 0.294,
-"app": 0.421,
-"arg": -0.051,
-"putt": -0.237,
-"form": 0.652,
-"hist": 0.02,
-"pts": 0.561
+"name": "David Lipsky",
+"ott": -0.242,
+"app": -0.326,
+"arg": -0.076,
+"putt": 0.178,
+"form": -0.672,
+"hist": -0.02,
+"pts": 0.087
+},
+{
+"name": "Davis Thompson",
+"ott": 0.183,
+"app": 0.748,
+"arg": -0.258,
+"putt": -0.118,
+"form": 0.873,
+"hist": -0.04,
+"pts": 0.463
+},
+{
+"name": "Denny McCarthy",
+"ott": -0.347,
+"app": 0.141,
+"arg": -0.056,
+"putt": 0.503,
+"form": -0.022,
+"hist": -0.04,
+"pts": 0.273
+},
+{
+"name": "Doug Ghim",
+"ott": 0.55,
+"app": 0.198,
+"arg": 0.166,
+"putt": 0.236,
+"form": 1.06,
+"hist": -0.04,
+"pts": 0.628
 },
 {
 "name": "Hideki Matsuyama",
-"ott": 0.251,
-"app": 0.478,
-"arg": 0.421,
-"putt": -0.05,
-"form": 1.496,
-"hist": 0.02,
-"pts": 1.244
+"ott": 0.266,
+"app": 0.36,
+"arg": 0.463,
+"putt": -0.114,
+"form": 1.38,
+"hist": -0.01,
+"pts": 1.176
 },
 {
-"name": "Jackson Koivun",
-"ott": 0.512,
-"app": 0.548,
-"arg": 0.227,
-"putt": 0.062,
-"form": 1.436,
+"name": "Jackson Suber",
+"ott": 0.167,
+"app": 0.581,
+"arg": 0.381,
+"putt": -0.057,
+"form": 0.647,
 "hist": -0.04,
-"pts": 0.817
+"pts": 0.54
 },
 {
 "name": "Jacob Bridgeman",
@@ -85,19 +175,219 @@
 "app": 0.34,
 "arg": -0.004,
 "putt": 0.648,
-"form": 1.088,
+"form": 1.358,
 "hist": -0.04,
-"pts": 0.907
+"pts": 1.255
+},
+{
+"name": "John Parry",
+"ott": -0.057,
+"app": 0.382,
+"arg": 0.375,
+"putt": -0.023,
+"form": 0.668,
+"hist": -0.04,
+"pts": 0.351
+},
+{
+"name": "Johnny Keefer",
+"ott": 0.264,
+"app": 0.403,
+"arg": 0.009,
+"putt": 0.113,
+"form": 0.406,
+"hist": -0.04,
+"pts": 0.26
+},
+{
+"name": "Jordan Smith",
+"ott": 0.58,
+"app": 0.294,
+"arg": -0.266,
+"putt": 0.186,
+"form": 1.278,
+"hist": -0.04,
+"pts": 0.675
+},
+{
+"name": "Jordan Spieth",
+"ott": 0.015,
+"app": -0.005,
+"arg": -0.025,
+"putt": 0.018,
+"form": 1.113,
+"hist": -0.04,
+"pts": 0.284
 },
 {
 "name": "Justin Thomas",
-"ott": 0.296,
-"app": -0.041,
-"arg": 0.844,
-"putt": -0.084,
-"form": 0.16,
+"ott": 0.177,
+"app": -0.145,
+"arg": 0.912,
+"putt": -0.055,
+"form": 0.258,
+"hist": -0.04,
+"pts": 0.584
+},
+{
+"name": "Keegan Bradley",
+"ott": 0.29,
+"app": 0.806,
+"arg": 0.274,
+"putt": -0.28,
+"form": 0.115,
+"hist": -0.04,
+"pts": 0.543
+},
+{
+"name": "Keita Nakajima",
+"ott": 0.27,
+"app": 0.43,
+"arg": 0.072,
+"putt": 0.206,
+"form": 0.255,
+"hist": -0.01,
+"pts": 0.268
+},
+{
+"name": "Keith Mitchell",
+"ott": 0.683,
+"app": 0.403,
+"arg": 0.02,
+"putt": -0.01,
+"form": 0.343,
+"hist": 0.01,
+"pts": 0.906
+},
+{
+"name": "Kevin Roy",
+"ott": 0.464,
+"app": 0.193,
+"arg": -0.087,
+"putt": -0.247,
+"form": 1.332,
+"hist": -0.02,
+"pts": 0.357
+},
+{
+"name": "Kevin Yu",
+"ott": 0.487,
+"app": 0.487,
+"arg": 0.1,
+"putt": 0.167,
+"form": 0.896,
+"hist": -0.01,
+"pts": 0.417
+},
+{
+"name": "Kurt Kitayama",
+"ott": 0.287,
+"app": 0.632,
+"arg": 0.132,
+"putt": -0.078,
+"form": 0.58,
+"hist": -0.04,
+"pts": 0.43
+},
+{
+"name": "Lee Hodges",
+"ott": 0.318,
+"app": 0.077,
+"arg": -0.12,
+"putt": -0.145,
+"form": 0.1,
+"hist": -0.02,
+"pts": 0.15
+},
+{
+"name": "Mac Meissner",
+"ott": 0.031,
+"app": -0.214,
+"arg": 0.2,
+"putt": -0.189,
+"form": 0.352,
+"hist": -0.01,
+"pts": 0.229
+},
+{
+"name": "Matt McCarty",
+"ott": -0.511,
+"app": -0.74,
+"arg": -0.331,
+"putt": 0.996,
+"form": -0.144,
+"hist": 0.01,
+"pts": 0.069
+},
+{
+"name": "Matt Wallace",
+"ott": 0.165,
+"app": 0.99,
+"arg": 0.438,
+"putt": -0.35,
+"form": 0.963,
+"hist": 0.01,
+"pts": 0.544
+},
+{
+"name": "Maverick McNealy",
+"ott": 0.097,
+"app": -0.203,
+"arg": 0.26,
+"putt": 0.89,
+"form": 0.542,
+"hist": -0.04,
+"pts": 0.619
+},
+{
+"name": "Max Greyserman",
+"ott": 0.343,
+"app": -0.694,
+"arg": -0.04,
+"putt": 0.666,
+"form": -0.018,
 "hist": 0.04,
-"pts": 0.689
+"pts": 0.17
+},
+{
+"name": "Max Homa",
+"ott": 0.117,
+"app": 0.295,
+"arg": 0.1,
+"putt": 0.38,
+"form": 0.747,
+"hist": -0.02,
+"pts": 0.592
+},
+{
+"name": "Michael Brennan",
+"ott": 0.652,
+"app": 0.381,
+"arg": -0.389,
+"putt": 0.166,
+"form": 1.165,
+"hist": -0.04,
+"pts": 1.478
+},
+{
+"name": "Michael Kim",
+"ott": -0.151,
+"app": 0.28,
+"arg": -0.066,
+"putt": 0.123,
+"form": 0.547,
+"hist": -0.04,
+"pts": 0.298
+},
+{
+"name": "Michael Thorbjornsen",
+"ott": 0.26,
+"app": 0.252,
+"arg": 0.262,
+"putt": -0.18,
+"form": 0.755,
+"hist": 0.02,
+"pts": 0.633
 },
 {
 "name": "Min Woo Lee",
@@ -105,9 +395,9 @@
 "app": 0.057,
 "arg": 0.098,
 "putt": -0.242,
-"form": -0.073,
-"hist": -0.04,
-"pts": 0.303
+"form": 0.333,
+"hist": 0.0,
+"pts": 0.416
 },
 {
 "name": "Nick Taylor",
@@ -115,109 +405,179 @@
 "app": -0.275,
 "arg": 0.014,
 "putt": 0.502,
-"form": -0.083,
+"form": -0.106,
 "hist": -0.04,
-"pts": 0.115
+"pts": 0.112
 },
 {
 "name": "Nico Echavarria",
-"ott": -0.056,
-"app": -0.044,
-"arg": 0.031,
-"putt": 0.326,
-"form": -0.348,
-"hist": -0.04,
-"pts": 0.39
-},
-{
-"name": "Patrick Cantlay",
-"ott": 0.199,
-"app": 1.007,
-"arg": 0.046,
-"putt": -0.076,
-"form": 1.185,
+"ott": -0.07,
+"app": -0.172,
+"arg": -0.011,
+"putt": 0.314,
+"form": -0.282,
 "hist": 0.02,
-"pts": 0.823
+"pts": 0.269
 },
 {
-"name": "Russell Henley",
-"ott": 0.427,
-"app": 0.361,
-"arg": -0.304,
-"putt": 0.7,
-"form": 1.027,
+"name": "Patrick Rodgers",
+"ott": -0.574,
+"app": -0.724,
+"arg": -0.016,
+"putt": -0.05,
+"form": -1.27,
 "hist": -0.04,
-"pts": 1.299
+"pts": 0.06
 },
 {
-"name": "Ryan Fox",
-"ott": 0.021,
-"app": 0.303,
-"arg": -0.08,
-"putt": 0.217,
-"form": -0.637,
+"name": "Pierceson Coody",
+"ott": -0.06,
+"app": -0.576,
+"arg": 0.028,
+"putt": -0.156,
+"form": -1.195,
 "hist": -0.04,
-"pts": 0.561
+"pts": 0.216
+},
+{
+"name": "Rasmus Neergaard-Petersen",
+"ott": 0.71,
+"app": 0.102,
+"arg": -0.026,
+"putt": -0.426,
+"form": 0.492,
+"hist": -0.04,
+"pts": 0.29
+},
+{
+"name": "Rickie Fowler",
+"ott": 0.257,
+"app": 0.36,
+"arg": -0.353,
+"putt": 0.058,
+"form": 0.2,
+"hist": -0.04,
+"pts": 0.389
+},
+{
+"name": "Ricky Castillo",
+"ott": 0.304,
+"app": -0.276,
+"arg": 0.246,
+"putt": 0.48,
+"form": 0.632,
+"hist": -0.04,
+"pts": 0.333
+},
+{
+"name": "Ryan Gerard",
+"ott": 0.496,
+"app": -0.098,
+"arg": 0.239,
+"putt": 0.389,
+"form": 1.15,
+"hist": -0.01,
+"pts": 1.453
 },
 {
 "name": "Ryo Hisatsune",
-"ott": 0.248,
-"app": 0.298,
-"arg": -0.046,
-"putt": -0.474,
-"form": -0.184,
-"hist": -0.04,
-"pts": 0.202
+"ott": 0.217,
+"app": 0.315,
+"arg": -0.016,
+"putt": -0.438,
+"form": -0.344,
+"hist": -0.06,
+"pts": 0.212
 },
 {
-"name": "Sam Burns",
-"ott": 0.262,
-"app": 1.18,
-"arg": 0.06,
-"putt": 0.673,
-"form": 0.81,
-"hist": -0.04,
-"pts": 3.713
-},
-{
-"name": "Scottie Scheffler",
-"ott": 0.581,
-"app": 1.039,
-"arg": 0.326,
-"putt": 0.471,
-"form": 2.138,
-"hist": -0.04,
-"pts": 6.244
-},
-{
-"name": "Si Woo Kim",
-"ott": 0.14,
-"app": 0.954,
-"arg": 0.257,
-"putt": -0.163,
-"form": 1.308,
+"name": "Sahith Theegala",
+"ott": -0.259,
+"app": 0.48,
+"arg": -0.094,
+"putt": -0.044,
+"form": -1.055,
 "hist": 0.0,
-"pts": 1.386
+"pts": 0.101
+},
+{
+"name": "Stephan Jaeger",
+"ott": -0.862,
+"app": 0.238,
+"arg": 0.13,
+"putt": 0.21,
+"form": 0.546,
+"hist": -0.04,
+"pts": 0.246
+},
+{
+"name": "Steven Fisk",
+"ott": 0.288,
+"app": -0.678,
+"arg": -0.024,
+"putt": -0.756,
+"form": -0.835,
+"hist": -0.04,
+"pts": 0.073
 },
 {
 "name": "Sungjae Im",
-"ott": 0.32,
-"app": -0.518,
-"arg": 0.219,
-"putt": 0.357,
-"form": 0.703,
+"ott": 0.371,
+"app": -0.447,
+"arg": 0.223,
+"putt": 0.494,
+"form": 1.178,
 "hist": 0.0,
-"pts": 0.679
+"pts": 0.788
 },
 {
-"name": "Tom Kim",
-"ott": 0.037,
-"app": 0.938,
-"arg": 0.078,
-"putt": 0.191,
-"form": 0.893,
+"name": "Takumi Kanaya",
+"ott": -0.017,
+"app": -0.46,
+"arg": 0.332,
+"putt": 0.085,
+"form": -0.112,
+"hist": 0.02,
+"pts": 0.127
+},
+{
+"name": "Taylor Moore",
+"ott": -0.243,
+"app": -0.653,
+"arg": 0.09,
+"putt": -0.24,
+"form": -0.865,
 "hist": -0.04,
-"pts": 1.81
+"pts": 0.022
+},
+{
+"name": "Taylor Pendrith",
+"ott": 0.113,
+"app": -0.19,
+"arg": 0.084,
+"putt": -0.38,
+"form": -0.844,
+"hist": -0.04,
+"pts": 0.104
+},
+{
+"name": "Tom Hoge",
+"ott": -0.2,
+"app": 0.503,
+"arg": -0.03,
+"putt": -0.264,
+"form": -0.403,
+"hist": -0.04,
+"pts": 0.128
+},
+{
+"name": "Tony Finau",
+"ott": 0.095,
+"app": -0.277,
+"arg": 0.377,
+"putt": -0.697,
+"form": -1.003,
+"hist": -0.04,
+"pts": 0.059
 },
 {
 "name": "Wyndham Clark",
@@ -225,9 +585,9 @@
 "app": 0.251,
 "arg": 0.439,
 "putt": 0.57,
-"form": 0.557,
-"hist": -0.01,
-"pts": 4.147
+"form": 0.106,
+"hist": -0.03,
+"pts": 3.687
 },
 {
 "name": "Xander Schauffele",
@@ -235,8 +595,18 @@
 "app": 0.273,
 "arg": 0.096,
 "putt": -0.11,
-"form": 0.72,
-"hist": -0.01,
-"pts": 1.033
+"form": 0.936,
+"hist": 0.02,
+"pts": 1.154
+},
+{
+"name": "Zach Bauchou",
+"ott": 0.137,
+"app": 0.283,
+"arg": -0.095,
+"putt": 0.308,
+"form": 1.05,
+"hist": -0.04,
+"pts": 0.323
 }
 ]
