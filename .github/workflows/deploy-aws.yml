@@ -33,7 +33,7 @@ env:
   AWS_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
   CDK_DEFAULT_REGION: ${{ github.event.inputs.aws-region || secrets.AWS_DEFAULT_REGION || 'us-east-2' }}
   PYTHON_VERSION: '3.9'
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
 
 jobs:
   deploy-infrastructure:
@@ -46,15 +46,15 @@ jobs:
     
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -71,7 +71,7 @@ jobs:
           aws s3 ls || echo "No S3 buckets found"
 
       - name: Cache Python Dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
@@ -228,10 +228,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -248,7 +248,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Download CDK Outputs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: cdk-outputs
           path: ./artifacts
@@ -280,7 +280,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -338,15 +338,16 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
+        continue-on-error: true
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
@@ -355,6 +356,7 @@ jobs:
       - name: Install AWS CDK
         run: |
           npm install -g aws-cdk@latest
+        continue-on-error: true
 
       - name: Destroy CDK Stack (Optional)
         run: |
@@ -374,7 +376,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Trigger E2E Pipeline Workflow
         uses: actions/github-script@v7
