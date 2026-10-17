@@ -116,6 +116,14 @@ body {
   font-family: var(--font-display), ui-serif, Georgia, serif;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mkt-rise,
+  .mkt-fade,
+  .mkt-hero-wash {
+    animation: none;
+  }
+}
+
 /* Avoid iOS Safari zooming form controls and keep touch targets usable. */
 @media (max-width: 767px) {
   input,
