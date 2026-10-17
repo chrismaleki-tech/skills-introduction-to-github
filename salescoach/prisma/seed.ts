@@ -1,0 +1,1238 @@
+/* Seed: demo tenant "Meridian Software" with a full team, methodology presets,
+ * company context, two months of ingested calls (run through the real
+ * ingestion pipeline, including sampling), role-play scenarios and graded
+ * sessions, and manager assignments. Run: npm run db:seed */
+import { db } from "../src/lib/db";
+import { METHODOLOGY_PRESETS } from "../src/lib/presets";
+import { ingestCall, gradeRoleplay } from "../src/lib/pipeline";
+import type { CompanyProfile, RoleplayMessage, ScenarioPersona } from "../src/lib/types";
+
+const COMPANY: CompanyProfile = {
+  description:
+    "Meridian Software sells a real-time multi-warehouse inventory platform to mid-market distributors and 3PLs (50-500 employees).",
+  valueProps: [
+    "Real-time inventory accuracy across every warehouse",
+    "First warehouse live in 6 weeks, phased rollout",
+    "Pays for itself in reduced missed shipments within the first quarter",
+  ],
+  products: [
+    {
+      name: "Meridian Core",
+      description: "Real-time inventory tracking and sync across warehouses.",
+      differentiators: ["ERP integration (NetSuite, SAP B1)", "6-week phased deployment", "99.9% count accuracy SLA"],
+      idealFor: "Distributors running 2+ warehouses on spreadsheets or legacy ERP modules.",
+    },
+    {
+      name: "Meridian Forecast",
+      description: "Demand forecasting add-on using live inventory signals.",
+      differentiators: ["Works day one on Core data", "No data science team required"],
+      idealFor: "Teams with seasonal demand swings.",
+    },
+  ],
+  personas: [
+    {
+      title: "VP of Operations",
+      industry: "Wholesale distribution",
+      painPoints: ["Missed shipments from count drift", "No visibility across warehouses", "Manual cycle counts eating labor"],
+      notes: "Cares about customer commitments and labor cost, not tech.",
+    },
+    {
+      title: "CFO",
+      industry: "Wholesale distribution",
+      painPoints: ["Inventory write-offs", "Working capital tied up in safety stock"],
+      notes: "Skeptical of software ROI claims; wants payback math.",
+    },
+  ],
+  objections: [
+    {
+      objection: "We've been burned by software rollouts before — these take a year and go over budget.",
+      approvedResponse:
+        "Acknowledge, then explain the phased deployment: first warehouse live in 6 weeks, fixed-fee implementation, reference customers who hit that timeline.",
+    },
+    {
+      objection: "It's too expensive.",
+      approvedResponse:
+        "Reframe to payback: quantify their missed-shipment and write-off costs, then show most customers recover the subscription in the first quarter.",
+    },
+    {
+      objection: "Our ERP already has an inventory module.",
+      approvedResponse:
+        "Agree it does, then differentiate: ERP modules batch-sync overnight; Meridian is real-time across warehouses, which is what prevents mis-ships.",
+    },
+  ],
+  competitors: [
+    { name: "StockPilot", positioning: "We win on ERP integration depth and deployment speed; they win on price. Anchor on total cost of mis-ships." },
+    { name: "InFlow", positioning: "SMB tool; we win when the prospect has multiple warehouses or an ERP." },
+  ],
+  talkTracks: [
+    "Open with the multi-warehouse count-drift problem, not the product.",
+    "Always quantify missed shipments before discussing price.",
+  ],
+  pricingNotes: "Mid-market lands $2-4k/month. Never quote before quantifying impact.",
+};
+
+// --- Transcript templates of varying quality ---
+
+const GOOD_CALL = `REP: Hi Dana, this is Alex from Meridian Software — did I catch you at an okay time?
+PROSPECT: You've got a couple of minutes.
+REP: Appreciate it. We work with distributors juggling inventory across multiple warehouses. How is your team keeping counts in sync today?
+PROSPECT: Spreadsheets plus our NetSuite module, and honestly it drifts constantly.
+REP: When the counts drift, where does it bite you first — write-offs, or missed shipments?
+PROSPECT: Missed shipments. We shorted our biggest retail account twice last quarter.
+REP: Ouch. Roughly what does a shorted order to an account like that cost you, between the chargeback and the relationship?
+PROSPECT: The chargebacks alone were around forty grand last quarter.
+REP: So call it $160k a year before you even count the relationship risk. If counts were accurate in real time across both warehouses, does that number mostly go away?
+PROSPECT: Most of it, yeah. But look, we've been burned by software rollouts before. These things take a year.
+REP: That's fair, and it's the most common concern we hear. Our deployments are phased — first warehouse live in six weeks, fixed-fee implementation. I can share two distributors your size who hit that timeline. Would that be useful?
+PROSPECT: Maybe. What does it cost?
+REP: Most customers your size land between two and four thousand a month — so against $160k of chargebacks the payback is inside a quarter. Who besides you would need to see that math for this to move?
+PROSPECT: My CFO, Marta. She owns the budget.
+REP: Perfect. Could we get thirty minutes Thursday with you and Marta? I'll bring the payback model and the rollout plan for your two warehouses.
+PROSPECT: Alright, Thursday afternoon. Send the invite.
+REP: Done — I'll send it with a one-page agenda so Marta knows exactly what she's getting. Thanks, Dana.`;
+
+const MID_CALL = `REP: Hi, this is Alex calling from Meridian Software. How are you today?
+PROSPECT: Busy. What's this about?
+REP: We make an inventory management platform. It does real-time tracking, ERP integration, forecasting, cycle count automation, barcode scanning, and multi-warehouse sync. Companies love it.
+PROSPECT: We have an inventory module in our ERP already.
+REP: Sure, but ours is better. It's real-time. Do you have inventory problems at all?
+PROSPECT: Sometimes counts are off, sure.
+REP: Right, that's exactly what we fix. Our accuracy SLA is 99.9%. We integrate with NetSuite and SAP. The dashboard is really intuitive too.
+PROSPECT: Okay. What does it cost?
+REP: Pricing depends on a lot of factors. I'd have to get you a quote. Can I ask how many warehouses you run?
+PROSPECT: Two.
+REP: Great, that's our sweet spot. So would you want to see a demo sometime?
+PROSPECT: Maybe. Send me some information and I'll take a look.
+REP: Will do, I'll email you a deck today. Thanks for your time!`;
+
+const POOR_CALL = `REP: Hey, is this the person who handles, um, purchasing software?
+PROSPECT: This is the operations line. Who's calling?
+REP: I'm with Meridian, we do inventory stuff. So basically our platform is like, you know, the best on the market. We have real-time syncing and basically everything you need. It's got AI too.
+PROSPECT: We're not really looking at anything right now.
+REP: Okay but the thing is, prices go up next quarter, so it's actually a really good time to buy. We're way better than StockPilot.
+PROSPECT: Like I said, we're not evaluating anything.
+REP: Um, okay. Well can I send you a deck? It has like all the features listed.
+PROSPECT: Fine. Send it to the info address.
+REP: Cool cool. And, uh, maybe I'll follow up next week or something?
+PROSPECT: I have to run.
+REP: Okay thanks bye.`;
+
+const DEMO_CALL = `REP: Thanks for making time, Dana. Last time you said missed shipments cost about forty grand a quarter and that Marta would need to see payback math. Today I'd like to show exactly how the two-warehouse rollout works, then the numbers. Sound right?
+PROSPECT: That works. Marta joined too.
+REP: Great — Marta, anything you want to make sure we cover?
+PROSPECT: Just the real costs. Software quotes never survive contact with reality.
+REP: Fair. Then I'll show implementation fees on the same slide as subscription. First: this is your Fresno warehouse live view — every SKU, updated on scan, synced to NetSuite in under a second. Dana, how long does that reconciliation take your team today?
+PROSPECT: Most of a day, every week.
+REP: So call it a day of labor a week back, on top of the chargebacks. Marta, here's the payback model with your numbers — subscription, fixed-fee implementation, against $160k annual chargebacks plus that labor. Quarter one payback. What would you want to stress-test in this?
+PROSPECT: What happens if the rollout slips past six weeks?
+REP: Good question — the implementation fee is fixed, so slippage is on us, and the contract includes a credit if we miss the go-live date. That's in section three here.
+PROSPECT: That's more accountability than the last vendor gave us.
+REP: That's exactly why we structure it that way. What would you both need to see to be comfortable moving to a contract review by month-end?
+PROSPECT: Send the reference customers and the draft contract. If the references check out, we'll take it to legal.
+REP: Done — you'll have both by tomorrow, and I'll book a check-in for Friday to answer whatever the references surface.`;
+
+// Distinct filler transcripts so auto-ingested calls vary.
+function fillerTranscript(i: number): string {
+  const base = [GOOD_CALL, MID_CALL, POOR_CALL, DEMO_CALL][i % 4];
+  return base;
+}
+
+async function main() {
+  console.log("Seeding...");
+
+  // Wipe (idempotent seed) — children before parents
+  await db.journalLine.deleteMany();
+  await db.journalEntry.deleteMany();
+  await db.timeEntry.deleteMany();
+  await db.projectTask.deleteMany();
+  await db.vendorBillLine.deleteMany();
+  await db.vendorBill.deleteMany();
+  await db.goodsReceiptLine.deleteMany();
+  await db.goodsReceipt.deleteMany();
+  await db.stockTransferLine.deleteMany();
+  await db.stockTransfer.deleteMany();
+  await db.inventoryBalance.deleteMany();
+  await db.warehouseBin.deleteMany();
+  await db.payment.deleteMany();
+  await db.invoiceLine.deleteMany();
+  await db.invoice.deleteMany();
+  await db.orderLine.deleteMany();
+  await db.salesOrder.deleteMany();
+  await db.quoteLine.deleteMany();
+  await db.quote.deleteMany();
+  await db.purchaseOrderLine.deleteMany();
+  await db.purchaseOrder.deleteMany();
+  await db.project.deleteMany();
+  await db.employee.deleteMany();
+  await db.glAccount.deleteMany();
+  await db.warehouse.deleteMany();
+  await db.taxCode.deleteMany();
+  await db.fxRate.deleteMany();
+  await db.product.deleteMany();
+  await db.vendor.deleteMany();
+  await db.message.deleteMany();
+  await db.conversation.deleteMany();
+  await db.channelConnection.deleteMany();
+  await db.activity.deleteMany();
+  await db.deal.deleteMany();
+  await db.contact.deleteMany();
+  await db.account.deleteMany();
+  await db.grade.deleteMany();
+  await db.transcript.deleteMany();
+  await db.call.deleteMany();
+  await db.roleplaySession.deleteMany();
+  await db.assignment.deleteMany();
+  await db.scenario.deleteMany();
+  await db.companyContext.deleteMany();
+  await db.user.deleteMany();
+  await db.methodology.deleteMany();
+  await db.org.deleteMany();
+
+  const org = await db.org.create({
+    data: {
+      name: "Meridian Software",
+      ingestionPolicyJson: JSON.stringify({
+        minDurationSec: 60,
+        sampleThreshold: 10,
+        sampleSize: 10,
+        gradeManualUploads: true,
+      }),
+    },
+  });
+
+  // Methodology presets (global) + org's active clone of Discovery Fundamentals
+  const presetRows = [];
+  for (const p of METHODOLOGY_PRESETS) {
+    presetRows.push(
+      await db.methodology.create({
+        data: {
+          name: p.name,
+          description: p.description,
+          isPreset: true,
+          dimensionsJson: JSON.stringify(p.dimensions),
+        },
+      }),
+    );
+  }
+  const active = await db.methodology.create({
+    data: {
+      orgId: org.id,
+      name: "Meridian Sales Rubric (Discovery Fundamentals + custom)",
+      description:
+        "Cloned from Discovery Call Fundamentals with a company-specific dimension for quantifying missed-shipment impact.",
+      dimensionsJson: JSON.stringify([
+        ...METHODOLOGY_PRESETS[0].dimensions,
+        {
+          key: "quantify_impact",
+          name: "Quantified missed-shipment impact",
+          description:
+            "Company-specific: got the prospect to put a dollar figure on count drift (chargebacks, write-offs, labor) before any pricing talk.",
+          weight: 2,
+          companySpecific: true,
+          levels: [
+            { score: 1, description: "Discussed price with no quantification of impact." },
+            { score: 2, description: "Mentioned costs qualitatively only." },
+            { score: 3, description: "Got a rough qualitative sizing of the problem." },
+            { score: 4, description: "Prospect stated a concrete cost figure." },
+            { score: 5, description: "Concrete figure, annualized, and tied back to pricing as payback." },
+          ],
+        },
+      ]),
+    },
+  });
+  await db.org.update({ where: { id: org.id }, data: { activeMethodologyId: active.id } });
+
+  await db.companyContext.create({
+    data: { orgId: org.id, profileJson: JSON.stringify(COMPANY) },
+  });
+
+  // Users
+  const mkUser = (name: string, email: string, role: string, title: string) =>
+    db.user.create({ data: { orgId: org.id, name, email, role, title } });
+  const manager = await mkUser("Sarah Chen", "sarah@meridian.demo", "MANAGER", "VP of Sales");
+  const trainer = await mkUser("Marcus Webb", "marcus@meridian.demo", "TRAINER", "Sales Enablement Lead");
+  await mkUser("Ana Ruiz", "ana@meridian.demo", "ADMIN", "RevOps Admin");
+  const reps = [];
+  for (const [name, email, title] of [
+    ["Alex Rivera", "alex@meridian.demo", "Account Executive"],
+    ["Jordan Patel", "jordan@meridian.demo", "SDR"],
+    ["Casey Nguyen", "casey@meridian.demo", "SDR"],
+    ["Morgan Blake", "morgan@meridian.demo", "Account Executive"],
+    ["Riley Okafor", "riley@meridian.demo", "SDR"],
+  ] as const) {
+    reps.push(await mkUser(name, email, "REP", title));
+  }
+
+  // Scenarios
+  const personas: { title: string; persona: ScenarioPersona; callType: string; difficulty: string; win: string[] }[] = [
+    {
+      title: "Cold call: skeptical VP of Operations",
+      callType: "cold_call",
+      difficulty: "medium",
+      persona: {
+        name: "Dana Whitfield",
+        title: "VP of Operations",
+        company: "Cascade Distribution",
+        industry: "Wholesale distribution",
+        personality: "Time-pressed, practical, allergic to buzzwords. Warms up to specific, quantified talk.",
+        painPoints: ["Shorted two big retail orders last quarter from count drift", "Weekly manual reconciliation eats a full day"],
+        objections: [
+          "We've been burned by software rollouts before — these things take a year and go over budget.",
+          "Our ERP already has an inventory module.",
+        ],
+        budget: "Has budget authority up to $50k/yr; CFO sign-off above that.",
+        notes: "Will end the call quickly if the rep pitches features before asking about her operation.",
+      },
+      win: [
+        "Uncovered the missed-shipment pain and got a dollar figure on it",
+        "Handled the rollout-risk objection with the phased deployment response",
+        "Booked a concrete next meeting including the CFO",
+      ],
+    },
+    {
+      title: "Discovery: ROI-focused CFO",
+      callType: "discovery",
+      difficulty: "hard",
+      persona: {
+        name: "Marta Iglesias",
+        title: "CFO",
+        company: "Cascade Distribution",
+        industry: "Wholesale distribution",
+        personality: "Polite but relentless on numbers. Interrupts vague claims and asks for evidence.",
+        painPoints: ["Inventory write-offs growing YoY", "Working capital locked in safety stock"],
+        objections: ["It's too expensive.", "Every vendor promises payback in a quarter — nobody delivers."],
+        budget: "Owns the budget. Will not approve without a payback model she has stress-tested.",
+        notes: "Rewards reps who volunteer implementation costs and risk terms without being cornered.",
+      },
+      win: [
+        "Presented payback math using her numbers, not generic claims",
+        "Handled the price objection with the approved reframe",
+        "Secured agreement on decision criteria and a follow-up with legal/procurement",
+      ],
+    },
+    {
+      title: "Objection gauntlet: incumbent-happy ops manager",
+      callType: "discovery",
+      difficulty: "easy",
+      persona: {
+        name: "Tom Herrera",
+        title: "Operations Manager",
+        company: "BlueRidge Supply",
+        industry: "Industrial supply",
+        personality: "Friendly, chatty, conflict-averse. Hides objections behind politeness.",
+        painPoints: ["Cycle counts constantly behind", "One warehouse runs a different WMS than the other"],
+        objections: ["Our ERP already has an inventory module.", "I'd have to convince my VP and she hates change."],
+        budget: "No budget authority; can champion internally.",
+        notes: "A good rep will test his influence and equip him to sell internally.",
+      },
+      win: ["Surfaced the hidden objection", "Tested champion strength", "Armed him with a one-pager and booked the VP meeting"],
+    },
+  ];
+  const scenarioRows = [];
+  for (const s of personas) {
+    scenarioRows.push(
+      await db.scenario.create({
+        data: {
+          orgId: org.id,
+          title: s.title,
+          callType: s.callType,
+          difficulty: s.difficulty,
+          personaJson: JSON.stringify(s.persona),
+          winConditionsJson: JSON.stringify(s.win),
+          methodologyId: active.id,
+        },
+      }),
+    );
+  }
+
+  // Calls: ~7 weeks of history through the real ingestion pipeline.
+  const now = new Date();
+  const transcripts = [GOOD_CALL, MID_CALL, POOR_CALL, DEMO_CALL];
+  let extId = 1000;
+  for (let r = 0; r < reps.length; r++) {
+    const rep = reps[r];
+    // Volume varies by rep: SDRs high volume (sampling kicks in), AEs low volume.
+    const isHighVolume = rep.title === "SDR";
+    const callCount = isHighVolume ? 34 : 8;
+    for (let i = 0; i < callCount; i++) {
+      const daysAgo = Math.floor((i / callCount) * 49);
+      const callDate = new Date(now.getTime() - daysAgo * 86400000 - (i % 7) * 3600000);
+      const quality = (r + i) % 4;
+      const durationSec = quality === 2 ? 95 : 300 + ((i * 137) % 900);
+      await ingestCall({
+        orgId: org.id,
+        repId: rep.id,
+        source: i % 9 === 0 ? "API" : "WEBHOOK",
+        direction: "outbound",
+        callType: quality === 3 ? "demo" : i % 3 === 0 ? "cold_call" : "discovery",
+        durationSec,
+        externalId: `seed-${extId++}`,
+        prospectName: ["Cascade Distribution", "BlueRidge Supply", "Harbor Freight Co", "Summit Logistics"][i % 4],
+        callDate,
+        providedTranscript: transcripts[quality],
+      });
+    }
+    // One manual upload + one rep-flagged call each
+    await ingestCall({
+      orgId: org.id,
+      repId: rep.id,
+      source: "UPLOAD",
+      callType: "discovery",
+      durationSec: 840,
+      prospectName: "Pinnacle Wholesale",
+      callDate: new Date(now.getTime() - 2 * 86400000),
+      providedTranscript: fillerTranscript(r),
+    });
+    await ingestCall({
+      orgId: org.id,
+      repId: rep.id,
+      source: "WEBHOOK",
+      callType: "discovery",
+      durationSec: 720,
+      externalId: `seed-flag-${r}`,
+      prospectName: "Cascade Distribution",
+      callDate: new Date(now.getTime() - 1 * 86400000),
+      providedTranscript: fillerTranscript(r + 1),
+      repFlagged: true,
+    });
+  }
+
+  // Role-play sessions (completed + graded)
+  const rpDialogue = (good: boolean): RoleplayMessage[] => {
+    const msgs: [string, string][] = good
+      ? [
+          ["Hi Dana, this is Alex at Meridian — I know I'm calling cold, can I take thirty seconds to say why, and you can tell me if it's relevant?", "Thirty seconds. Go."],
+          ["We help distributors whose counts drift across warehouses. Curious — when your Fresno and Reno counts disagree, what happens downstream?", "Usually we find out when a shipment gets shorted. It's ugly."],
+          ["How often did that happen last quarter, roughly?", "Twice with our biggest account. Chargebacks were about forty grand."],
+          ["So $160k a year, before the relationship damage. If counts were real-time accurate, does most of that disappear?", "Probably. But software rollouts around here take a year and blow the budget."],
+          ["Fair — heard that a lot. Ours is phased: first warehouse live in six weeks, fixed fee, with a credit if we miss the date. Worth thirty minutes Thursday with you and whoever owns budget to see the payback math?", "Bring the math and you've got your meeting. I'll pull in Marta."],
+        ]
+      : [
+          ["Hi, this is Jordan from Meridian Software. We're the leading inventory platform. Do you have five minutes?", "Not really. What's this about?"],
+          ["Our platform has real-time sync, AI forecasting, barcode scanning, and a great dashboard. Companies love it.", "We have an ERP module for that."],
+          ["Ours is way better though. Would you want a demo?", "You haven't asked me a single thing about my operation."],
+          ["Right, sorry — so do you have inventory issues?", "Everyone does. Look, send me a deck and I'll get to it eventually."],
+          ["Okay! I'll email that today. Thanks!", "Sure. Bye."],
+        ];
+    let at = 2000;
+    const out: RoleplayMessage[] = [];
+    for (const [rep, pro] of msgs) {
+      out.push({ role: "rep", text: rep, atMs: at });
+      at += 9000;
+      out.push({ role: "prospect", text: pro, atMs: at });
+      at += 8000;
+    }
+    return out;
+  };
+
+  for (let r = 0; r < reps.length; r++) {
+    for (let k = 0; k < 2; k++) {
+      const good = (r + k) % 2 === 0;
+      const session = await db.roleplaySession.create({
+        data: {
+          orgId: org.id,
+          repId: reps[r].id,
+          scenarioId: scenarioRows[(r + k) % scenarioRows.length].id,
+          mode: "TEXT",
+          status: "COMPLETED",
+          messagesJson: JSON.stringify(rpDialogue(good)),
+          durationSec: 95,
+          startedAt: new Date(now.getTime() - (3 + k * 6 + r) * 86400000),
+          endedAt: new Date(now.getTime() - (3 + k * 6 + r) * 86400000 + 95000),
+        },
+      });
+      await gradeRoleplay(session.id);
+    }
+  }
+
+  // Assignments
+  await db.assignment.create({
+    data: {
+      orgId: org.id,
+      assignedToId: reps[1].id,
+      assignedById: manager.id,
+      type: "ROLEPLAY",
+      scenarioId: scenarioRows[0].id,
+      targetCount: 3,
+      doneCount: 1,
+      note: "Objection handling dipped below 60 twice this month — run the cold-call gauntlet.",
+      status: "IN_PROGRESS",
+      dueDate: new Date(now.getTime() + 5 * 86400000),
+    },
+  });
+  await db.assignment.create({
+    data: {
+      orgId: org.id,
+      assignedToId: reps[3].id,
+      assignedById: trainer.id,
+      type: "UPLOAD_CALLS",
+      targetCount: 3,
+      doneCount: 3,
+      note: "Upload your three Cascade discovery calls for review before Thursday.",
+      status: "COMPLETED",
+      completedAt: new Date(now.getTime() - 86400000),
+    },
+  });
+  await db.assignment.create({
+    data: {
+      orgId: org.id,
+      assignedToId: reps[4].id,
+      assignedById: manager.id,
+      type: "ROLEPLAY",
+      scenarioId: scenarioRows[1].id,
+      targetCount: 2,
+      doneCount: 0,
+      note: "Practice the CFO payback conversation before the Summit Logistics meeting.",
+      status: "PENDING",
+      dueDate: new Date(now.getTime() + 3 * 86400000),
+    },
+  });
+
+  // ---------- CRM: accounts, contacts, deals, linked coaching ----------
+  const { writeBackGradeToCrm } = await import("../src/lib/crm");
+
+  const cascade = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[0].id,
+      name: "Cascade Distribution",
+      domain: "cascadedist.demo",
+      industry: "Wholesale distribution",
+      size: "120-200",
+      website: "https://cascadedist.demo",
+      notes: "Multi-warehouse NetSuite shop. Primary design partner for Meridian Core.",
+    },
+  });
+  const blueRidge = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[1].id,
+      name: "BlueRidge Supply",
+      domain: "blueridgesupply.demo",
+      industry: "Industrial supply",
+      size: "50-100",
+      website: "https://blueridgesupply.demo",
+    },
+  });
+  const summit = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[3].id,
+      name: "Summit Logistics",
+      domain: "summitlogistics.demo",
+      industry: "3PL",
+      size: "200-400",
+      website: "https://summitlogistics.demo",
+      notes: "Evaluating Meridian Forecast for seasonal demand.",
+    },
+  });
+  const northwind = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[0].id,
+      name: "Northwind Foods",
+      domain: "northwindfoods.demo",
+      industry: "Food wholesale",
+      size: "80-150",
+    },
+  });
+
+  const dana = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      ownerId: reps[0].id,
+      name: "Dana Whitfield",
+      title: "VP of Operations",
+      email: "dana@cascadedist.demo",
+      phone: "+1-503-555-0142",
+    },
+  });
+  const marta = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      ownerId: reps[0].id,
+      name: "Marta Iglesias",
+      title: "CFO",
+      email: "marta@cascadedist.demo",
+      phone: "+1-503-555-0199",
+    },
+  });
+  const tom = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: blueRidge.id,
+      ownerId: reps[1].id,
+      name: "Tom Herrera",
+      title: "Operations Manager",
+      email: "tom@blueridgesupply.demo",
+      phone: "+1-828-555-0118",
+    },
+  });
+  const priya = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: summit.id,
+      ownerId: reps[3].id,
+      name: "Priya Nair",
+      title: "Director of Supply Chain",
+      email: "priya@summitlogistics.demo",
+      phone: "+1-206-555-0177",
+    },
+  });
+  const ellis = await db.contact.create({
+    data: {
+      orgId: org.id,
+      accountId: northwind.id,
+      ownerId: reps[4].id,
+      name: "Ellis Cho",
+      title: "Warehouse Lead",
+      email: "ellis@northwindfoods.demo",
+      phone: "+1-312-555-0133",
+    },
+  });
+
+  const dealCascadeCore = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      contactId: dana.id,
+      ownerId: reps[0].id,
+      name: "Cascade · Meridian Core",
+      stage: "proposal",
+      amount: 42000,
+      product: "Meridian Core",
+      probability: 65,
+      nextStep: "Send fixed-fee rollout plan + CFO payback model",
+      closeDate: new Date(now.getTime() + 21 * 86400000),
+      notes: "Dana is champion; Marta owns budget. Need both on next call.",
+    },
+  });
+  const dealBlueRidge = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: blueRidge.id,
+      contactId: tom.id,
+      ownerId: reps[1].id,
+      name: "BlueRidge · Core evaluation",
+      stage: "discovery",
+      amount: 24000,
+      product: "Meridian Core",
+      probability: 35,
+      nextStep: "Equip Tom to sell internally to his VP",
+      closeDate: new Date(now.getTime() + 45 * 86400000),
+    },
+  });
+  const dealSummit = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: summit.id,
+      contactId: priya.id,
+      ownerId: reps[3].id,
+      name: "Summit · Forecast add-on",
+      stage: "demo",
+      amount: 18000,
+      product: "Meridian Forecast",
+      probability: 50,
+      nextStep: "Schedule live demo with seasonal demand scenarios",
+      closeDate: new Date(now.getTime() + 30 * 86400000),
+    },
+  });
+  const dealNorthwind = await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: northwind.id,
+      contactId: ellis.id,
+      ownerId: reps[4].id,
+      name: "Northwind · early outbound",
+      stage: "qualified",
+      amount: 30000,
+      product: "Meridian Core",
+      probability: 20,
+      nextStep: "Book first discovery with warehouse + ops",
+    },
+  });
+  await db.deal.create({
+    data: {
+      orgId: org.id,
+      accountId: cascade.id,
+      contactId: marta.id,
+      ownerId: reps[0].id,
+      name: "Cascade · Forecast expansion",
+      stage: "lead",
+      amount: 12000,
+      product: "Meridian Forecast",
+      probability: 10,
+      nextStep: "Wait until Core is signed",
+    },
+  });
+  await db.deal.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[2].id,
+      name: "Closed · Harbor Parts",
+      stage: "closed_won",
+      amount: 36000,
+      product: "Meridian Core",
+      probability: 100,
+      closeDate: new Date(now.getTime() - 18 * 86400000),
+      notes: "Reference customer for phased rollout.",
+    },
+  });
+
+  // Seed timeline notes + link recent graded calls for the open deals.
+  for (const [deal, subject, body] of [
+    [dealCascadeCore, "Deal created", "Opened after Dana's cold-call booked Marta."],
+    [dealBlueRidge, "Deal created", "Tom is a friendly champion without budget authority."],
+    [dealSummit, "Deal created", "Priya asked for Forecast after seeing Core at a peer."],
+    [dealNorthwind, "Deal created", "Inbound from warehouse lead; needs ops sponsor."],
+  ] as const) {
+    await db.activity.create({
+      data: {
+        orgId: org.id,
+        dealId: deal.id,
+        accountId: deal.accountId,
+        contactId: deal.contactId,
+        ownerId: deal.ownerId,
+        type: "NOTE",
+        subject,
+        body,
+      },
+    });
+  }
+
+  const linkTargets: { dealId: string; accountId: string | null; contactId: string | null; prospect: string; repId: string }[] = [
+    { dealId: dealCascadeCore.id, accountId: cascade.id, contactId: dana.id, prospect: "Dana Whitfield", repId: reps[0].id },
+    { dealId: dealBlueRidge.id, accountId: blueRidge.id, contactId: tom.id, prospect: "Tom Herrera", repId: reps[1].id },
+    { dealId: dealSummit.id, accountId: summit.id, contactId: priya.id, prospect: "Priya Nair", repId: reps[3].id },
+    { dealId: dealNorthwind.id, accountId: northwind.id, contactId: ellis.id, prospect: "Ellis Cho", repId: reps[4].id },
+  ];
+
+  for (const target of linkTargets) {
+    const calls = await db.call.findMany({
+      where: { orgId: org.id, repId: target.repId, status: "GRADED" },
+      include: { grade: true },
+      orderBy: { callDate: "desc" },
+      take: 2,
+    });
+    for (const call of calls) {
+      await db.call.update({
+        where: { id: call.id },
+        data: {
+          dealId: target.dealId,
+          accountId: target.accountId,
+          contactId: target.contactId,
+          prospectName: call.prospectName || target.prospect,
+        },
+      });
+      if (call.grade) await writeBackGradeToCrm(call.id);
+    }
+  }
+
+  // ---------- Channels: connect employee email + phone, seed conversations ----------
+  const { connectChannel, sendCrmEmail, placeCrmCall } = await import("../src/lib/channels");
+  const phoneByRep = ["+1-555-0140", "+1-555-0141", "+1-555-0142", "+1-555-0143", "+1-555-0144"];
+  for (let i = 0; i < reps.length; i++) {
+    await connectChannel({
+      orgId: org.id,
+      userId: reps[i].id,
+      channel: "EMAIL",
+      provider: "demo_email",
+      address: reps[i].email,
+    });
+    await connectChannel({
+      orgId: org.id,
+      userId: reps[i].id,
+      channel: "PHONE",
+      provider: "demo_phone",
+      address: phoneByRep[i],
+    });
+  }
+  await connectChannel({
+    orgId: org.id,
+    userId: manager.id,
+    channel: "EMAIL",
+    provider: "demo_email",
+    address: manager.email,
+  });
+  await connectChannel({
+    orgId: org.id,
+    userId: manager.id,
+    channel: "PHONE",
+    provider: "demo_phone",
+    address: "+1-555-0100",
+  });
+
+  await sendCrmEmail({
+    orgId: org.id,
+    userId: reps[0].id,
+    to: dana.email,
+    subject: "Cascade rollout plan + Thursday with Marta",
+    body: `Hi Dana,\n\nGreat speaking earlier. As discussed, I'm attaching a one-page agenda for Thursday with you and Marta, plus the fixed-fee 6-week rollout outline.\n\nCan you confirm Thursday afternoon still works?\n\nBest,\nAlex`,
+    dealId: dealCascadeCore.id,
+    contactId: dana.id,
+    accountId: cascade.id,
+  });
+
+  await sendCrmEmail({
+    orgId: org.id,
+    userId: reps[1].id,
+    to: tom.email,
+    subject: "One-pager for your VP on Meridian Core",
+    body: `Hi Tom,\n\nPer our chat — here's a short one-pager you can forward internally covering multi-warehouse sync and the phased rollout. Happy to join a call with your VP whenever useful.\n\nJordan`,
+    dealId: dealBlueRidge.id,
+    contactId: tom.id,
+    accountId: blueRidge.id,
+  });
+
+  await placeCrmCall({
+    orgId: org.id,
+    userId: reps[0].id,
+    to: dana.phone,
+    notes: "Confirm Thursday with CFO Marta and send payback model.",
+    durationSec: 320,
+    callType: "discovery",
+    dealId: dealCascadeCore.id,
+    contactId: dana.id,
+    accountId: cascade.id,
+    gradeWithSalesCoach: true,
+  });
+
+  await placeCrmCall({
+    orgId: org.id,
+    userId: reps[3].id,
+    to: priya.phone,
+    notes: "Schedule Forecast demo with seasonal demand scenarios.",
+    durationSec: 280,
+    callType: "demo",
+    dealId: dealSummit.id,
+    contactId: priya.id,
+    accountId: summit.id,
+    gradeWithSalesCoach: true,
+  });
+
+  // ---------- ERP: catalog → cash + warehouses/GL/HR/projects ----------
+  const {
+    createQuote,
+    sendQuote,
+    acceptQuote,
+    confirmOrder,
+    fulfillOrder,
+    createInvoiceFromOrder,
+    sendInvoice,
+    recordPayment,
+    createPurchaseOrder,
+    submitPurchaseOrder,
+    approvePurchaseOrder,
+    receivePurchaseOrder,
+  } = await import("../src/lib/erp");
+  const {
+    ensureChartOfAccounts,
+    ensureDefaultWarehouse,
+    adjustWarehouseStock,
+    createProject,
+    logTimeEntry,
+    postMonthlyPayrollJournal,
+    receivePurchaseOrderDeep,
+  } = await import("../src/lib/erp-deep");
+
+  await db.org.update({
+    where: { id: org.id },
+    data: { baseCurrency: "USD", defaultTaxCode: "US-CA" },
+  });
+
+  await db.taxCode.createMany({
+    data: [
+      { orgId: org.id, code: "US-CA", name: "California sales tax", ratePercent: 8, jurisdiction: "CA, USA" },
+      { orgId: org.id, code: "US-EXEMPT", name: "Tax exempt", ratePercent: 0, jurisdiction: "USA" },
+      { orgId: org.id, code: "EU-VAT-DE", name: "German VAT", ratePercent: 19, jurisdiction: "DE" },
+    ],
+  });
+  await db.fxRate.createMany({
+    data: [
+      { orgId: org.id, currency: "EUR", rateToBase: 10800 }, // 1.08
+      { orgId: org.id, currency: "GBP", rateToBase: 12700 },
+      { orgId: org.id, currency: "CAD", rateToBase: 7300 },
+    ],
+  });
+
+  await ensureChartOfAccounts(org.id);
+  const mainWh = await ensureDefaultWarehouse(org.id);
+  const westWh = await db.warehouse.create({
+    data: {
+      orgId: org.id,
+      code: "WEST",
+      name: "West coast DC",
+      address: "Fresno, CA",
+      bins: { create: [{ code: "A-01", name: "Receiving" }, { code: "C-12", name: "Hardware" }] },
+    },
+  });
+
+  const coreSeat = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "CORE-SEAT",
+      name: "Meridian Core",
+      description: "Real-time multi-warehouse inventory platform — per seat annual.",
+      category: "Software",
+      listPrice: 1200,
+      cost: 180,
+      unit: "seat",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const coreWh = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "CORE-WH",
+      name: "Meridian Core · Warehouse pack",
+      description: "Additional connected warehouse beyond the first two.",
+      category: "Software",
+      listPrice: 6000,
+      cost: 900,
+      unit: "warehouse",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const forecast = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "FCST-ADDON",
+      name: "Meridian Forecast",
+      description: "Demand forecasting add-on using live inventory signals.",
+      category: "Software",
+      listPrice: 9000,
+      cost: 1200,
+      unit: "license",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const impl = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "IMPL-FIXED",
+      name: "Phased implementation (fixed fee)",
+      description: "6-week first-warehouse rollout, fixed fee with miss-date credit.",
+      category: "Service",
+      listPrice: 18000,
+      cost: 8000,
+      unit: "each",
+      trackInventory: false,
+      active: true,
+    },
+  });
+  const scanner = await db.product.create({
+    data: {
+      orgId: org.id,
+      sku: "HW-SCAN-1",
+      name: "Meridian barcode scanner kit",
+      description: "Ruggedized scanner + cradle for floor counts.",
+      category: "Hardware",
+      listPrice: 420,
+      cost: 190,
+      unit: "each",
+      trackInventory: true,
+      qtyOnHand: 0,
+      qtyReserved: 0,
+      reorderPoint: 8,
+      active: true,
+    },
+  });
+
+  // Seed multi-warehouse balances (syncs product qtyOnHand).
+  await adjustWarehouseStock({
+    orgId: org.id,
+    productId: scanner.id,
+    warehouseId: mainWh.id,
+    binId: mainWh.bins[0]?.id,
+    deltaOnHand: 18,
+  });
+  await adjustWarehouseStock({
+    orgId: org.id,
+    productId: scanner.id,
+    warehouseId: westWh.id,
+    deltaOnHand: 6,
+  });
+
+  for (const [u, dept, salary, title] of [
+    [manager, "People", 145000, "VP Sales"],
+    [reps[0], "Sales", 95000, "Account Executive"],
+    [reps[1], "Sales", 90000, "Account Executive"],
+    [reps[2], "Sales", 92000, "Account Executive"],
+    [reps[3], "Sales", 88000, "Account Executive"],
+  ] as const) {
+    await db.employee.create({
+      data: {
+        orgId: org.id,
+        userId: u.id,
+        name: u.name,
+        email: u.email,
+        title,
+        department: dept,
+        salaryAnnual: salary,
+        hireDate: new Date(now.getTime() - 400 * 86400000),
+        status: "active",
+      },
+    });
+  }
+  await db.employee.create({
+    data: {
+      orgId: org.id,
+      name: "Casey Nguyen",
+      email: "casey@meridian.demo",
+      title: "Implementation Lead",
+      department: "Operations",
+      salaryAnnual: 118000,
+      hireDate: new Date(now.getTime() - 200 * 86400000),
+      status: "active",
+    },
+  });
+
+  const vendor = await db.vendor.create({
+    data: {
+      orgId: org.id,
+      name: "Pacific Scan Supply",
+      email: "orders@pacificscan.demo",
+      phone: "+1-415-555-0188",
+      notes: "Primary hardware distributor for scanner kits.",
+      paymentTermsDays: 30,
+    },
+  });
+
+  // Cascade proposal quote (open) — grounds coaching on the Cascade deal.
+  const cascadeQuote = await createQuote({
+    orgId: org.id,
+    ownerId: reps[0].id,
+    dealId: dealCascadeCore.id,
+    accountId: cascade.id,
+    contactId: dana.id,
+    title: "Cascade · Core + implementation",
+    notes: "Fixed-fee rollout for Fresno first, Reno second. Net 30.",
+    taxCode: "US-CA",
+    validUntil: new Date(now.getTime() + 21 * 86400000),
+    lines: [
+      { productId: coreSeat.id, description: coreSeat.name, quantity: 20, unitPrice: coreSeat.listPrice },
+      { productId: coreWh.id, description: coreWh.name, quantity: 1, unitPrice: coreWh.listPrice },
+      { productId: impl.id, description: impl.name, quantity: 1, unitPrice: impl.listPrice },
+      { productId: scanner.id, description: scanner.name, quantity: 6, unitPrice: scanner.listPrice },
+    ],
+  });
+  await sendQuote(cascadeQuote.id, org.id, reps[0].id);
+
+  // Summit Forecast quote still in draft (EUR demo of multi-currency).
+  await createQuote({
+    orgId: org.id,
+    ownerId: reps[3].id,
+    dealId: dealSummit.id,
+    accountId: summit.id,
+    contactId: priya.id,
+    title: "Summit · Forecast add-on",
+    notes: "Seasonal demand scenarios included in demo. Quoted in EUR.",
+    currency: "EUR",
+    taxCode: "EU-VAT-DE",
+    lines: [
+      { productId: forecast.id, description: forecast.name, quantity: 1, unitPrice: forecast.listPrice },
+      { productId: coreSeat.id, description: "Forecast seats (bundled)", quantity: 10, unitPrice: 400 },
+    ],
+  });
+
+  // Harbor Parts closed-won path: accepted quote → confirmed order → invoice → payment.
+  const harborAccount = await db.account.create({
+    data: {
+      orgId: org.id,
+      ownerId: reps[2].id,
+      name: "Harbor Parts",
+      domain: "harborparts.demo",
+      industry: "Industrial parts",
+      size: "90-150",
+    },
+  });
+  const harborDeal = await db.deal.findFirst({
+    where: { orgId: org.id, name: "Closed · Harbor Parts" },
+  });
+  if (harborDeal) {
+    await db.deal.update({
+      where: { id: harborDeal.id },
+      data: { accountId: harborAccount.id },
+    });
+    const harborQuote = await createQuote({
+      orgId: org.id,
+      ownerId: reps[2].id,
+      dealId: harborDeal.id,
+      accountId: harborAccount.id,
+      title: "Harbor Parts · Core rollout",
+      taxCode: "US-EXEMPT",
+      taxRate: 0,
+      lines: [
+        { productId: coreSeat.id, description: coreSeat.name, quantity: 15, unitPrice: coreSeat.listPrice },
+        { productId: impl.id, description: impl.name, quantity: 1, unitPrice: impl.listPrice },
+      ],
+    });
+    await sendQuote(harborQuote.id, org.id, reps[2].id);
+    const { order } = await acceptQuote(harborQuote.id, org.id, reps[2].id);
+    await confirmOrder(order.id, org.id, reps[2].id);
+    await fulfillOrder(order.id, org.id, reps[2].id);
+    const invoice = await createInvoiceFromOrder(order.id, org.id, reps[2].id);
+    await sendInvoice(invoice.id, org.id, reps[2].id);
+    await recordPayment({
+      orgId: org.id,
+      userId: reps[2].id,
+      invoiceId: invoice.id,
+      amount: Math.round(invoice.total * 0.5),
+      method: "ach",
+      reference: "ACH-HARBOR-1",
+      notes: "Initial 50% on signature",
+      receivedAt: new Date(now.getTime() - 10 * 86400000),
+    });
+    await recordPayment({
+      orgId: org.id,
+      userId: manager.id,
+      invoiceId: invoice.id,
+      amount: Math.ceil(invoice.total * 0.5),
+      method: "wire",
+      reference: "WIRE-HARBOR-2",
+      receivedAt: new Date(now.getTime() - 2 * 86400000),
+    });
+
+    const harborProject = await createProject({
+      orgId: org.id,
+      ownerId: manager.id,
+      code: "PRJ-HARBOR",
+      name: "Harbor Parts · Core implementation",
+      dealId: harborDeal.id,
+      accountId: harborAccount.id,
+      budgetHours: 120,
+      budgetAmount: 18000,
+      tasks: [
+        { title: "Kickoff & discovery", estimateHrs: 16, productId: impl.id },
+        { title: "Warehouse 1 go-live", estimateHrs: 40, productId: impl.id },
+        { title: "Training & hypercare", estimateHrs: 24 },
+      ],
+    });
+    await logTimeEntry({
+      orgId: org.id,
+      projectId: harborProject.id,
+      userId: manager.id,
+      taskId: harborProject.tasks[0]?.id,
+      hours: 8,
+      notes: "Kickoff workshop",
+      workDate: new Date(now.getTime() - 5 * 86400000),
+    });
+    await logTimeEntry({
+      orgId: org.id,
+      projectId: harborProject.id,
+      userId: reps[2].id,
+      taskId: harborProject.tasks[1]?.id,
+      hours: 12,
+      notes: "Floor walkthrough + scanner staging",
+      workDate: new Date(now.getTime() - 2 * 86400000),
+    });
+  }
+
+  // Cascade implementation project (open opportunity).
+  await createProject({
+    orgId: org.id,
+    ownerId: manager.id,
+    code: "PRJ-CASCADE",
+    name: "Cascade · proposed rollout",
+    dealId: dealCascadeCore.id,
+    accountId: cascade.id,
+    budgetHours: 160,
+    budgetAmount: 18000,
+    tasks: [
+      { title: "Fresno warehouse cutover", estimateHrs: 48 },
+      { title: "Reno warehouse cutover", estimateHrs: 40 },
+    ],
+  });
+
+  // BlueRidge mid-funnel: accepted quote / pending order (not yet confirmed).
+  const brQuote = await createQuote({
+    orgId: org.id,
+    ownerId: reps[1].id,
+    dealId: dealBlueRidge.id,
+    accountId: blueRidge.id,
+    contactId: tom.id,
+    title: "BlueRidge · Core evaluation package",
+    taxCode: "US-CA",
+    lines: [
+      { productId: coreSeat.id, description: coreSeat.name, quantity: 12, unitPrice: coreSeat.listPrice },
+      { productId: scanner.id, description: scanner.name, quantity: 4, unitPrice: scanner.listPrice },
+    ],
+  });
+  await sendQuote(brQuote.id, org.id, reps[1].id);
+  await acceptQuote(brQuote.id, org.id, reps[1].id);
+
+  // Replenishment PO: pending approval / partial receive path.
+  const po = await createPurchaseOrder({
+    orgId: org.id,
+    ownerId: manager.id,
+    vendorId: vendor.id,
+    notes: "Restock scanners ahead of Cascade rollout",
+    lines: [
+      { productId: scanner.id, description: scanner.name, quantity: 20, unitCost: scanner.cost },
+    ],
+  });
+  await submitPurchaseOrder(po.id, org.id, manager.id);
+  await approvePurchaseOrder(po.id, org.id, manager.id);
+  await receivePurchaseOrderDeep({
+    orgId: org.id,
+    userId: manager.id,
+    poId: po.id,
+    warehouseId: westWh.id,
+    lines: [{ productId: scanner.id, description: scanner.name, quantity: 8 }],
+    createVendorBill: true,
+  });
+
+  // Fully received PO into MAIN.
+  const po2 = await createPurchaseOrder({
+    orgId: org.id,
+    ownerId: manager.id,
+    vendorId: vendor.id,
+    notes: "Prior scanner restock",
+    lines: [
+      { productId: scanner.id, description: scanner.name, quantity: 12, unitCost: scanner.cost },
+    ],
+  });
+  await submitPurchaseOrder(po2.id, org.id, manager.id);
+  await approvePurchaseOrder(po2.id, org.id, manager.id);
+  await receivePurchaseOrder(po2.id, org.id, manager.id);
+
+  await postMonthlyPayrollJournal(org.id, manager.id);
+
+  const counts = {
+    calls: await db.call.count(),
+    graded: await db.grade.count(),
+    roleplays: await db.roleplaySession.count(),
+    accounts: await db.account.count(),
+    contacts: await db.contact.count(),
+    deals: await db.deal.count(),
+    activities: await db.activity.count(),
+    connections: await db.channelConnection.count(),
+    conversations: await db.conversation.count(),
+    messages: await db.message.count(),
+    products: await db.product.count(),
+    quotes: await db.quote.count(),
+    orders: await db.salesOrder.count(),
+    invoices: await db.invoice.count(),
+    payments: await db.payment.count(),
+    vendors: await db.vendor.count(),
+    purchaseOrders: await db.purchaseOrder.count(),
+    warehouses: await db.warehouse.count(),
+    journalEntries: await db.journalEntry.count(),
+    employees: await db.employee.count(),
+    projects: await db.project.count(),
+    vendorBills: await db.vendorBill.count(),
+  };
+  console.log("Seeded:", counts);
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => db.$disconnect());
