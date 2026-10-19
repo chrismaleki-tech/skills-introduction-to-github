@@ -2,6 +2,8 @@ import { db } from "./db";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
+import { assertUsageAvailable, UsageLimitError } from "./usage";
+import { captureError } from "./monitoring";
 import {
   parseCompanyProfile,
   parseDimensions,
@@ -82,10 +84,23 @@ export async function ingestCall(input: IngestCallInput) {
 export async function processCall(callId: string, input?: Partial<IngestCallInput>) {
   const call = await db.call.findUniqueOrThrow({
     where: { id: callId },
-    include: { transcript: true, org: { include: { companyContext: true } } },
+    include: {
+      transcript: true,
+      grade: true,
+      org: { include: { companyContext: true } },
+    },
   });
 
   try {
+    if (!call.grade) {
+      await assertUsageAvailable(
+        call.org,
+        call.repId,
+        "call_scoring",
+        call.durationSec,
+      );
+    }
+
     let segments: TranscriptSegment[];
     let engine: string;
 
@@ -119,6 +134,14 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
     });
     await db.call.update({ where: { id: callId }, data: { status: "GRADED" } });
   } catch (err) {
+    if (!(err instanceof UsageLimitError)) {
+      await captureError(err, {
+        operation: "process_call",
+        callId,
+        orgId: call.orgId,
+        repId: call.repId,
+      });
+    }
     await db.call.update({
       where: { id: callId },
       data: { status: "FAILED", failReason: err instanceof Error ? err.message : String(err) },

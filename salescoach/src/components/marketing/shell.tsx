@@ -61,6 +61,9 @@ export function MarketingFooter() {
           <Link href="/privacy" className="hover:text-marketing-ink">
             Privacy
           </Link>
+          <Link href="/terms" className="hover:text-marketing-ink">
+            Terms
+          </Link>
           <Link
             href={isClerkEnabled() ? "/sign-up" : "/dashboard"}
             className="hover:text-marketing-ink"

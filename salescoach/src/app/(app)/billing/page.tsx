@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { PLANS, planForPriceId, priceIdForPlan, type CheckoutPlanKey, type PlanKey } from "@/lib/plans";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { Card, PageHeader } from "@/components/ui";
+import { usageForRep } from "@/lib/usage";
 
 function date(value: Date | null) {
   return value
@@ -28,6 +29,7 @@ export default async function BillingPage({
       ? storedPlan
       : "trial";
   const currentPlan = PLANS[planKey];
+  const usage = await usageForRep(user.org, user.id);
   const checkoutReady = {
     pro: Boolean(process.env.STRIPE_SECRET_KEY && priceIdForPlan("pro")),
     max: Boolean(process.env.STRIPE_SECRET_KEY && priceIdForPlan("max")),
@@ -82,6 +84,23 @@ export default async function BillingPage({
             <div>
               <dt className="text-muted">Paid through</dt>
               <dd className="mt-1">{date(user.org.subscriptionEndsAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Your role-play usage</dt>
+              <dd className="mt-1">
+                {minutes(usage.roleplaySeconds)} / {limit(currentPlan.roleplayMinutesPerSeat, "min")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted">Your call-scoring usage</dt>
+              <dd className="mt-1">
+                {hours(usage.callScoringSeconds)} / {limit(
+                  currentPlan.callScoringMinutesPerSeat === null
+                    ? null
+                    : currentPlan.callScoringMinutesPerSeat / 60,
+                  "hr",
+                )}
+              </dd>
             </div>
           </dl>
 
@@ -139,6 +158,18 @@ export default async function BillingPage({
       </div>
     </div>
   );
+}
+
+function minutes(seconds: number) {
+  return `${Math.ceil(seconds / 60)} min`;
+}
+
+function hours(seconds: number) {
+  return `${(seconds / 3600).toFixed(1)} hr`;
+}
+
+function limit(value: number | null, unit: "min" | "hr") {
+  return value === null ? "No fixed limit" : `${value} ${unit}`;
 }
 
 function PlanCard({ plan, current }: { plan: "trial" | "enterprise"; current: boolean }) {

@@ -59,6 +59,9 @@ NEXT_PUBLIC_APP_URL=https://erota.io
 
 - New organizations get 14 days of trial access.
 - `active`, valid `trialing`, and cancel-at-period-end before period expiry are entitled.
+- Pro includes 180 role-play minutes and 25 call-scoring hours per seat per billing period.
+- Max includes 480 role-play minutes and 100 call-scoring hours per seat per billing period.
+- Usage is attributed to the rep seat and resets on Stripe's subscription period boundary.
 - Expired, `past_due`, `unpaid`, and canceled organizations receive HTTP 402
   for uploads, on-demand grading, role-play, scenario generation, and webhook ingestion.
 - Organization managers/admins manage billing at `/billing`.

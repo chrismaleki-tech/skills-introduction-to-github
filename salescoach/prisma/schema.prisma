@@ -17,6 +17,8 @@ model Org {
   slug                String  @unique
   // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
   ingestionPolicyJson String  @default("{}")
+  audioRetentionDays  Int     @default(90)
+  dataRetentionDays   Int     @default(365)
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
   onboardingComplete  Boolean @default(false)
@@ -27,6 +29,7 @@ model Org {
   stripeSubscriptionId String? @unique
   stripePriceId       String?
   stripeSeatCount     Int      @default(1)
+  subscriptionStartsAt DateTime?
   subscriptionEndsAt  DateTime?
   cancelAtPeriodEnd   Boolean  @default(false)
 
@@ -317,4 +320,13 @@ model BillingEvent {
   processedAt   DateTime @default(now())
 
   @@index([orgId, processedAt])
+}
+
+model RateLimitBucket {
+  id        String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
 }

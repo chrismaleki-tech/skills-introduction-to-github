@@ -1,4 +1,11 @@
-import { PutObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -33,13 +40,33 @@ export function storageBackend(): "s3" | "local" {
   return s3Configured() ? "s3" : "local";
 }
 
+export function audioObjectKey(orgId: string, ext: string) {
+  return `orgs/${orgId}/calls/${randomUUID()}.${ext.replace(/^\./, "")}`;
+}
+
+export async function createAudioUpload(opts: {
+  orgId: string;
+  ext: string;
+  contentType: string;
+}) {
+  if (!s3Configured()) throw new Error("Durable audio storage is not configured.");
+  const key = audioObjectKey(opts.orgId, opts.ext);
+  const command = new PutObjectCommand({
+    Bucket: process.env.S3_BUCKET!,
+    Key: key,
+    ContentType: opts.contentType,
+  });
+  const uploadUrl = await getSignedUrl(s3(), command, { expiresIn: 10 * 60 });
+  return { uploadUrl, audioRef: `s3:${key}` };
+}
+
 export async function storeAudio(opts: {
   orgId: string;
   ext: string;
   buffer: Buffer;
   contentType: string;
 }): Promise<string> {
-  const key = `orgs/${opts.orgId}/calls/${randomUUID()}.${opts.ext.replace(/^\./, "")}`;
+  const key = audioObjectKey(opts.orgId, opts.ext);
 
   if (s3Configured()) {
     await s3().send(
@@ -57,6 +84,39 @@ export async function storeAudio(opts: {
   await mkdir(path.join(process.cwd(), "uploads"), { recursive: true });
   await writeFile(path.join(process.cwd(), relative), opts.buffer);
   return `local:${relative}`;
+}
+
+export async function deleteAudio(audioPath: string) {
+  if (audioPath.startsWith("s3:")) {
+    await s3().send(
+      new DeleteObjectCommand({
+        Bucket: process.env.S3_BUCKET!,
+        Key: audioPath.slice(3),
+      }),
+    );
+    return;
+  }
+
+  // Local files are development-only. Avoid accepting arbitrary filesystem paths.
+  if (audioPath.startsWith("local:uploads/")) {
+    const { unlink } = await import("fs/promises");
+    await unlink(path.join(/* turbopackIgnore: true */ process.cwd(), audioPath.slice("local:".length))).catch(
+      (error: NodeJS.ErrnoException) => {
+        if (error.code !== "ENOENT") throw error;
+      },
+    );
+  }
+}
+
+export async function probeStorage() {
+  if (!s3Configured()) return { ok: false, backend: "local" as const };
+  await s3().send(
+    new ListObjectsV2Command({
+      Bucket: process.env.S3_BUCKET!,
+      MaxKeys: 1,
+    }),
+  );
+  return { ok: true, backend: "s3" as const };
 }
 
 export async function readAudio(audioPath: string): Promise<{ buffer: Buffer; ext: string }> {

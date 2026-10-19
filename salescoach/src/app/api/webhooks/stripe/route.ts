@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
 import { isCheckoutPlan, planForPriceId, priceIdForPlan } from "@/lib/plans";
+import { captureError } from "@/lib/monitoring";
 
 export const dynamic = "force-dynamic";
 
@@ -85,6 +86,7 @@ export async function POST(req: Request) {
 
       if (orgId) {
         const subscriptionItem = subscription.items.data[0];
+        const periodStart = subscriptionItem?.current_period_start;
         const periodEnd = subscriptionItem?.current_period_end;
         const priceId = subscriptionItem?.price.id;
         const status = appStatus(subscription.status);
@@ -98,6 +100,7 @@ export async function POST(req: Request) {
             planKey: planForPriceId(priceId),
             planStatus: status,
             trialEndsAt: dateFromSeconds(subscription.trial_end),
+            subscriptionStartsAt: dateFromSeconds(periodStart),
             subscriptionEndsAt: dateFromSeconds(periodEnd),
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
           },
@@ -123,7 +126,11 @@ export async function POST(req: Request) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ received: true, duplicate: true });
     }
-    console.error("Stripe webhook processing failed", event.id, error);
+    await captureError(error, {
+      operation: "stripe_webhook",
+      eventId: event.id,
+      eventType: event.type,
+    });
     return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
   }
 

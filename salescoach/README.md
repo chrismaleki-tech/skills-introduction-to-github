@@ -25,7 +25,7 @@ npm run dev            # http://localhost:3000
 
 **Auth:** without Clerk keys the app uses demo cookie auth + user switcher. With `CLERK_*` keys, signup/signin provision a real org automatically. See [`PHASE0.md`](./PHASE0.md).
 
-**Storage:** without `S3_*` audio lands in `./uploads`. With S3/R2 env, uploads are durable.
+**Storage:** without `S3_*` audio lands in `./uploads` for local development. Production requires S3/R2 and uploads audio directly to object storage.
 
 ### Environment (`.env`)
 
@@ -37,6 +37,8 @@ npm run dev            # http://localhost:3000
 | `OPENAI_API_KEY` (+ `OPENAI_MODEL`) | Real LLM grading and a live role-play persona |
 | `DEEPGRAM_API_KEY` | Real audio transcription with speaker diarization |
 | `VAPI_WEBHOOK_SECRET` | Voice role-play ingestion via the Vapi webhook |
+| `STRIPE_*` API, price, and webhook values | Pro/Max per-seat subscriptions |
+| `OPS_SECRET` + `CRON_SECRET` | Protected diagnostics and retention automation |
 
 ## What's implemented
 
@@ -59,8 +61,13 @@ npm run dev            # http://localhost:3000
 - **Auth**: Clerk in production (`clerkId` on users, middleware protection). Demo cookie + user switcher when Clerk keys are unset — see `src/lib/session.ts` and `PHASE0.md`.
 - **PostgreSQL** via Prisma (`DATABASE_URL`). Local: `docker compose up -d`.
 - **Audio storage**: S3/R2 when configured, else local `uploads/` — `src/lib/storage.ts`.
+- **Billing and metering**: Pro and Max limits are enforced per rep seat on Stripe billing-period boundaries.
+- **Retention**: daily cron removes expired audio and product records; individual calls can be deleted immediately.
 - **Inline processing in dev**; production moves transcription/grading behind a queue (SQS/BullMQ) — the pipeline entry points are already the natural job boundaries.
 
 ## Not yet implemented (known gaps)
 
-Native dialer integrations (Aircall/RingCentral/etc. — the webhook is the integration surface for now), real authentication/SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, billing/metering, and multi-org admin. Grading calibration against human-scored calls is a product process, not code — the manager override loop captures the data for it.
+Native dialer integrations (Aircall/RingCentral/etc. — the webhook is the integration surface for now), enterprise
+SSO, PII redaction, unmatched-rep review queue for webhook calls, voice role-play session initiation UI, asynchronous
+processing queues, and multi-org admin. Grading calibration against human-scored calls is a product process, not code
+— the manager override loop captures the data for it.

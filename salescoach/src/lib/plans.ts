@@ -5,6 +5,8 @@ export type PlanDefinition = {
   key: PlanKey;
   name: string;
   pricePerSeat: number | null;
+  roleplayMinutesPerSeat: number | null;
+  callScoringMinutesPerSeat: number | null;
   description: string;
   features: string[];
 };
@@ -14,6 +16,8 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "trial",
     name: "Free Trial",
     pricePerSeat: 0,
+    roleplayMinutesPerSeat: null,
+    callScoringMinutesPerSeat: null,
     description: "Explore the core sales intelligence workflow before choosing a paid plan.",
     features: [
       "AI role-play trial",
@@ -29,6 +33,8 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "pro",
     name: "Pro",
     pricePerSeat: 55,
+    roleplayMinutesPerSeat: 180,
+    callScoringMinutesPerSeat: 25 * 60,
     description: "For growing sales teams building a consistent coaching cadence.",
     features: [
       "180 minutes of AI role-play",
@@ -44,6 +50,8 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "max",
     name: "Max",
     pricePerSeat: 100,
+    roleplayMinutesPerSeat: 480,
+    callScoringMinutesPerSeat: 100 * 60,
     description: "For high-volume teams that need more practice and call intelligence.",
     features: [
       "480 minutes of AI role-play",
@@ -59,6 +67,8 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     key: "enterprise",
     name: "Enterprise",
     pricePerSeat: null,
+    roleplayMinutesPerSeat: null,
+    callScoringMinutesPerSeat: null,
     description: "A tailored rollout for organizations with advanced operational requirements.",
     features: [
       "AI role-play",
@@ -90,5 +100,7 @@ export function planForPriceId(priceId: string | null | undefined): PlanKey {
   ) {
     return "pro";
   }
-  return "enterprise";
+  // Unknown paid prices fail closed to Pro limits. Enterprise access is set
+  // explicitly through planKey rather than inferred from an arbitrary price.
+  return "pro";
 }

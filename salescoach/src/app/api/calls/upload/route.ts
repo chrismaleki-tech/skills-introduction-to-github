@@ -2,21 +2,31 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
-import { storeAudio } from "@/lib/storage";
+import { deleteAudio, readAudio, storeAudio } from "@/lib/storage";
 import { billingError } from "@/lib/billing";
+import {
+  assertUsageAvailable,
+  UsageLimitError,
+  usageLimitPayload,
+} from "@/lib/usage";
+import {
+  AUDIO_TYPES,
+  audioExtension,
+  audioLimitLabel,
+  MAX_AUDIO_BYTES,
+  MAX_CALL_DURATION_SECONDS,
+  MAX_TRANSCRIPT_CHARS,
+  validAudioSignature,
+  validAudioType,
+} from "@/lib/upload-limits";
 
 // Manual call upload: multipart form with either an audio file or a pasted
 // transcript. Uploads bypass sampling per policy (gradeManualUploads), so the
 // pipeline usually grades inline before this responds.
 
-const AUDIO_EXTENSIONS: Record<string, string> = {
-  mp3: "audio/mpeg",
-  wav: "audio/wav",
-  m4a: "audio/mp4",
-  webm: "audio/webm",
-};
-
 const CALL_TYPES = new Set(["cold_call", "discovery", "demo", "negotiation", "renewal", "unknown"]);
+
+export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const user = await currentUser();
@@ -39,8 +49,23 @@ export async function POST(req: Request) {
   }
 
   const durationSec = Math.round(Number(str(form.get("durationSec"))));
-  if (!Number.isFinite(durationSec) || durationSec <= 0) {
-    return NextResponse.json({ error: "durationSec must be a positive number of seconds." }, { status: 400 });
+  if (
+    !Number.isFinite(durationSec) ||
+    durationSec <= 0 ||
+    durationSec > MAX_CALL_DURATION_SECONDS
+  ) {
+    return NextResponse.json(
+      { error: "durationSec must be between 1 second and 4 hours." },
+      { status: 400 },
+    );
+  }
+  try {
+    await assertUsageAvailable(user.org, repId, "call_scoring", durationSec);
+  } catch (error) {
+    if (error instanceof UsageLimitError) {
+      return NextResponse.json(usageLimitPayload(error), { status: 402 });
+    }
+    throw error;
   }
 
   const callType = str(form.get("callType")) || "unknown";
@@ -51,25 +76,76 @@ export async function POST(req: Request) {
   const prospectName = str(form.get("prospectName")).trim();
 
   const audioFile = form.get("audio");
+  const audioRef = str(form.get("audioRef"));
+  const audioMimeType = str(form.get("audioMimeType")).toLowerCase();
   const transcriptText = str(form.get("transcript")).trim();
+  if (transcriptText.length > MAX_TRANSCRIPT_CHARS) {
+    return NextResponse.json(
+      { error: `Transcript is too long (maximum ${MAX_TRANSCRIPT_CHARS.toLocaleString()} characters).` },
+      { status: 400 },
+    );
+  }
 
   let audio: { buffer: Buffer; mimeType: string; path: string } | undefined;
   if (audioFile instanceof File && audioFile.size > 0) {
-    const ext = (audioFile.name.split(".").pop() ?? "").toLowerCase();
-    if (!AUDIO_EXTENSIONS[ext]) {
+    const ext = audioExtension(audioFile.name);
+    const mimeType = audioFile.type.toLowerCase();
+    if (!ext || !validAudioType(ext, mimeType)) {
       return NextResponse.json(
-        { error: `Unsupported audio format ".${ext}". Use mp3, wav, m4a or webm.` },
+        { error: "Use an mp3, wav, m4a, or webm file with a matching content type." },
+        { status: 400 },
+      );
+    }
+    if (audioFile.size > MAX_AUDIO_BYTES) {
+      return NextResponse.json(
+        { error: `Audio files must be no larger than ${audioLimitLabel()}.` },
         { status: 400 },
       );
     }
     const buffer = Buffer.from(await audioFile.arrayBuffer());
+    if (!validAudioSignature(buffer, ext)) {
+      return NextResponse.json(
+        { error: "The file contents do not match the selected audio format." },
+        { status: 400 },
+      );
+    }
     const storedPath = await storeAudio({
       orgId: user.orgId,
       ext,
       buffer,
-      contentType: audioFile.type || AUDIO_EXTENSIONS[ext],
+      contentType: mimeType,
     });
-    audio = { buffer, mimeType: audioFile.type || AUDIO_EXTENSIONS[ext], path: storedPath };
+    audio = { buffer, mimeType, path: storedPath };
+  } else if (audioRef) {
+    const expectedPrefix = `s3:orgs/${user.orgId}/calls/`;
+    const ext = audioExtension(audioRef);
+    if (
+      !audioRef.startsWith(expectedPrefix) ||
+      !ext ||
+      !validAudioType(ext, audioMimeType)
+    ) {
+      return NextResponse.json({ error: "Invalid direct-upload audio reference." }, { status: 400 });
+    }
+    const stored = await readAudio(audioRef);
+    if (stored.buffer.length > MAX_AUDIO_BYTES) {
+      await deleteAudio(audioRef);
+      return NextResponse.json(
+        { error: `Audio files must be no larger than ${audioLimitLabel()}.` },
+        { status: 400 },
+      );
+    }
+    if (!validAudioSignature(stored.buffer, ext)) {
+      await deleteAudio(audioRef);
+      return NextResponse.json(
+        { error: "The uploaded object does not contain a valid audio file." },
+        { status: 400 },
+      );
+    }
+    audio = {
+      buffer: stored.buffer,
+      mimeType: audioMimeType || AUDIO_TYPES[ext][0],
+      path: audioRef,
+    };
   }
 
   if (!audio && !transcriptText) {
@@ -94,6 +170,9 @@ export async function POST(req: Request) {
     });
     return NextResponse.json({ callId: call.id });
   } catch (err) {
+    if (err instanceof UsageLimitError) {
+      return NextResponse.json(usageLimitPayload(err), { status: 402 });
+    }
     // The pipeline marks the Call FAILED before rethrowing, so if the row was
     // created we can still hand the caller its id for the review page.
     const failed = await db.call.findFirst({

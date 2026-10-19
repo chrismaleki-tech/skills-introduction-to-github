@@ -3,6 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui";
+import {
+  audioLimitLabel,
+  MAX_AUDIO_BYTES,
+  MAX_TRANSCRIPT_CHARS,
+} from "@/lib/upload-limits";
 
 // Manual upload form. Managers get a rep selector so they can upload on
 // behalf of their team; reps upload for themselves.
@@ -55,6 +60,14 @@ export function UploadForm({
       setError("Paste a transcript, or switch to uploading an audio file.");
       return;
     }
+    if (file && file.size > MAX_AUDIO_BYTES) {
+      setError(`Audio files must be no larger than ${audioLimitLabel()}.`);
+      return;
+    }
+    if (transcript.length > MAX_TRANSCRIPT_CHARS) {
+      setError(`Transcript is too long (maximum ${MAX_TRANSCRIPT_CHARS.toLocaleString()} characters).`);
+      return;
+    }
 
     const form = new FormData();
     form.set("prospectName", prospectName);
@@ -62,11 +75,46 @@ export function UploadForm({
     form.set("direction", direction);
     form.set("durationSec", String(durationSec));
     if (repId !== currentUserId) form.set("repId", repId);
-    if (mode === "audio" && file) form.set("audio", file);
     if (mode === "transcript") form.set("transcript", transcript);
 
     setPending(true);
     try {
+      if (mode === "audio" && file) {
+        const contentType = file.type || mimeForFile(file.name);
+        const direct = await fetch("/api/calls/upload-url", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            fileName: file.name,
+            contentType,
+            size: file.size,
+            repId,
+            durationSec,
+          }),
+        });
+        const upload = (await direct.json().catch(() => null)) as
+          | { uploadUrl?: string; audioRef?: string; error?: string }
+          | null;
+        if (direct.ok && upload?.uploadUrl && upload.audioRef) {
+          const put = await fetch(upload.uploadUrl, {
+            method: "PUT",
+            headers: { "content-type": contentType },
+            body: file,
+          });
+          if (!put.ok) {
+            setError("Audio storage upload failed. Check the storage CORS configuration and try again.");
+            return;
+          }
+          form.set("audioRef", upload.audioRef);
+          form.set("audioMimeType", contentType);
+        } else if (direct.status === 503) {
+          // Local development can still use the multipart fallback.
+          form.set("audio", file);
+        } else {
+          setError(upload?.error ?? "Could not prepare the audio upload.");
+          return;
+        }
+      }
       const res = await fetch("/api/calls/upload", { method: "POST", body: form });
       const data = (await res.json().catch(() => null)) as
         | { callId?: string; error?: string }
@@ -189,7 +237,7 @@ export function UploadForm({
               className="block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface-2 file:px-3.5 file:py-2 file:text-sm file:font-medium file:text-foreground hover:file:bg-line file:cursor-pointer"
             />
             <p className="text-xs text-muted mt-2">
-              mp3, wav, m4a or webm. Without a transcription key the pipeline falls back to a demo transcript.
+              mp3, wav, m4a or webm, up to {audioLimitLabel()}. Files upload directly to encrypted durable storage.
             </p>
           </div>
         ) : (
@@ -198,6 +246,7 @@ export function UploadForm({
               rows={10}
               value={transcript}
               onChange={(e) => setTranscript(e.target.value)}
+              maxLength={MAX_TRANSCRIPT_CHARS}
               placeholder={"REP: Hi, this is Jordan from Meridian — did I catch you at an okay time?\nPROSPECT: You've got about two minutes, go ahead."}
               aria-label="Transcript"
               className={`${inputCls} font-mono text-xs resize-y`}
@@ -217,8 +266,21 @@ export function UploadForm({
         </Button>
         {error && <span className="text-xs text-rose-700">{error}</span>}
       </div>
+      <p className="text-xs leading-relaxed text-muted">
+        By uploading, you confirm that your organization has the required permission and recording consent for this
+        conversation. Audio and transcripts are processed by the providers described in our Privacy Policy.
+      </p>
     </form>
   );
+}
+
+function mimeForFile(fileName: string) {
+  const ext = fileName.split(".").pop()?.toLowerCase();
+  if (ext === "mp3") return "audio/mpeg";
+  if (ext === "wav") return "audio/wav";
+  if (ext === "m4a") return "audio/mp4";
+  if (ext === "webm") return "audio/webm";
+  return "application/octet-stream";
 }
 
 function ModeTab({

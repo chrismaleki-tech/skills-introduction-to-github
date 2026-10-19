@@ -89,6 +89,22 @@ export default async function SettingsPage() {
           <OrgNameForm name={org.name} />
         </Card>
 
+        <Card title="Data retention">
+          <dl className="grid gap-4 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-muted">Call audio</dt>
+              <dd className="mt-1 font-medium">{org.audioRetentionDays} days</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Transcripts, scores, and role-plays</dt>
+              <dd className="mt-1 font-medium">{org.dataRetentionDays} days</dd>
+            </div>
+          </dl>
+          <p className="mt-4 text-xs text-muted">
+            Managers and call owners can delete individual calls immediately from the call review page.
+          </p>
+        </Card>
+
         <Card title="Score bands reference">
           <p className="text-sm text-muted mb-4">
             Every grade rolls up to a 0-100 score from the weighted rubric dimensions, then lands in one of
