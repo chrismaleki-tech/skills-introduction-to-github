@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { DemoForm } from "@/components/marketing/demo-form";
 import { isClerkEnabled } from "@/lib/auth-mode";
+import { PLANS, type PlanKey } from "@/lib/plans";
 
 export default function MarketingHomePage() {
   const appHref = isClerkEnabled() ? "/sign-up" : "/dashboard";
@@ -13,7 +14,7 @@ export default function MarketingHomePage() {
       <section className="mkt-hero-wash relative overflow-hidden pt-24">
         <div className="mx-auto max-w-6xl px-4 pb-8 pt-10 sm:px-6 sm:pt-14">
           <p className="mkt-rise text-xs font-bold uppercase tracking-[0.2em] text-brand">
-            SalesCoach AI <span className="font-medium text-muted">by Erota</span>
+            Erota Sales Intelligence
           </p>
           <h1 className="mkt-rise mkt-rise-delay-1 mt-5 max-w-4xl font-display text-4xl font-semibold leading-[1.08] tracking-tight text-marketing-ink sm:text-5xl md:text-6xl">
             Coach every rep against your playbook—without listening to every call.
@@ -47,7 +48,7 @@ export default function MarketingHomePage() {
           <div className="mx-auto max-w-6xl px-0 sm:px-6">
             <Image
               src="/marketing/hero-dashboard.png"
-              alt="SalesCoach AI team dashboard with score trends and skill heatmap"
+              alt="Erota Sales Intelligence team dashboard with score trends and skill heatmap"
               width={1440}
               height={1100}
               priority
@@ -96,7 +97,7 @@ export default function MarketingHomePage() {
             From conversation to better next call
           </h2>
           <p className="mt-3 max-w-2xl text-muted">
-            Start with the workflow you have today. SalesCoach turns the conversation into a score, a coaching action,
+            Start with the workflow you have today. Erota Sales Intelligence turns the conversation into a score, a coaching action,
             and targeted practice.
           </p>
           <ol className="mt-12 grid gap-10 sm:grid-cols-3">
@@ -190,7 +191,7 @@ export default function MarketingHomePage() {
           </div>
           <Image
             src="/marketing/calls.png"
-            alt="SalesCoach calls list with graded scores and sampling status"
+            alt="Erota Sales Intelligence calls list with graded scores and sampling status"
             width={1440}
             height={1100}
             className="h-auto w-full rounded-xl border border-line shadow-[0_18px_40px_-24px_rgba(45,62,80,0.3)]"
@@ -208,7 +209,7 @@ export default function MarketingHomePage() {
             </h2>
             <p className="mt-4 leading-relaxed text-muted">
               No anonymous testimonial or invented ROI claim. This illustrative scorecard shows the level of specificity
-              SalesCoach is designed to provide on a discovery call.
+              Erota Sales Intelligence is designed to provide on a discovery call.
             </p>
             <p className="mt-4 text-sm font-medium text-marketing-ink">
               Every score links back to the rubric, rationale, and conversation evidence.
@@ -274,7 +275,7 @@ export default function MarketingHomePage() {
         <div className="mx-auto grid max-w-6xl items-center gap-8 px-4 sm:px-6 lg:grid-cols-2 lg:gap-12">
           <Image
             src="/marketing/roleplay.png"
-            alt="SalesCoach AI role-play scenarios with difficulty levels"
+            alt="Erota Sales Intelligence role-play scenarios with difficulty levels"
             width={1440}
             height={900}
             className="order-2 h-auto w-full rounded-xl border border-line shadow-[0_18px_40px_-24px_rgba(45,62,80,0.3)] lg:order-1"
@@ -328,63 +329,71 @@ export default function MarketingHomePage() {
 
       {/* Pricing */}
       <section id="pricing" className="border-t border-line bg-white py-20 sm:py-24">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand">Team-first pricing</p>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand">Simple per-seat pricing</p>
           <h2 className="font-display text-3xl font-semibold tracking-tight text-marketing-ink sm:text-4xl">
-            Validate the workflow before committing to a rollout
+            Choose a plan that&apos;s right for you
           </h2>
           <p className="mt-3 max-w-2xl text-muted">
-            Sales coaching is a team purchase. Start with a guided evaluation, prove fit against your playbook, then
-            choose a rollout based on team size and workflow.
+            Start free, then select the monthly capacity and support level that fits your sales team.
           </p>
 
-          <div className="mt-10 grid max-w-4xl gap-5 sm:mt-12 md:grid-cols-2">
-            <div className="rounded-xl border border-line bg-surface p-6 sm:p-8">
-              <div className="text-sm font-semibold uppercase tracking-wider text-brand">Team evaluation</div>
-              <div className="mt-3 font-display text-3xl font-semibold tracking-tight text-marketing-ink">
-                14-day workspace
-              </div>
-              <p className="mt-3 text-sm leading-relaxed text-muted">
-                Test the complete coaching loop with your methodology and representative call examples.
-              </p>
-              <ul className="mt-6 space-y-3 text-sm text-marketing-ink">
-                <li className="flex gap-2"><span className="font-semibold text-brand">✓</span> Manager workspace</li>
-                <li className="flex gap-2"><span className="font-semibold text-brand">✓</span> Custom company context</li>
-                <li className="flex gap-2"><span className="font-semibold text-brand">✓</span> Call grading and role-play</li>
-                <li className="flex gap-2"><span className="font-semibold text-brand">✓</span> No credit card to evaluate</li>
-              </ul>
-              <Link
-                href={appHref}
-                className="mt-8 inline-flex w-full items-center justify-center rounded-lg border border-line bg-white px-5 py-3 text-sm font-semibold text-marketing-ink transition-colors hover:bg-surface-2"
-              >
-                Start an evaluation
-              </Link>
-            </div>
-
-            <div className="rounded-xl border border-marketing-ink bg-marketing-ink p-6 text-white sm:p-8">
-              <div className="text-sm font-semibold uppercase tracking-wider text-cyan-300">Team rollout</div>
-              <div className="mt-3 font-display text-3xl font-semibold tracking-tight">Pilot pricing</div>
-              <p className="mt-3 text-sm leading-relaxed text-slate-300">
-                Pricing is scoped to your team size, onboarding needs, call volume, and required integrations.
-              </p>
-              <ul className="mt-6 space-y-3 text-sm text-slate-200">
-                <li className="flex gap-2"><span className="font-semibold text-cyan-300">✓</span> Rep and manager workflows</li>
-                <li className="flex gap-2"><span className="font-semibold text-cyan-300">✓</span> Methodology configuration</li>
-                <li className="flex gap-2"><span className="font-semibold text-cyan-300">✓</span> Guided onboarding</li>
-                <li className="flex gap-2"><span className="font-semibold text-cyan-300">✓</span> Integration roadmap planning</li>
-              </ul>
-              <a
-                href="#demo"
-                className="mt-8 inline-flex w-full items-center justify-center rounded-lg bg-white px-5 py-3 text-sm font-semibold text-marketing-ink transition-colors hover:bg-slate-100"
-              >
-                Discuss a team pilot
-              </a>
-            </div>
+          <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 xl:grid-cols-4">
+            {(["trial", "pro", "max", "enterprise"] as PlanKey[]).map((key) => {
+              const plan = PLANS[key];
+              const featured = key === "max";
+              return (
+                <div
+                  key={key}
+                  className={`flex flex-col rounded-xl border p-5 sm:p-6 ${
+                    featured
+                      ? "border-marketing-ink bg-marketing-ink text-white shadow-lg"
+                      : "border-line bg-white text-marketing-ink"
+                  }`}
+                >
+                  <div className={`text-sm font-semibold ${featured ? "text-cyan-300" : "text-brand"}`}>
+                    {plan.name}
+                  </div>
+                  <div className="mt-4 font-display text-4xl font-semibold tracking-tight">
+                    {plan.pricePerSeat === null ? "Custom" : `$${plan.pricePerSeat}`}
+                  </div>
+                  <div className={`mt-1 text-xs ${featured ? "text-slate-300" : "text-muted"}`}>
+                    per seat/month
+                  </div>
+                  <p className={`mt-4 text-sm leading-relaxed ${featured ? "text-slate-300" : "text-muted"}`}>
+                    {plan.description}
+                  </p>
+                  <ul className={`mt-6 flex-1 space-y-3 text-sm ${featured ? "text-slate-200" : ""}`}>
+                    {plan.features.map((feature) => (
+                      <li key={feature} className="flex gap-2">
+                        <span className={featured ? "text-cyan-300" : "text-brand"}>✓</span>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  {key === "enterprise" ? (
+                    <a
+                      href="#demo"
+                      className="mt-7 inline-flex min-h-11 items-center justify-center rounded-lg border border-line px-4 text-sm font-semibold transition-colors hover:bg-surface"
+                    >
+                      Book a demo
+                    </a>
+                  ) : (
+                    <Link
+                      href={appHref}
+                      className={`mt-7 inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors ${
+                        featured
+                          ? "bg-white text-marketing-ink hover:bg-slate-100"
+                          : "bg-accent text-white hover:bg-accent-hover"
+                      }`}
+                    >
+                      Get started
+                    </Link>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <p className="mt-4 max-w-4xl text-xs leading-relaxed text-muted">
-            Team pricing is finalized during the pilot proposal. We do not advertise an enterprise security package or
-            native integration until that capability is available.
-          </p>
         </div>
       </section>
 
@@ -399,7 +408,7 @@ export default function MarketingHomePage() {
                   Help shape the integrations and coaching workflow your team needs.
                 </h2>
                 <p className="mt-4 max-w-2xl leading-relaxed text-muted">
-                  SalesCoach is early. Rather than fill this page with borrowed logos or anonymous praise, we are
+                  Erota Sales Intelligence is early. Rather than fill this page with borrowed logos or anonymous praise, we are
                   inviting a small group of sales teams to validate the product against real playbooks and workflows.
                 </p>
               </div>
@@ -426,7 +435,7 @@ export default function MarketingHomePage() {
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand">Talk through your workflow</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight text-marketing-ink sm:text-4xl">
-              See SalesCoach against your playbook
+              See Erota Sales Intelligence against your playbook
             </h2>
             <p className="mt-4 text-muted leading-relaxed">
               Tell us how your team records calls, which methodology managers coach, and where rep performance breaks

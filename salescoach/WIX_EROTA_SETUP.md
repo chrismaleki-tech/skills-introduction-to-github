@@ -1,8 +1,8 @@
-# Putting SalesCoach on erota.io (Wix)
+# Putting Erota Sales Intelligence on erota.io (Wix)
 
 ## Important constraint
 
-**Wix cannot host the SalesCoach Next.js app** (API routes, Prisma, grading pipeline).
+**Wix cannot host the Erota Sales Intelligence Next.js app** (API routes, Prisma, grading pipeline).
 `erota.io` DNS already points at Wix (`ns14/ns15.wixdns.net`) but currently returns **404** — domain is connected with no published site.
 
 ## Recommended setup
@@ -10,7 +10,7 @@
 | Hostname | Hosts | Purpose |
 |---|---|---|
 | `erota.io` / `www.erota.io` | **Wix** | Marketing site (ads landing, pricing, demo form) |
-| `app.erota.io` | **Vercel** (or similar) | Full SalesCoach product |
+| `app.erota.io` | **Vercel** (or similar) | Full Erota Sales Intelligence product |
 
 Wix CTAs (“Try the live demo”, “Open app”) link to `https://app.erota.io`.
 
@@ -21,8 +21,8 @@ Automated login is blocked by Google reCAPTCHA on `users.wix.com`.
 Sign in at https://users.wix.com/signin then open the site connected to **erota.io**.
 
 ### 2. Publish a Wix marketing site on erota.io
-Rebuild the SalesCoach landing (blue & white):
-- Brand: **SalesCoach AI**
+Rebuild the Erota Sales Intelligence landing (blue & white):
+- Brand: **Erota Sales Intelligence**
 - Headline: Turn every sales call into coaching — graded against your playbook.
 - CTAs: Book a demo → form; Try the live demo → `https://app.erota.io`
 - Sections: How it works · Call grading · Role-play · Pricing **$50/mo** · Privacy
@@ -56,7 +56,7 @@ CNAME  app  →  cname.vercel-dns.com
 
 ### 5. Alternate: put the whole product on erota.io
 If you prefer **not** to use Wix for the frontend:
-1. Deploy SalesCoach to Vercel
+1. Deploy Erota Sales Intelligence to Vercel
 2. In Wix, disconnect `erota.io` (or change nameservers away from Wix)
 3. Point `erota.io` A/CNAME records to Vercel
 4. Then `https://erota.io` serves the Next.js marketing + app directly

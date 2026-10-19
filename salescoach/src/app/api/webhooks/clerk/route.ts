@@ -7,7 +7,7 @@ import { recordSignup } from "@/lib/signups";
 export const dynamic = "force-dynamic";
 
 /**
- * Clerk → SalesCoach signup capture.
+ * Clerk → Erota Sales Intelligence signup capture.
  * Configure in Clerk Dashboard → Webhooks → endpoint:
  *   https://erota.io/api/webhooks/clerk
  * Subscribe to: user.created (and optionally user.updated)

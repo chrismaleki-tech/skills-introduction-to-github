@@ -35,7 +35,7 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
 Without these keys the app stays in **demo auth** (cookie user switcher + seeded Meridian).
 
-On first Clerk sign-in/sign-up, SalesCoach auto-creates:
+On first Clerk sign-in/sign-up, Erota Sales Intelligence auto-creates:
 - an `Org` (slug + trial plan status)
 - an `ADMIN` user linked via `clerkId`
 - empty company profile

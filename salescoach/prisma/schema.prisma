@@ -1,4 +1,4 @@
-// SalesCoach AI — data model (PostgreSQL)
+// Erota Sales Intelligence — data model (PostgreSQL)
 // Structured payloads stay as JSON strings with typed helpers in src/lib/types.ts
 // so the app stays portable; columns can move to Prisma Json later.
 
@@ -21,10 +21,12 @@ model Org {
   activeMethodologyId String?
   onboardingComplete  Boolean @default(false)
   planStatus          String   @default("trialing") // trialing | active | past_due | canceled | unpaid
+  planKey             String   @default("trial") // trial | pro | max | enterprise
   trialEndsAt         DateTime?
   stripeCustomerId    String?  @unique
   stripeSubscriptionId String? @unique
   stripePriceId       String?
+  stripeSeatCount     Int      @default(1)
   subscriptionEndsAt  DateTime?
   cancelAtPeriodEnd   Boolean  @default(false)
 

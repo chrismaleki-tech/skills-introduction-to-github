@@ -18,13 +18,13 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "SalesCoach AI by Erota — Coach every rep against your playbook",
-    template: "%s · SalesCoach AI",
+    default: "Erota Sales Intelligence — Coach every rep against your playbook",
+    template: "%s · Erota Sales Intelligence",
   },
   description:
     "Turn sales conversations into consistent, quote-backed coaching. Score calls against your methodology, surface skill gaps, and assign focused practice.",
   openGraph: {
-    title: "SalesCoach AI by Erota",
+    title: "Erota Sales Intelligence",
     description: "Evidence-backed call coaching and AI role-play built around your sales methodology.",
     type: "website",
   },

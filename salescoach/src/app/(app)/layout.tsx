@@ -47,7 +47,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">
-              <span className="text-brand">Sales</span>Coach AI
+              <span className="text-brand">Erota</span> Sales Intelligence
             </div>
             <div className="max-w-40 truncate text-[11px] text-muted">{user.org.name}</div>
           </div>
@@ -58,7 +58,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="px-4 py-5 border-b border-line">
           <div className="font-semibold tracking-tight text-lg">
-            <span className="text-brand">Sales</span>Coach AI
+            <span className="text-brand">Erota</span> Sales Intelligence
           </div>
           <div className="text-xs text-muted mt-0.5">{user.org.name}</div>
         </div>

@@ -1,8 +1,14 @@
 # Stripe billing
 
-SalesCoach uses a flat **$50/month per organization** subscription with a
-14-day app trial. Stripe Checkout collects payment; Stripe Customer Portal
-handles cards, invoices, and cancellation.
+Erota Sales Intelligence uses per-seat monthly subscriptions with a 14-day
+app trial:
+
+- **Pro:** $55 per seat/month
+- **Max:** $100 per seat/month
+- **Enterprise:** custom pricing
+
+Stripe Checkout collects payment; Stripe Customer Portal handles cards,
+invoices, plan changes, seat quantities, and cancellation.
 
 ## Architecture
 
@@ -23,7 +29,8 @@ Webhook deliveries are deduplicated in `BillingEvent` by Stripe event ID.
 ```env
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_PRICE_ID=price_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_MAX_PRICE_ID=price_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PORTAL_CONFIGURATION_ID=bpc_...
 NEXT_PUBLIC_APP_URL=https://erota.io
@@ -31,8 +38,10 @@ NEXT_PUBLIC_APP_URL=https://erota.io
 
 ## Stripe setup
 
-1. Create product **SalesCoach Individual**.
-2. Create a recurring monthly price: **USD $50.00**.
+1. Create product **Erota Sales Intelligence Pro** with a recurring monthly
+   price of **USD $55.00 per seat**.
+2. Create product **Erota Sales Intelligence Max** with a recurring monthly
+   price of **USD $100.00 per seat**.
 3. Enable Customer Portal:
    - update payment method
    - view invoices
@@ -44,7 +53,7 @@ NEXT_PUBLIC_APP_URL=https://erota.io
    - `customer.subscription.created`
    - `customer.subscription.updated`
    - `customer.subscription.deleted`
-6. Copy the webhook signing secret and price ID to Vercel.
+6. Copy the webhook signing secret and both price IDs to Vercel.
 
 ## Access rules
 

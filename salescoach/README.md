@@ -1,4 +1,4 @@
-# SalesCoach AI
+# Erota Sales Intelligence
 
 AI sales training platform: reps upload (or auto-ingest) real phone calls and practice against an AI role-play prospect; both are graded 0–100 against a configurable methodology rubric grounded in the company's own products, objections, and competitors; managers track team progress on a coaching dashboard.
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How SalesCoach AI collects and uses information from our website and product.",
+  description: "How Erota Sales Intelligence collects and uses information from our website and product.",
 };
 
 export default function PrivacyPage() {
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
       <p className="text-sm text-muted">
         <Link href="/" className="text-brand hover:text-brand-hover">
-          ← SalesCoach AI
+          ← Erota Sales Intelligence
         </Link>
       </p>
       <h1 className="mt-6 font-display text-4xl font-semibold tracking-tight text-marketing-ink">Privacy Policy</h1>
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold">Who we are</h2>
           <p className="mt-2 text-muted">
-            SalesCoach AI (“we”, “us”) provides AI-assisted sales call grading, role-play practice, and coaching
+            Erota Sales Intelligence (“we”, “us”) provides AI-assisted sales call grading, role-play practice, and coaching
             analytics. This policy covers our marketing website and product demo.
           </p>
         </section>

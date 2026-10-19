@@ -1,4 +1,4 @@
-# Deploy SalesCoach to Vercel
+# Deploy Erota Sales Intelligence to Vercel
 
 ## Why `/` works but `/dashboard` fails
 
@@ -18,7 +18,7 @@ Check `/api/health` after deploy — it should return `"ok": true` with user/cal
 
 ## Turn off Deployment Protection (or the URL looks like a Vercel login page)
 
-If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of SalesCoach:
+If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of Erota Sales Intelligence:
 
 1. Project → **Settings** → **Deployment Protection**
 2. Set **Vercel Authentication** to **Only Preview Deployments** (or Off)

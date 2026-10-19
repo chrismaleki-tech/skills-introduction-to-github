@@ -8,10 +8,7 @@ export function MarketingHeader() {
     <header className="absolute inset-x-0 top-0 z-20">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-4 py-4 sm:gap-6 sm:px-6 sm:py-5">
         <Link href="/" className="shrink-0 font-display text-lg font-semibold tracking-tight text-marketing-ink sm:text-xl">
-          <span className="text-brand">Sales</span>Coach AI
-          <span className="ml-1 hidden font-sans text-[10px] font-semibold uppercase tracking-wider text-muted md:inline">
-            by Erota
-          </span>
+          <span className="text-brand">Erota</span> Sales Intelligence
         </Link>
         <nav className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted sm:gap-6">
           <a href="#how-it-works" className="hidden sm:inline hover:text-marketing-ink transition-colors">
@@ -50,8 +47,7 @@ export function MarketingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="font-display text-lg font-semibold text-marketing-ink">
-            <span className="text-brand">Sales</span>Coach AI{" "}
-            <span className="font-sans text-xs font-semibold uppercase tracking-wider text-muted">by Erota</span>
+            <span className="text-brand">Erota</span> Sales Intelligence
           </div>
           <p className="mt-1 text-sm text-muted">Consistent, evidence-backed coaching for revenue teams.</p>
         </div>
