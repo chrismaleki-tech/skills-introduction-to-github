@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * Clerk → Erota Sales Intelligence signup capture.
  * Configure in Clerk Dashboard → Webhooks → endpoint:
- *   https://erota.io/api/webhooks/clerk
+ *   https://www.erota.io/api/webhooks/clerk
  * Subscribe to: user.created (and optionally user.updated)
  * Set signing secret as CLERK_WEBHOOK_SECRET in Vercel.
  */

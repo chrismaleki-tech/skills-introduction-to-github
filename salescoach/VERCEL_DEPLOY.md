@@ -32,7 +32,7 @@ If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of Er
 | `STRIPE_PRO_PRICE_ID` / `STRIPE_MAX_PRICE_ID` | Live recurring prices | **Yes** |
 | `STRIPE_WEBHOOK_SECRET` | Live endpoint signing secret | **Yes** |
 | `OPS_SECRET` / `CRON_SECRET` | Independent random 32-byte secrets | **Yes** |
-| `NEXT_PUBLIC_APP_URL` | `https://erota.io` | **Yes** |
+| `NEXT_PUBLIC_APP_URL` | `https://www.erota.io` | **Yes** |
 
 See [`PHASE0.md`](./PHASE0.md) for full Phase 0 setup.
 
@@ -40,9 +40,9 @@ See [`PHASE0.md`](./PHASE0.md) for full Phase 0 setup.
 
 1. Apply the reviewed Prisma schema to the target database with `npm run db:push`.
 2. Deploy the reviewed commit.
-3. Check `https://erota.io/api/health`.
+3. Check `https://www.erota.io/api/health`.
 4. Run protected diagnostics:
-   `curl -H "Authorization: Bearer $OPS_SECRET" "https://erota.io/api/health?deep=1"`.
+   `curl -H "Authorization: Bearer $OPS_SECRET" "https://www.erota.io/api/health?deep=1"`.
 5. Complete signup, role-play, call upload, Stripe checkout, webhook, and portal smoke tests.
 
 ## Don’t do this

@@ -8,7 +8,7 @@ owner access and cannot be completed from repository code.
 - Recover Wix DNS access for `erota.io`.
 - Complete Clerk's production-domain DNS records.
 - Replace Vercel production values with Clerk `pk_live_` / `sk_live_` keys.
-- Create the production endpoint `https://erota.io/api/webhooks/clerk` for
+- Create the production endpoint `https://www.erota.io/api/webhooks/clerk` for
   `user.created` and `user.updated`.
 - Set its signing secret as `CLERK_WEBHOOK_SECRET`.
 
@@ -19,7 +19,7 @@ owner access and cannot be completed from repository code.
 - Set live-only Vercel production values:
   `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`,
   `STRIPE_PRO_PRICE_ID`, and `STRIPE_MAX_PRICE_ID`.
-- Create `https://erota.io/api/webhooks/stripe` with the four events documented
+- Create `https://www.erota.io/api/webhooks/stripe` with the four events documented
   in `STRIPE.md`; set its live signing secret.
 - Configure Customer Portal plan changes, seat quantity changes, cards,
   invoices, and cancellation.
@@ -48,7 +48,7 @@ owner access and cannot be completed from repository code.
 
 ```bash
 curl -H "Authorization: Bearer $OPS_SECRET" \
-  "https://erota.io/api/health?deep=1"
+  "https://www.erota.io/api/health?deep=1"
 ```
 
 ## 6. Release smoke test

@@ -33,7 +33,7 @@ STRIPE_PRO_PRICE_ID=price_...
 STRIPE_MAX_PRICE_ID=price_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 STRIPE_PORTAL_CONFIGURATION_ID=bpc_...
-NEXT_PUBLIC_APP_URL=https://erota.io
+NEXT_PUBLIC_APP_URL=https://www.erota.io
 ```
 
 ## Stripe setup
@@ -47,7 +47,7 @@ NEXT_PUBLIC_APP_URL=https://erota.io
    - view invoices
    - cancel subscription at period end
 4. Add webhook endpoint:
-   `https://erota.io/api/webhooks/stripe`
+   `https://www.erota.io/api/webhooks/stripe`
 5. Subscribe to:
    - `checkout.session.completed`
    - `customer.subscription.created`

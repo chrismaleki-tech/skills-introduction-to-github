@@ -65,7 +65,7 @@ the production application:
 ```json
 [
   {
-    "AllowedOrigins": ["https://erota.io"],
+    "AllowedOrigins": ["https://www.erota.io", "https://erota.io"],
     "AllowedMethods": ["PUT"],
     "AllowedHeaders": ["Content-Type"],
     "ExposeHeaders": ["ETag"],
