@@ -46,7 +46,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             orgName={user.org.name}
             userLabel={`${user.name} · ${user.role.toLowerCase()}`}
           />
-          <BrandMark size={30} />
+          <BrandMark size={26} />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">
               <span className="text-brand">Erota</span> Sales Intelligence
@@ -59,7 +59,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
         <div className="flex items-center gap-2.5 border-b border-line px-4 py-4">
-          <BrandMark size={40} />
+          <BrandMark size={34} />
           <div className="min-w-0">
             <div className="truncate font-semibold leading-tight tracking-tight">
               <span className="text-brand">Erota</span> Sales Intelligence
