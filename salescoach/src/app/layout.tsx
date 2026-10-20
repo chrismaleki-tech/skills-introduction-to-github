@@ -18,13 +18,13 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "SalesCoach AI by Erota — Coach every rep against your playbook",
-    template: "%s · SalesCoach AI",
+    default: "Erota Sales Intelligence — Coach every rep against your playbook",
+    template: "%s · Erota Sales Intelligence",
   },
   description:
     "Turn sales conversations into consistent, quote-backed coaching. Score calls against your methodology, surface skill gaps, and assign focused practice.",
   openGraph: {
-    title: "SalesCoach AI by Erota",
+    title: "Erota Sales Intelligence",
     description: "Evidence-backed call coaching and AI role-play built around your sales methodology.",
     type: "website",
   },
@@ -45,6 +45,29 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         signInFallbackRedirectUrl="/dashboard"
         signUpFallbackRedirectUrl="/dashboard"
         afterSignOutUrl="/"
+        appearance={{
+          layout: {
+            logoImageUrl: "/brand/erota-mark.png",
+            logoPlacement: "inside",
+            termsPageUrl: "/terms",
+            privacyPageUrl: "/privacy",
+          },
+          variables: { colorPrimary: "#0091ae" },
+        }}
+        localization={{
+          signIn: {
+            start: {
+              title: "Sign in to Erota Sales Intelligence",
+              subtitle: "Welcome back. Sign in to continue to your workspace.",
+            },
+          },
+          signUp: {
+            start: {
+              title: "Create your Erota Sales Intelligence account",
+              subtitle: "Start your free trial. No credit card required.",
+            },
+          },
+        }}
       >
         {tree}
       </ClerkProvider>

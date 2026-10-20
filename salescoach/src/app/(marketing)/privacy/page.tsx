@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand-logo";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How SalesCoach AI collects and uses information from our website and product.",
+  description: "How Erota Sales Intelligence collects and uses information from our website and product.",
 };
 
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
-      <p className="text-sm text-muted">
-        <Link href="/" className="text-brand hover:text-brand-hover">
-          ← SalesCoach AI
-        </Link>
-      </p>
+      <Link href="/" aria-label="Erota Sales Intelligence home" className="inline-flex items-center gap-2 text-sm text-muted hover:text-marketing-ink">
+        <span aria-hidden>←</span>
+        <BrandLockup size="sm" textClassName="text-marketing-ink" />
+      </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold tracking-tight text-marketing-ink">Privacy Policy</h1>
-      <p className="mt-3 text-sm text-muted">Last updated: August 26, 2026</p>
+      <p className="mt-3 text-sm text-muted">Last updated: October 19, 2026</p>
 
       <div className="mt-10 space-y-8 text-sm leading-relaxed text-marketing-ink">
         <section>
           <h2 className="text-lg font-semibold">Who we are</h2>
           <p className="mt-2 text-muted">
-            SalesCoach AI (“we”, “us”) provides AI-assisted sales call grading, role-play practice, and coaching
-            analytics. This policy covers our marketing website and product demo.
+            Erota Sales Intelligence (“we”, “us”) provides AI-assisted sales call grading, role-play practice, and coaching
+            analytics. This policy covers our marketing website and application.
           </p>
         </section>
 
@@ -41,6 +41,10 @@ export default function PrivacyPage() {
               <strong className="text-marketing-ink">Technical data:</strong> basic server logs (IP, user agent, timestamps)
               needed to operate and secure the service.
             </li>
+            <li>
+              <strong className="text-marketing-ink">Billing data:</strong> subscription status, plan, seat quantity,
+              and Stripe customer identifiers. Payment-card details are collected and stored by Stripe, not Erota.
+            </li>
           </ul>
         </section>
 
@@ -57,17 +61,38 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-lg font-semibold">Processors</h2>
           <p className="mt-2 text-muted">
-            Depending on configuration, we may use subprocessors such as OpenAI (grading / role-play) and Deepgram
-            (transcription). Those providers process content only to deliver the requested feature.
+            We use service providers to operate the product: Clerk for authentication, Neon for PostgreSQL hosting,
+            Cloudflare R2 for encrypted object storage, OpenAI for grading and role-play, Deepgram for transcription,
+            Stripe for billing, and Vercel for application hosting. These providers process information only to deliver
+            their contracted services.
           </p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold">Retention</h2>
+          <h2 className="text-lg font-semibold">Recordings and consent</h2>
           <p className="mt-2 text-muted">
-            Demo leads are retained while we pursue a sales conversation, then deleted or archived on request. Product
-            call data is retained for your organization until you delete it or close the account, subject to backup
-            windows.
+            Customers are responsible for providing required notices and obtaining permission to record and process
+            conversations. Do not upload a conversation unless your organization has a lawful basis and the required
+            consent.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold">Cookies</h2>
+          <p className="mt-2 text-muted">
+            Authentication cookies are required to keep signed-in users secure. With your permission, we also store a
+            first-party attribution cookie for up to 30 days to understand which campaign introduced you to Erota. You
+            may decline that optional cookie from the website notice.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold">Retention and deletion</h2>
+          <p className="mt-2 text-muted">
+            By default, uploaded audio is deleted after 90 days and call, transcript, score, and role-play records are
+            deleted after 365 days. Authorized users may delete a call earlier from the application. Demo leads are
+            retained while we pursue a sales conversation and may be deleted on request. Limited copies may remain in
+            provider backups until their normal backup cycles expire.
           </p>
         </section>
 
@@ -78,7 +103,8 @@ export default function PrivacyPage() {
             <a className="text-brand hover:text-brand-hover" href="mailto:hello@erota.io">
               hello@erota.io
             </a>{" "}
-            to access, correct, or delete personal information we hold about you.
+            to access, correct, export, or delete personal information we hold about you. You may also object to or
+            restrict certain processing where applicable.
           </p>
         </section>
 

@@ -40,7 +40,7 @@ Stripe (Phase 1) → SignupEvent (converted)
 ## Setup (production)
 
 1. **Clerk Dashboard → Webhooks**
-   - Endpoint: `https://erota.io/api/webhooks/clerk`
+   - Endpoint: `https://www.erota.io/api/webhooks/clerk`
    - Events: `user.created` (optional: `user.updated`)
    - Copy signing secret → Vercel env `CLERK_WEBHOOK_SECRET`
 

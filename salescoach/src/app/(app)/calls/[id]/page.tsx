@@ -6,6 +6,7 @@ import { GradeView } from "@/components/grade-view";
 import { TranscriptView } from "@/components/transcript-view";
 import { GradeNowButton } from "@/components/calls/grade-now-button";
 import { OverrideForm } from "@/components/calls/override-form";
+import { DeleteCallButton } from "@/components/calls/delete-call-button";
 import {
   Card,
   EmptyState,
@@ -43,6 +44,7 @@ export default async function CallReviewPage({
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <SamplingPill status={call.samplingStatus} />
             <StatusPill status={call.status} />
+            <DeleteCallButton callId={call.id} />
           </div>
         }
       />

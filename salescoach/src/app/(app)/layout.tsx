@@ -8,6 +8,7 @@ import { aiAvailable } from "@/lib/ai";
 import { storageBackend } from "@/lib/storage";
 import { billingAccess } from "@/lib/billing";
 import { MobileNav } from "@/components/mobile-nav";
+import { BrandMark } from "@/components/brand-logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
@@ -45,9 +46,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             orgName={user.org.name}
             userLabel={`${user.name} · ${user.role.toLowerCase()}`}
           />
+          <BrandMark size={30} />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">
-              <span className="text-brand">Sales</span>Coach AI
+              <span className="text-brand">Erota</span> Sales Intelligence
             </div>
             <div className="max-w-40 truncate text-[11px] text-muted">{user.org.name}</div>
           </div>
@@ -56,11 +58,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
 
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
-        <div className="px-4 py-5 border-b border-line">
-          <div className="font-semibold tracking-tight text-lg">
-            <span className="text-brand">Sales</span>Coach AI
+        <div className="flex items-center gap-2.5 border-b border-line px-4 py-4">
+          <BrandMark size={40} />
+          <div className="min-w-0">
+            <div className="truncate font-semibold leading-tight tracking-tight">
+              <span className="text-brand">Erota</span> Sales Intelligence
+            </div>
+            <div className="mt-0.5 truncate text-xs text-muted">{user.org.name}</div>
           </div>
-          <div className="text-xs text-muted mt-0.5">{user.org.name}</div>
         </div>
         <div className="p-3 flex-1">
           <NavLinks items={items} />
