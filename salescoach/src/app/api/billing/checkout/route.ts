@@ -60,11 +60,19 @@ export async function POST(req: Request) {
 
   const base = appUrl(req);
   const session = await stripe.checkout.sessions.create({
+    ui_mode: "hosted_page",
     mode: "subscription",
     customer: customerId,
     client_reference_id: user.orgId,
     line_items: [{ price: stripePriceId(requestedPlan), quantity: seats }],
-    allow_promotion_codes: true,
+    billing_address_collection: "auto",
+    phone_number_collection: { enabled: false },
+    automatic_tax: { enabled: false },
+    allow_promotion_codes: false,
+    payment_method_collection: "always",
+    submit_type: "auto",
+    integration_identifier: "hosted_web_0001",
+    origin_context: "web",
     success_url: `${base}/billing?checkout=success`,
     cancel_url: `${base}/billing?checkout=canceled`,
     subscription_data: {
