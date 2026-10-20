@@ -3,7 +3,7 @@ import Link from "next/link";
 
 type Size = "sm" | "md" | "lg";
 
-const MARK_PX: Record<Size, number> = { sm: 26, md: 36, lg: 48 };
+const MARK_PX: Record<Size, number> = { sm: 22, md: 32, lg: 44 };
 const TEXT_CLASS: Record<Size, string> = {
   sm: "text-sm",
   md: "text-lg",
@@ -12,7 +12,7 @@ const TEXT_CLASS: Record<Size, string> = {
 const MARK_CLASS: Record<Size, string> = {
   sm: "",
   md: "",
-  lg: "h-10 w-10 sm:h-12 sm:w-12",
+  lg: "h-9 w-9 sm:h-11 sm:w-11",
 };
 
 export function BrandMark({ size = 32, className = "" }: { size?: number; className?: string }) {
