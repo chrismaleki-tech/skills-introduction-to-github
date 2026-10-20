@@ -45,6 +45,29 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         signInFallbackRedirectUrl="/dashboard"
         signUpFallbackRedirectUrl="/dashboard"
         afterSignOutUrl="/"
+        appearance={{
+          layout: {
+            logoImageUrl: "/brand/erota-mark.png",
+            logoPlacement: "inside",
+            termsPageUrl: "/terms",
+            privacyPageUrl: "/privacy",
+          },
+          variables: { colorPrimary: "#0091ae" },
+        }}
+        localization={{
+          signIn: {
+            start: {
+              title: "Sign in to Erota Sales Intelligence",
+              subtitle: "Welcome back. Sign in to continue to your workspace.",
+            },
+          },
+          signUp: {
+            start: {
+              title: "Create your Erota Sales Intelligence account",
+              subtitle: "Start your free trial. No credit card required.",
+            },
+          },
+        }}
       >
         {tree}
       </ClerkProvider>

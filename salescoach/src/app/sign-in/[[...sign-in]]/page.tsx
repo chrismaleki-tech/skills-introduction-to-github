@@ -17,6 +17,7 @@ export default function SignInPage() {
         signUpUrl="/sign-up"
         fallbackRedirectUrl="/dashboard"
         appearance={{
+          layout: { logoPlacement: "none" },
           elements: {
             rootBox: "w-full max-w-md",
             cardBox: "w-full max-w-full",
