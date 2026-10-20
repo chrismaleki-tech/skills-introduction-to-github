@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand-logo";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -9,11 +10,10 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
-      <p className="text-sm text-muted">
-        <Link href="/" className="text-brand hover:text-brand-hover">
-          ← Erota Sales Intelligence
-        </Link>
-      </p>
+      <Link href="/" aria-label="Erota Sales Intelligence home" className="inline-flex items-center gap-2 text-sm text-muted hover:text-marketing-ink">
+        <span aria-hidden>←</span>
+        <BrandLockup size="sm" textClassName="text-marketing-ink" />
+      </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold tracking-tight text-marketing-ink">Privacy Policy</h1>
       <p className="mt-3 text-sm text-muted">Last updated: October 19, 2026</p>
 

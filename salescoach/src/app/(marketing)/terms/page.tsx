@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { BrandLockup } from "@/components/brand-logo";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
@@ -9,8 +10,9 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
-      <Link href="/" className="text-sm text-brand hover:text-brand-hover">
-        ← Erota Sales Intelligence
+      <Link href="/" aria-label="Erota Sales Intelligence home" className="inline-flex items-center gap-2 text-sm text-muted hover:text-marketing-ink">
+        <span aria-hidden>←</span>
+        <BrandLockup size="sm" textClassName="text-marketing-ink" />
       </Link>
       <h1 className="mt-6 font-display text-4xl font-semibold tracking-tight text-marketing-ink">
         Terms of Service
