@@ -11,7 +11,7 @@ export default function SignUpPage() {
       <Link href="/" aria-label="Erota Sales Intelligence home" className="mt-2 sm:mt-0">
         <BrandLockup size="lg" textClassName="font-display text-marketing-ink" />
       </Link>
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-[25rem]">
         <SignUp
           routing="path"
           path="/sign-up"
@@ -20,9 +20,9 @@ export default function SignUpPage() {
           appearance={{
             layout: { logoPlacement: "none" },
             elements: {
-              rootBox: "w-full max-w-md",
-              cardBox: "w-full max-w-full",
-              card: "w-full max-w-full shadow-sm sm:shadow-lg",
+              rootBox: "mx-auto w-full",
+              cardBox: "mx-auto w-full max-w-full",
+              card: "mx-auto w-full max-w-full shadow-sm sm:shadow-lg",
               headerTitle: "text-xl sm:text-2xl",
               headerSubtitle: "text-sm",
               formFieldInput: "min-h-11 text-base",

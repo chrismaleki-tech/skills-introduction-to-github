@@ -19,9 +19,9 @@ export default function SignInPage() {
         appearance={{
           layout: { logoPlacement: "none" },
           elements: {
-            rootBox: "w-full max-w-md",
-            cardBox: "w-full max-w-full",
-            card: "w-full max-w-full shadow-sm sm:shadow-lg",
+            rootBox: "mx-auto w-full",
+            cardBox: "mx-auto w-full max-w-full",
+            card: "mx-auto w-full max-w-full shadow-sm sm:shadow-lg",
             headerTitle: "text-xl sm:text-2xl",
             headerSubtitle: "text-sm",
             formFieldInput: "min-h-11 text-base",
