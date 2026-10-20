@@ -11,7 +11,7 @@ No placeholder values remain in code. The `mode`, `success_url`, `cancel_url`, a
 | mode | `subscription` | Correct for per-seat recurring billing. No change needed. |
 | success_url | `${NEXT_PUBLIC_APP_URL}/billing?checkout=success` | Set `NEXT_PUBLIC_APP_URL=https://www.erota.io` in Vercel Production (already set). |
 | cancel_url | `${NEXT_PUBLIC_APP_URL}/billing?checkout=canceled` | Same as above. |
-| line_items[].price | `STRIPE_PRO_PRICE_ID` / `STRIPE_MAX_PRICE_ID` env vars | Create the live Pro ($55/seat/mo) and Max ($100/seat/mo) recurring prices at https://dashboard.stripe.com/prices and set both env vars in Vercel Production. These are currently unset in production. |
+| line_items[].price | `STRIPE_PRO_PRICE_ID` / `STRIPE_MAX_PRICE_ID` env vars | Live prices exist and both env vars are set in Vercel Production (Pro `price_1USTVeReLRONsYRwkHvaJDQY`, Max `price_1USTVeReLRONsYRwLlkZ10I4`). No change needed. |
 
 ## Configured Parameters
 
@@ -38,16 +38,31 @@ Parameters not managed by Checkout Studio (`customer`, `client_reference_id`, `s
 
 ## Setup
 
-### Environment variables (Vercel → erota-salescoach → Settings → Environment Variables → Production)
+### Live Stripe resources (account `acct_1UCuMGReLRONsYRw`, Erota.io)
 
-| Variable | Where to get it |
-|----------|-----------------|
-| `STRIPE_SECRET_KEY` | https://dashboard.stripe.com/apikeys (live `sk_live_...`). Production currently holds a test key. |
-| `STRIPE_PUBLISHABLE_KEY` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Same page (live `pk_live_...`). |
-| `STRIPE_PRO_PRICE_ID` | Price ID of the live Pro recurring price. |
-| `STRIPE_MAX_PRICE_ID` | Price ID of the live Max recurring price. |
-| `STRIPE_WEBHOOK_SECRET` | https://dashboard.stripe.com/workbench/webhooks → add endpoint `https://www.erota.io/api/webhooks/stripe` with events `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`. |
-| `STRIPE_PORTAL_CONFIGURATION_ID` | Customer Portal configuration (`bpc_...`), see [STRIPE.md](STRIPE.md). |
+| Resource | ID |
+|----------|----|
+| Product: Erota Sales Intelligence Pro | `prod_VTQMAoVewueN7g` |
+| Price: Pro, $55/seat/month | `price_1USTVeReLRONsYRwkHvaJDQY` |
+| Product: Erota Sales Intelligence Max | `prod_VTQMKq8H7VIDzZ` |
+| Price: Max, $100/seat/month | `price_1USTVeReLRONsYRwLlkZ10I4` |
+| Webhook endpoint `https://www.erota.io/api/webhooks/stripe` (4 subscription/checkout events) | `we_1USTVxReLRONsYRwcp8mXbDW` |
+| Customer Portal configuration (payment method update, invoices, cancel at period end, Pro/Max plan and seat changes) | `bpc_1USTVxReLRONsYRwqAKuAmL3` |
+
+An older live product `erota.io` with a $50/month price (`price_1UST65ReLRONsYRw7lqX32rT`) predates this setup and is not used by the app; archive it in the Dashboard if it is not needed.
+
+### Environment variables (Vercel → erota-salescoach → Settings → Environment Variables)
+
+All Production values are live-mode and set. Preview/Development keep the test-mode values.
+
+| Variable | Production | Preview / Development |
+|----------|------------|-----------------------|
+| `STRIPE_SECRET_KEY` | live, sensitive | test |
+| `STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | live | test |
+| `STRIPE_PRO_PRICE_ID`, `STRIPE_MAX_PRICE_ID` | live price IDs above | unset (falls back to `STRIPE_PRICE_ID`) |
+| `STRIPE_PRICE_ID` (legacy single-plan var used by the currently deployed production code) | live Pro price | test price |
+| `STRIPE_WEBHOOK_SECRET` | live, sensitive | test |
+| `STRIPE_PORTAL_CONFIGURATION_ID` | live | test |
 
 The production config guard in `src/lib/env.ts` refuses to boot with test keys or missing price IDs when `VERCEL_ENV=production`.
 
@@ -82,10 +97,9 @@ Forward webhooks locally with `stripe listen --forward-to localhost:3000/api/web
 
 ## Next steps
 
-- Activate the Stripe account and switch Vercel Production to live keys and live price IDs (see table above).
-- Enable ACH Direct Debit under Settings → Payments → Payment methods to lower fees on multi-seat orgs; no code change is needed since the session does not pin `payment_method_types`.
+- Enable ACH Direct Debit under Settings → Payments → Payment methods (currently off / not yet available on the account) to lower fees on multi-seat orgs; no code change is needed since the session does not pin `payment_method_types`.
 - Optionally add annual prices alongside the monthly ones.
-- Confirm the Customer Portal configuration allows payment-method updates, invoice history, and cancel-at-period-end.
+- The portal links to `https://www.erota.io/terms`, which only exists on the hardening branch; promote that branch or the link 404s until then.
 - Run an end-to-end live checkout with a real card and refund it.
 
 ## Resources
