@@ -78,6 +78,22 @@ export async function provisionOrgForUser(opts: {
     });
     if (existing) return existing;
 
+    // The same person can arrive with a new Clerk user id (invited seat that was
+    // pre-created by email, or a Clerk instance migration). Clerk has verified
+    // the address, so re-link the existing account instead of creating a second
+    // org and tripping the unique email constraint.
+    const byEmail = await tx.user.findUnique({
+      where: { email: opts.email.toLowerCase() },
+      include: { org: true },
+    });
+    if (byEmail) {
+      return tx.user.update({
+        where: { id: byEmail.id },
+        data: { clerkId: opts.clerkId },
+        include: { org: true },
+      });
+    }
+
     const displayName = opts.name?.trim() || opts.email.split("@")[0] || "Founder";
     const orgName = opts.orgName?.trim() || `${displayName}'s team`;
     const slug = await uniqueSlug(tx, orgName);
