@@ -1,4 +1,5 @@
 import { db } from "./db";
+import { advanceAssignments } from "./assignments";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
@@ -68,6 +69,10 @@ export async function ingestCall(input: IngestCallInput) {
       samplingStatus: decision.samplingStatus,
     },
   });
+
+  if (input.source === "UPLOAD") {
+    await advanceAssignments({ repId: input.repId, type: "UPLOAD_CALLS", at: now });
+  }
 
   if (decision.grade) {
     await processCall(call.id, input);
@@ -182,6 +187,7 @@ export async function gradeRoleplay(sessionId: string) {
     methodologyId: session.scenario.methodologyId ?? undefined,
   });
   await db.roleplaySession.update({ where: { id: sessionId }, data: { status: "GRADED" } });
+  await advanceAssignments({ repId: session.repId, type: "ROLEPLAY", scenarioId: session.scenarioId });
 }
 
 // Shared grading entry: resolves rubric + company context, runs the engine,
