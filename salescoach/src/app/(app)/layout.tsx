@@ -72,12 +72,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <NavLinks items={items} />
         </div>
         <div className="p-3 border-t border-line space-y-2">
-          {!aiAvailable() && (
+          {isDemoAuth() && !aiAvailable() && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-800">
               Demo mode: no OPENAI_API_KEY set. Grading and role-play use deterministic engines.
             </div>
           )}
-          {storageBackend() === "local" && (
+          {isDemoAuth() && storageBackend() === "local" && (
             <div className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] text-muted">
               Audio storage: local disk (set S3_* for durable uploads).
             </div>
