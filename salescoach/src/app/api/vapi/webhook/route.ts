@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gradeRoleplay } from "@/lib/pipeline";
 import type { RoleplayMessage } from "@/lib/types";
+import { billingError } from "@/lib/billing";
+import {
+  assertUsageAvailable,
+  UsageLimitError,
+  usageLimitPayload,
+} from "@/lib/usage";
 
 // Voice-mode ingestion for Vapi (https://vapi.ai) end-of-call reports.
 //
@@ -53,10 +59,15 @@ export async function POST(req: Request) {
 
   // Voice sessions are created with vapiCallId when initiated from the UI in a
   // future iteration; a missing session means the call is not one of ours.
-  const session = await db.roleplaySession.findFirst({ where: { vapiCallId: callId } });
+  const session = await db.roleplaySession.findFirst({
+    where: { vapiCallId: callId },
+    include: { org: true },
+  });
   if (!session) {
     return NextResponse.json({ error: "No role-play session for this call" }, { status: 404 });
   }
+  const paymentError = billingError(session.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const artifactMessages = message.artifact?.messages ?? [];
   const messages: RoleplayMessage[] = artifactMessages
@@ -69,13 +80,27 @@ export async function POST(req: Request) {
     }));
 
   const lastAtMs = messages.length ? messages[messages.length - 1].atMs : 0;
+  const durationSec = Math.round(lastAtMs / 1000);
+  try {
+    await assertUsageAvailable(
+      session.org,
+      session.repId,
+      "roleplay",
+      Math.max(0, durationSec - session.durationSec),
+    );
+  } catch (error) {
+    if (error instanceof UsageLimitError) {
+      return NextResponse.json(usageLimitPayload(error), { status: 402 });
+    }
+    throw error;
+  }
   await db.roleplaySession.update({
     where: { id: session.id },
     data: {
       mode: "VOICE",
       status: "COMPLETED",
       messagesJson: JSON.stringify(messages),
-      durationSec: Math.round(lastAtMs / 1000),
+      durationSec,
       endedAt: new Date(),
     },
   });

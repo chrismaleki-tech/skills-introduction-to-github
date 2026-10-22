@@ -1,11 +1,12 @@
 import Stripe from "stripe";
+import { priceIdForPlan, type CheckoutPlanKey } from "./plans";
 
 let client: Stripe | undefined;
 
 export function stripeConfigured() {
   return Boolean(
     process.env.STRIPE_SECRET_KEY &&
-      process.env.STRIPE_PRICE_ID &&
+      priceIdForPlan("pro") &&
       process.env.STRIPE_WEBHOOK_SECRET,
   );
 }
@@ -14,14 +15,17 @@ export function getStripe() {
   const key = process.env.STRIPE_SECRET_KEY;
   if (!key) throw new Error("STRIPE_SECRET_KEY is not configured.");
   client ??= new Stripe(key, {
-    appInfo: { name: "SalesCoach AI", version: "1.0.0" },
+    appInfo: { name: "Erota Sales Intelligence", version: "1.0.0" },
   });
   return client;
 }
 
-export function stripePriceId() {
-  const id = process.env.STRIPE_PRICE_ID;
-  if (!id) throw new Error("STRIPE_PRICE_ID is not configured.");
+export function stripePriceId(plan: CheckoutPlanKey) {
+  const id = priceIdForPlan(plan);
+  if (!id) {
+    const name = plan === "max" ? "STRIPE_MAX_PRICE_ID" : "STRIPE_PRO_PRICE_ID";
+    throw new Error(`${name} is not configured.`);
+  }
   return id;
 }
 

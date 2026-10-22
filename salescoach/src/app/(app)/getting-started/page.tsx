@@ -12,10 +12,14 @@ const practiceTips = [
   "Select End session & get graded, then review your score, strengths, and next steps.",
 ];
 
-export default async function GettingStartedPage() {
+export default async function GettingStartedPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ joined?: string }>;
+}) {
   const user = await currentUser();
   const manager = isManagerRole(user.role);
-  const steps = await getGettingStartedSteps(user);
+  const [steps, params] = await Promise.all([getGettingStartedSteps(user), searchParams]);
 
   return (
     <div>
@@ -23,6 +27,13 @@ export default async function GettingStartedPage() {
         title="Getting Started"
         subtitle="Follow your live checklist, learn the core workflow, and get useful coaching from your first session."
       />
+
+      {params.joined === "1" && (
+        <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          You&apos;re on the <strong>{user.org.name}</strong> team as a {user.role.toLowerCase()}. Your
+          manager can see your scores and assign practice; start with a role-play below.
+        </div>
+      )}
 
       <GettingStartedChecklist steps={steps} />
 
@@ -57,6 +68,12 @@ export default async function GettingStartedPage() {
                 body="Review the active rubric. Every real call and role-play uses it for consistent scoring."
                 href="/rubrics"
                 link="Review Rubrics"
+              />
+              <GuideItem
+                title="Bring in your reps"
+                body="Paste your team's emails to send invites. Each person gets their own seat, and you see every score on the Team Dashboard."
+                href="/team"
+                link="Invite your team"
               />
               <GuideItem
                 title="Give reps focused practice"

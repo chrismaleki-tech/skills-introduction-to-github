@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "type must be ROLEPLAY or UPLOAD_CALLS." }, { status: 400 });
   }
 
-  const rep = await db.user.findFirst({ where: { id: assignedToId, orgId: user.orgId } });
+  const rep = await db.user.findFirst({ where: { id: assignedToId, orgId: user.orgId, removedAt: null } });
   if (!rep) return NextResponse.json({ error: "Rep not found in your organization." }, { status: 400 });
 
   if (type === "ROLEPLAY" && !scenarioId) {

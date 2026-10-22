@@ -32,7 +32,7 @@
   --color-marketing-ink: var(--marketing-ink);
   --color-marketing-wash: var(--marketing-wash);
   --font-sans: var(--font-plus-jakarta);
-  --font-display: var(--font-fraunces);
+  --font-display: var(--font-plus-jakarta);
   --font-mono: var(--font-plus-jakarta);
 }
 
@@ -113,7 +113,9 @@ body {
 }
 
 .font-display {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.025em;
 }
 
 @media (prefers-reduced-motion: reduce) {

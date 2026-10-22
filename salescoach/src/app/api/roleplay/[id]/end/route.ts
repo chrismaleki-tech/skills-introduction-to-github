@@ -4,6 +4,11 @@ import { gradeRoleplay } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseMessages } from "@/lib/types";
 import { billingError } from "@/lib/billing";
+import {
+  assertUsageAvailable,
+  UsageLimitError,
+  usageLimitPayload,
+} from "@/lib/usage";
 
 // End a session and grade it. Idempotent: an already-COMPLETED session is
 // simply graded; an already-GRADED session returns its existing score.
@@ -15,7 +20,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const session = await db.roleplaySession.findUnique({
     where: { id },
-    include: { grade: true },
+    include: { grade: true, org: true },
   });
   if (!session || session.orgId !== user.orgId) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
@@ -37,12 +42,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   if (session.status === "ACTIVE") {
+    const finalDurationSec = Math.round((Date.now() - session.startedAt.getTime()) / 1000);
+    try {
+      await assertUsageAvailable(
+        session.org,
+        session.repId,
+        "roleplay",
+        Math.max(0, finalDurationSec - session.durationSec),
+      );
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json(usageLimitPayload(error), { status: 402 });
+      }
+      throw error;
+    }
     await db.roleplaySession.update({
       where: { id },
       data: {
         status: "COMPLETED",
         endedAt: new Date(),
-        durationSec: Math.round((Date.now() - session.startedAt.getTime()) / 1000),
+        durationSec: finalDurationSec,
       },
     });
   }

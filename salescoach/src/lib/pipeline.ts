@@ -1,7 +1,10 @@
 import { db } from "./db";
+import { advanceAssignments } from "./assignments";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
+import { assertUsageAvailable, UsageLimitError } from "./usage";
+import { captureError } from "./monitoring";
 import {
   parseCompanyProfile,
   parseDimensions,
@@ -67,6 +70,10 @@ export async function ingestCall(input: IngestCallInput) {
     },
   });
 
+  if (input.source === "UPLOAD") {
+    await advanceAssignments({ repId: input.repId, type: "UPLOAD_CALLS", at: now });
+  }
+
   if (decision.grade) {
     await processCall(call.id, input);
   } else if (input.providedTranscript) {
@@ -82,10 +89,23 @@ export async function ingestCall(input: IngestCallInput) {
 export async function processCall(callId: string, input?: Partial<IngestCallInput>) {
   const call = await db.call.findUniqueOrThrow({
     where: { id: callId },
-    include: { transcript: true, org: { include: { companyContext: true } } },
+    include: {
+      transcript: true,
+      grade: true,
+      org: { include: { companyContext: true } },
+    },
   });
 
   try {
+    if (!call.grade) {
+      await assertUsageAvailable(
+        call.org,
+        call.repId,
+        "call_scoring",
+        call.durationSec,
+      );
+    }
+
     let segments: TranscriptSegment[];
     let engine: string;
 
@@ -119,6 +139,14 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
     });
     await db.call.update({ where: { id: callId }, data: { status: "GRADED" } });
   } catch (err) {
+    if (!(err instanceof UsageLimitError)) {
+      await captureError(err, {
+        operation: "process_call",
+        callId,
+        orgId: call.orgId,
+        repId: call.repId,
+      });
+    }
     await db.call.update({
       where: { id: callId },
       data: { status: "FAILED", failReason: err instanceof Error ? err.message : String(err) },
@@ -159,6 +187,7 @@ export async function gradeRoleplay(sessionId: string) {
     methodologyId: session.scenario.methodologyId ?? undefined,
   });
   await db.roleplaySession.update({ where: { id: sessionId }, data: { status: "GRADED" } });
+  await advanceAssignments({ repId: session.repId, type: "ROLEPLAY", scenarioId: session.scenarioId });
 }
 
 // Shared grading entry: resolves rubric + company context, runs the engine,

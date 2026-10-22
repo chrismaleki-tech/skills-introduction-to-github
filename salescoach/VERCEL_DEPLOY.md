@@ -1,24 +1,18 @@
-# Deploy SalesCoach to Vercel
+# Deploy Erota Sales Intelligence to Vercel
 
-## Why `/` works but `/dashboard` fails
-
-The marketing page (`/`) is static HTML — no database.
-
-App routes (`/dashboard`, `/calls`, `/me`, …) need the Prisma demo DB. On Vercel the filesystem is read-only, so a bare `file:./dev.db` with no seed crashes those pages.
-
-**Fix (already in this branch):** `vercel.json` / `npm run build` runs `db:demo`, which creates a seeded `prisma/demo.db`. At runtime each serverless function copies it to `/tmp/salescoach.db` and serves the demo team data.
-
-Check `/api/health` after deploy — it should return `"ok": true` with user/call counts.
+Application routes require PostgreSQL, Clerk, and durable R2/S3 storage.
+Production startup fails when required live configuration is missing so the
+site cannot silently fall back to demo authentication or ephemeral storage.
 
 ## Project settings (required)
 
 1. **Root Directory** = `salescoach`
-2. **Production Branch** = `cursor/sales-training-platform-29f3` (until merged to `main`)
+2. **Production Branch** = the reviewed release branch
 3. Framework: Next.js (auto-detected)
 
 ## Turn off Deployment Protection (or the URL looks like a Vercel login page)
 
-If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of SalesCoach:
+If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of Erota Sales Intelligence:
 
 1. Project → **Settings** → **Deployment Protection**
 2. Set **Vercel Authentication** to **Only Preview Deployments** (or Off)
@@ -29,21 +23,31 @@ If visiting the `.vercel.app` URL shows **“Log in to Vercel”** instead of Sa
 | Name | Value | Required |
 |---|---|---|
 | `DATABASE_URL` | Postgres URL (Neon/Supabase/Vercel Postgres) | **Yes** |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Clerk app keys | **Yes** for signup |
-| `S3_BUCKET` + access keys (+ `S3_ENDPOINT` for R2) | Durable audio | Recommended |
-| `OPENAI_API_KEY` | your key | Optional (demo graders work without it) |
-| `DEEPGRAM_API_KEY` | your key | Optional (real audio transcription) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` / `CLERK_SECRET_KEY` | Live Clerk keys | **Yes** |
+| `CLERK_WEBHOOK_SECRET` | Clerk endpoint signing secret | **Yes** |
+| `S3_BUCKET` + access keys + `S3_ENDPOINT` | Durable audio | **Yes** |
+| `OPENAI_API_KEY` | Grading and role-play | **Yes** |
+| `DEEPGRAM_API_KEY` | Audio transcription | **Yes** |
+| `STRIPE_SECRET_KEY` / `STRIPE_PUBLISHABLE_KEY` | Live Stripe keys | **Yes** |
+| `STRIPE_PRO_PRICE_ID` / `STRIPE_MAX_PRICE_ID` | Live recurring prices | **Yes** |
+| `STRIPE_WEBHOOK_SECRET` | Live endpoint signing secret | **Yes** |
+| `OPS_SECRET` / `CRON_SECRET` | Independent random 32-byte secrets | **Yes** |
+| `NEXT_PUBLIC_APP_URL` | `https://www.erota.io` | **Yes** |
 
 See [`PHASE0.md`](./PHASE0.md) for full Phase 0 setup.
 
-## After deploy
+## Release sequence
 
-- Production URL: `https://<project>.vercel.app`
-- App entry: `https://<project>.vercel.app/dashboard` (manager demo) or `/me` (rep view)
-- Custom domain: add `app.erota.io` in Vercel → Domains, then CNAME `app` → `cname.vercel-dns.com` in Wix DNS
+1. Apply the reviewed Prisma schema to the target database with `npm run db:push`.
+2. Deploy the reviewed commit.
+3. Check `https://www.erota.io/api/health`.
+4. Run protected diagnostics:
+   `curl -H "Authorization: Bearer $OPS_SECRET" "https://www.erota.io/api/health?deep=1"`.
+5. Complete signup, role-play, call upload, Stripe checkout, webhook, and portal smoke tests.
 
 ## Don’t do this
 
 - Don’t set Root Directory blank / `/` on this monorepo
-- Don’t deploy `main` until `salescoach/` is merged
+- Don’t scope production database or live payment keys to Preview
+- Don’t run `prisma db push` automatically from a preview build
 - Don’t leave **Standard Protection / Vercel Authentication** on for Production if you want a public demo
