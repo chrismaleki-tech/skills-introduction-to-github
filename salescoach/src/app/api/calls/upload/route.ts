@@ -41,7 +41,7 @@ export async function POST(req: Request) {
     if (!isManagerRole(user.role)) {
       return NextResponse.json({ error: "Only managers can upload on behalf of a rep." }, { status: 403 });
     }
-    const rep = await db.user.findFirst({ where: { id: requestedRepId, orgId: user.orgId } });
+    const rep = await db.user.findFirst({ where: { id: requestedRepId, orgId: user.orgId, removedAt: null } });
     if (!rep) {
       return NextResponse.json({ error: "Unknown rep for this organization." }, { status: 400 });
     }

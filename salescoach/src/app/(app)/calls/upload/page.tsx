@@ -21,7 +21,7 @@ export default async function UploadCallPage() {
   const user = await currentUser();
   const reps = isManagerRole(user.role)
     ? await db.user.findMany({
-        where: { orgId: user.orgId, role: "REP" },
+        where: { orgId: user.orgId, role: "REP", removedAt: null },
         orderBy: { name: "asc" },
         select: { id: true, name: true },
       })

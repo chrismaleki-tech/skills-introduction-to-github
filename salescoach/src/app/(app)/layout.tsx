@@ -13,7 +13,7 @@ import { BrandMark } from "@/components/brand-logo";
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const users = await db.user.findMany({
-    where: { orgId: user.orgId },
+    where: { orgId: user.orgId, removedAt: null },
     orderBy: [{ role: "asc" }, { name: "asc" }],
     select: { id: true, name: true, role: true, title: true },
   });
@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/assignments", label: "Assignments" },
     ...(manager
       ? [
+          { href: "/team", label: "Team" },
           { href: "/rubrics", label: "Rubrics" },
           { href: "/company", label: "Company Profile" },
           { href: "/billing", label: "Billing" },

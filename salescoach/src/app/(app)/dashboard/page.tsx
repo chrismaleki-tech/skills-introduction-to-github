@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   const earliest = new Date(Math.min(pStart.getTime(), trendStart.getTime(), last30.getTime()));
 
   const [reps, methodology, grades, monthCalls, activeAssignments, gettingStartedSteps] = await Promise.all([
-    db.user.findMany({ where: { orgId: user.orgId, role: "REP" }, orderBy: { name: "asc" } }),
+    db.user.findMany({ where: { orgId: user.orgId, role: "REP", removedAt: null }, orderBy: { name: "asc" } }),
     user.org.activeMethodologyId
       ? db.methodology.findUnique({ where: { id: user.org.activeMethodologyId } })
       : Promise.resolve(null),

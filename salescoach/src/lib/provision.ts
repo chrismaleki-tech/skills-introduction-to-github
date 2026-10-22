@@ -3,6 +3,7 @@ import { db } from "./db";
 import { METHODOLOGY_PRESETS } from "./presets";
 import { EMPTY_COMPANY_PROFILE } from "./types";
 import { markSignupProvisioned, recordSignup, type Attribution } from "./signups";
+import { hasSeatFor, markInviteAccepted, pendingPlacementFor } from "./invites";
 
 function slugify(input: string) {
   const base = input
@@ -43,8 +44,53 @@ export async function ensureGlobalPresets() {
 }
 
 /**
- * Provision a brand-new customer org for a signed-up user.
- * Clones the Discovery preset as their active rubric and creates empty company context.
+ * Create a fresh trialing workspace with the Discovery preset cloned as the
+ * active rubric and an empty company profile. Used for solo sign-ups and for
+ * people who leave a team and want their own space.
+ */
+export async function createOrgWithDefaults(tx: Prisma.TransactionClient, orgName: string) {
+  const slug = await uniqueSlug(tx, orgName);
+  const discovery = await tx.methodology.findFirst({
+    where: { isPreset: true, orgId: null, name: "Discovery Call Fundamentals" },
+  });
+
+  const org = await tx.org.create({
+    data: {
+      name: orgName,
+      slug,
+      onboardingComplete: false,
+      planStatus: "trialing",
+      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      companyContext: {
+        create: { profileJson: JSON.stringify(EMPTY_COMPANY_PROFILE) },
+      },
+    },
+  });
+
+  if (discovery) {
+    const cloned = await tx.methodology.create({
+      data: {
+        orgId: org.id,
+        name: discovery.name,
+        description: discovery.description,
+        isPreset: false,
+        dimensionsJson: discovery.dimensionsJson,
+      },
+    });
+    return tx.org.update({
+      where: { id: org.id },
+      data: { activeMethodologyId: cloned.id },
+    });
+  }
+  return org;
+}
+
+/**
+ * Provision a signed-up user. Three outcomes, in priority order:
+ * 1. Account already exists (by Clerk id, or by verified email) → re-link.
+ * 2. A pending invite for the email, or a join link they followed → join that
+ *    team in the invited role, no new org.
+ * 3. Otherwise a brand-new solo workspace (the B2C path), with them as admin.
  * Also advances the SignupEvent funnel to `provisioned`.
  */
 export async function provisionOrgForUser(opts: {
@@ -54,6 +100,8 @@ export async function provisionOrgForUser(opts: {
   orgName?: string;
   source?: "clerk_webhook" | "first_login" | "invite";
   attribution?: Attribution;
+  /** Token from the `erota_join` cookie (invite token or org join code). */
+  joinToken?: string | null;
 }) {
   await ensureGlobalPresets();
 
@@ -65,6 +113,7 @@ export async function provisionOrgForUser(opts: {
     attribution: opts.attribution,
   });
 
+  const email = opts.email.toLowerCase();
   const user = await db.$transaction(async (tx) => {
     // Next.js can render a page and its layout in parallel. Serialize initial
     // provisioning per Clerk user so exactly one Org/User is ever created.
@@ -78,63 +127,56 @@ export async function provisionOrgForUser(opts: {
     });
     if (existing) return existing;
 
+    const placement = await pendingPlacementFor(tx, email, opts.joinToken);
+
     // The same person can arrive with a new Clerk user id (invited seat that was
     // pre-created by email, or a Clerk instance migration). Clerk has verified
     // the address, so re-link the existing account instead of creating a second
     // org and tripping the unique email constraint.
     const byEmail = await tx.user.findUnique({
-      where: { email: opts.email.toLowerCase() },
+      where: { email },
       include: { org: true },
     });
     if (byEmail) {
-      return tx.user.update({
+      // A removed teammate who was re-invited comes back into the inviting org.
+      const rejoin =
+        byEmail.removedAt && placement && (await hasSeatFor(tx, placement.orgId, placement.inviteId));
+      const updated = await tx.user.update({
         where: { id: byEmail.id },
-        data: { clerkId: opts.clerkId },
+        data: rejoin
+          ? { clerkId: opts.clerkId, orgId: placement.orgId, role: placement.role, removedAt: null }
+          : { clerkId: opts.clerkId },
         include: { org: true },
       });
+      if (rejoin && placement.inviteId) await markInviteAccepted(tx, placement.inviteId, updated.id);
+      return updated;
     }
 
-    const displayName = opts.name?.trim() || opts.email.split("@")[0] || "Founder";
-    const orgName = opts.orgName?.trim() || `${displayName}'s team`;
-    const slug = await uniqueSlug(tx, orgName);
-    const discovery = await tx.methodology.findFirst({
-      where: { isPreset: true, orgId: null, name: "Discovery Call Fundamentals" },
-    });
+    const displayName = opts.name?.trim() || email.split("@")[0] || "Founder";
 
-    const org = await tx.org.create({
-      data: {
-        name: orgName,
-        slug,
-        onboardingComplete: false,
-        planStatus: "trialing",
-        trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
-        companyContext: {
-          create: { profileJson: JSON.stringify(EMPTY_COMPANY_PROFILE) },
-        },
-      },
-    });
-
-    if (discovery) {
-      const cloned = await tx.methodology.create({
+    if (placement && (await hasSeatFor(tx, placement.orgId, placement.inviteId))) {
+      const member = await tx.user.create({
         data: {
-          orgId: org.id,
-          name: discovery.name,
-          description: discovery.description,
-          isPreset: false,
-          dimensionsJson: discovery.dimensionsJson,
+          clerkId: opts.clerkId,
+          orgId: placement.orgId,
+          email,
+          name: displayName,
+          role: placement.role,
         },
+        include: { org: true },
       });
-      await tx.org.update({
-        where: { id: org.id },
-        data: { activeMethodologyId: cloned.id },
-      });
+      if (placement.inviteId) await markInviteAccepted(tx, placement.inviteId, member.id);
+      return member;
     }
+
+    const orgName = opts.orgName?.trim() || `${displayName}'s team`;
+    const org = await createOrgWithDefaults(tx, orgName);
 
     return tx.user.create({
       data: {
         clerkId: opts.clerkId,
         orgId: org.id,
-        email: opts.email.toLowerCase(),
+        email,
         name: displayName,
         role: "ADMIN",
         title: "Founder",
@@ -150,4 +192,22 @@ export async function provisionOrgForUser(opts: {
   });
 
   return user;
+}
+
+/**
+ * Give an existing account its own brand-new workspace. Used when someone was
+ * removed from a team (or chooses to leave one) and wants to continue solo.
+ */
+export async function startFreshWorkspace(userId: string) {
+  await ensureGlobalPresets();
+  return db.$transaction(async (tx) => {
+    const user = await tx.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("User not found.");
+    const org = await createOrgWithDefaults(tx, `${user.name || user.email.split("@")[0]}'s team`);
+    return tx.user.update({
+      where: { id: user.id },
+      data: { orgId: org.id, role: "ADMIN", title: user.title || "Founder", removedAt: null },
+      include: { org: true },
+    });
+  });
 }

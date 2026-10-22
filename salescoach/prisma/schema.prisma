@@ -32,8 +32,12 @@ model Org {
   subscriptionStartsAt DateTime?
   subscriptionEndsAt  DateTime?
   cancelAtPeriodEnd   Boolean  @default(false)
+  // Shareable join link. Null when disabled; anyone with the code joins as REP
+  // while seats remain.
+  joinCode            String?  @unique
 
   users          User[]
+  invites        Invite[]
   methodologies  Methodology[]
   companyContext CompanyContext?
   calls          Call[]
@@ -57,15 +61,41 @@ model User {
   email String @unique
   role  String // REP | MANAGER | TRAINER | ADMIN
   title String @default("")
+  // Soft removal: history stays attributed, access and seat usage end.
+  removedAt DateTime?
 
   calls        Call[]            @relation("RepCalls")
   roleplays    RoleplaySession[]
   assignments  Assignment[]      @relation("AssignedTo")
   assignedById Assignment[]      @relation("AssignedBy")
+  sentInvites  Invite[]          @relation("InvitedBy")
 
   createdAt DateTime @default(now())
 
   @@index([orgId])
+}
+
+// A pending seat in an org. Accepted when a Clerk user with the matching
+// (verified) email first signs in, or when a signed-in user opens the link.
+model Invite {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id])
+  email       String
+  role        String   @default("REP")
+  token       String   @unique @default(cuid())
+  status      String   @default("pending") // pending | accepted | revoked
+  invitedById String?
+  invitedBy   User?    @relation("InvitedBy", fields: [invitedById], references: [id])
+  // Clerk invitation id when Clerk delivered the email; null when link-only.
+  clerkInvitationId String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  acceptedUserId String?
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, status])
+  @@index([email, status])
 }
 
 // A methodology is a rubric: a set of weighted, scored dimensions.
