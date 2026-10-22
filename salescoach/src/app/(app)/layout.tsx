@@ -8,11 +8,12 @@ import { aiAvailable } from "@/lib/ai";
 import { storageBackend } from "@/lib/storage";
 import { billingAccess } from "@/lib/billing";
 import { MobileNav } from "@/components/mobile-nav";
+import { BrandMark } from "@/components/brand-logo";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   const users = await db.user.findMany({
-    where: { orgId: user.orgId },
+    where: { orgId: user.orgId, removedAt: null },
     orderBy: [{ role: "asc" }, { name: "asc" }],
     select: { id: true, name: true, role: true, title: true },
   });
@@ -28,6 +29,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     { href: "/assignments", label: "Assignments" },
     ...(manager
       ? [
+          { href: "/team", label: "Team" },
           { href: "/rubrics", label: "Rubrics" },
           { href: "/company", label: "Company Profile" },
           { href: "/billing", label: "Billing" },
@@ -45,9 +47,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             orgName={user.org.name}
             userLabel={`${user.name} · ${user.role.toLowerCase()}`}
           />
+          <BrandMark size={26} />
           <div className="min-w-0">
             <div className="truncate text-sm font-semibold">
-              <span className="text-brand">Sales</span>Coach AI
+              <span className="text-brand">Erota</span> Sales Intelligence
             </div>
             <div className="max-w-40 truncate text-[11px] text-muted">{user.org.name}</div>
           </div>
@@ -56,22 +59,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </header>
 
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface md:flex">
-        <div className="px-4 py-5 border-b border-line">
-          <div className="font-semibold tracking-tight text-lg">
-            <span className="text-brand">Sales</span>Coach AI
+        <div className="flex items-center gap-2.5 border-b border-line px-4 py-4">
+          <BrandMark size={34} />
+          <div className="min-w-0">
+            <div className="truncate font-semibold leading-tight tracking-tight">
+              <span className="text-brand">Erota</span> Sales Intelligence
+            </div>
+            <div className="mt-0.5 truncate text-xs text-muted">{user.org.name}</div>
           </div>
-          <div className="text-xs text-muted mt-0.5">{user.org.name}</div>
         </div>
         <div className="p-3 flex-1">
           <NavLinks items={items} />
         </div>
         <div className="p-3 border-t border-line space-y-2">
-          {!aiAvailable() && (
+          {isDemoAuth() && !aiAvailable() && (
             <div className="rounded-lg border border-amber-500/40 bg-amber-50 px-2.5 py-2 text-[11px] text-amber-800">
               Demo mode: no OPENAI_API_KEY set. Grading and role-play use deterministic engines.
             </div>
           )}
-          {storageBackend() === "local" && (
+          {isDemoAuth() && storageBackend() === "local" && (
             <div className="rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] text-muted">
               Audio storage: local disk (set S3_* for durable uploads).
             </div>

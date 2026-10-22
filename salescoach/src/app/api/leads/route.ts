@@ -1,7 +1,25 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: Request) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const rate = await checkRateLimit({
+    scope: "lead",
+    identity: ip,
+    limit: 5,
+    windowSeconds: 60 * 60,
+  });
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again later." },
+      {
+        status: 429,
+        headers: { "retry-after": String(rate.retryAfterSeconds) },
+      },
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();

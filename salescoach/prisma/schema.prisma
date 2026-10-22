@@ -1,4 +1,4 @@
-// SalesCoach AI — data model (PostgreSQL)
+// Erota Sales Intelligence — data model (PostgreSQL)
 // Structured payloads stay as JSON strings with typed helpers in src/lib/types.ts
 // so the app stays portable; columns can move to Prisma Json later.
 
@@ -17,18 +17,27 @@ model Org {
   slug                String  @unique
   // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
   ingestionPolicyJson String  @default("{}")
+  audioRetentionDays  Int     @default(90)
+  dataRetentionDays   Int     @default(365)
   webhookSecret       String  @default(cuid())
   activeMethodologyId String?
   onboardingComplete  Boolean @default(false)
   planStatus          String   @default("trialing") // trialing | active | past_due | canceled | unpaid
+  planKey             String   @default("trial") // trial | pro | max | enterprise
   trialEndsAt         DateTime?
   stripeCustomerId    String?  @unique
   stripeSubscriptionId String? @unique
   stripePriceId       String?
+  stripeSeatCount     Int      @default(1)
+  subscriptionStartsAt DateTime?
   subscriptionEndsAt  DateTime?
   cancelAtPeriodEnd   Boolean  @default(false)
+  // Shareable join link. Null when disabled; anyone with the code joins as REP
+  // while seats remain.
+  joinCode            String?  @unique
 
   users          User[]
+  invites        Invite[]
   methodologies  Methodology[]
   companyContext CompanyContext?
   calls          Call[]
@@ -52,15 +61,41 @@ model User {
   email String @unique
   role  String // REP | MANAGER | TRAINER | ADMIN
   title String @default("")
+  // Soft removal: history stays attributed, access and seat usage end.
+  removedAt DateTime?
 
   calls        Call[]            @relation("RepCalls")
   roleplays    RoleplaySession[]
   assignments  Assignment[]      @relation("AssignedTo")
   assignedById Assignment[]      @relation("AssignedBy")
+  sentInvites  Invite[]          @relation("InvitedBy")
 
   createdAt DateTime @default(now())
 
   @@index([orgId])
+}
+
+// A pending seat in an org. Accepted when a Clerk user with the matching
+// (verified) email first signs in, or when a signed-in user opens the link.
+model Invite {
+  id          String   @id @default(cuid())
+  orgId       String
+  org         Org      @relation(fields: [orgId], references: [id])
+  email       String
+  role        String   @default("REP")
+  token       String   @unique @default(cuid())
+  status      String   @default("pending") // pending | accepted | revoked
+  invitedById String?
+  invitedBy   User?    @relation("InvitedBy", fields: [invitedById], references: [id])
+  // Clerk invitation id when Clerk delivered the email; null when link-only.
+  clerkInvitationId String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  acceptedUserId String?
+  createdAt   DateTime @default(now())
+
+  @@index([orgId, status])
+  @@index([email, status])
 }
 
 // A methodology is a rubric: a set of weighted, scored dimensions.
@@ -315,4 +350,13 @@ model BillingEvent {
   processedAt   DateTime @default(now())
 
   @@index([orgId, processedAt])
+}
+
+model RateLimitBucket {
+  id        String   @id
+  count     Int      @default(1)
+  expiresAt DateTime
+  updatedAt DateTime @updatedAt
+
+  @@index([expiresAt])
 }

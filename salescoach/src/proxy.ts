@@ -8,10 +8,13 @@ const clerkEnabled = Boolean(
 const isPublic = createRouteMatcher([
   "/",
   "/privacy",
+  "/terms",
   "/sign-in(.*)",
   "/sign-up(.*)",
+  "/join(.*)",
   "/api/leads",
   "/api/health",
+  "/api/cron(.*)",
   "/api/ingest(.*)",
   "/api/vapi(.*)",
   "/api/webhooks(.*)",
@@ -25,7 +28,7 @@ const clerk = clerkMiddleware(async (auth, req) => {
 
 export default clerkEnabled
   ? clerk
-  : function middleware() {
+  : function proxy() {
       return NextResponse.next();
     };
 

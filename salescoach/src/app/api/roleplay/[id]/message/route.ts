@@ -4,6 +4,11 @@ import { prospectReply } from "@/lib/roleplay";
 import { currentUser } from "@/lib/session";
 import { parseMessages, type RoleplayMessage } from "@/lib/types";
 import { billingError } from "@/lib/billing";
+import {
+  assertUsageAvailable,
+  UsageLimitError,
+  usageLimitPayload,
+} from "@/lib/usage";
 
 const MAX_MESSAGE_CHARS = 2000;
 
@@ -16,7 +21,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const paymentError = billingError(user.org);
   if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
-  const session = await db.roleplaySession.findUnique({ where: { id } });
+  const session = await db.roleplaySession.findUnique({
+    where: { id },
+    include: { org: true },
+  });
   if (!session || session.orgId !== user.orgId) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
   }
@@ -38,6 +46,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const atMs = Date.now() - session.startedAt.getTime();
+  const nextDurationSec = Math.round(atMs / 1000);
+  try {
+    await assertUsageAvailable(
+      session.org,
+      session.repId,
+      "roleplay",
+      Math.max(0, nextDurationSec - session.durationSec),
+    );
+  } catch (error) {
+    if (error instanceof UsageLimitError) {
+      return NextResponse.json(usageLimitPayload(error), { status: 402 });
+    }
+    throw error;
+  }
   const repMessage: RoleplayMessage = { role: "rep", text, atMs };
   const history = [...parseMessages(session.messagesJson), repMessage];
 
@@ -46,7 +68,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     where: { id },
     data: {
       messagesJson: JSON.stringify(history),
-      durationSec: Math.round(atMs / 1000),
+      durationSec: nextDurationSec,
     },
   });
 
