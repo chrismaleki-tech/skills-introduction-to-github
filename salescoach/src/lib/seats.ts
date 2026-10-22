@@ -35,12 +35,14 @@ export type SeatSummary = {
 };
 
 export function seatLimitFor(org: SeatOrg): { limit: number | null; basis: SeatSummary["basis"] } {
-  if (org.planKey === "enterprise" && !org.stripeSubscriptionId) {
-    return { limit: null, basis: "enterprise" };
-  }
   const access = billingAccess(org);
   if (org.stripeSubscriptionId && (access.status === "active" || access.status === "canceled")) {
     return { limit: Math.max(1, org.stripeSeatCount), basis: "subscription" };
+  }
+  // Active without Stripe means the agreement is managed by hand (enterprise
+  // contract, comped account); seats are governed by that agreement.
+  if (org.planKey === "enterprise" || access.status === "active") {
+    return { limit: null, basis: "enterprise" };
   }
   if (access.status === "trialing") {
     return { limit: TRIAL_SEAT_LIMIT, basis: "trial" };
