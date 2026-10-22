@@ -65,7 +65,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Only managers can upload for another rep." }, { status: 403 });
     }
     const rep = await db.user.findFirst({
-      where: { id: body.repId, orgId: user.orgId },
+      where: { id: body.repId, orgId: user.orgId, removedAt: null },
       select: { id: true },
     });
     if (!rep) return NextResponse.json({ error: "Unknown rep." }, { status: 400 });

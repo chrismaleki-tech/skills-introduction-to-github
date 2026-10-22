@@ -33,7 +33,7 @@ export default async function CallsPage({
   const [reps, calls, monthCalls] = await Promise.all([
     manager
       ? db.user.findMany({
-          where: { orgId: user.orgId, role: "REP" },
+          where: { orgId: user.orgId, role: "REP", removedAt: null },
           orderBy: { name: "asc" },
           select: { id: true, name: true },
         })

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { billingAccess } from "@/lib/billing";
 import { db } from "@/lib/db";
@@ -21,7 +22,7 @@ export default async function BillingPage({
   if (!isManagerRole(user.role)) redirect("/me");
   const params = await searchParams;
   const access = billingAccess(user.org);
-  const teamSize = await db.user.count({ where: { orgId: user.orgId } });
+  const teamSize = await db.user.count({ where: { orgId: user.orgId, removedAt: null } });
   const storedPlan = user.org.planKey as PlanKey;
   const planKey = user.org.stripePriceId
     ? planForPriceId(user.org.stripePriceId)
@@ -114,6 +115,12 @@ export default async function BillingPage({
                   Manage subscription
                 </button>
               </form>
+              <Link
+                href="/team"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold hover:bg-surface sm:w-auto"
+              >
+                Team &amp; seats
+              </Link>
             </div>
           )}
         </Card>
@@ -135,7 +142,11 @@ export default async function BillingPage({
         <h2 className="text-2xl font-semibold tracking-tight">Choose a plan</h2>
         <p className="mt-2 text-sm text-muted">
           Paid plans are billed per seat each month. Your organization currently has {teamSize}{" "}
-          {teamSize === 1 ? "member" : "members"}.
+          {teamSize === 1 ? "member" : "members"}. Buy the seats you need now; you can{" "}
+          <Link href="/team" className="font-semibold text-brand hover:underline">
+            invite people and add seats
+          </Link>{" "}
+          any time.
         </p>
         <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <PlanCard plan="trial" current={planKey === "trial"} />

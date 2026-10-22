@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   }
 
   const stripe = getStripe();
-  const teamSize = await db.user.count({ where: { orgId: user.orgId } });
+  const teamSize = await db.user.count({ where: { orgId: user.orgId, removedAt: null } });
   const requestedSeats = Number(form.get("seats"));
   const seats = Math.min(
     500,

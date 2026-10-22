@@ -77,7 +77,7 @@ export async function POST(req: Request) {
   const paymentError = billingError(org);
   if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
-  const rep = await db.user.findFirst({ where: { orgId: org.id, email: repEmail } });
+  const rep = await db.user.findFirst({ where: { orgId: org.id, email: repEmail, removedAt: null } });
   if (!rep) {
     // TODO: land unmatched calls in a review queue so an admin can map the
     // provider identity to a rep instead of dropping the call.
