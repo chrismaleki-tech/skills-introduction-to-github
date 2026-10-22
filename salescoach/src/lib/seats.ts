@@ -72,11 +72,12 @@ export function seatLimitMessage(summary: SeatSummary, requested: number) {
   if (summary.limit === null) return null;
   if (requested <= (summary.available ?? 0)) return null;
   const noun = requested === 1 ? "seat" : "seats";
+  const inUse = `${summary.used} ${summary.used === 1 ? "is" : "are"} in use`;
   switch (summary.basis) {
     case "trial":
-      return `Your free trial includes ${summary.limit} seats and ${summary.used} are in use. Subscribe to add more ${noun}.`;
+      return `Your free trial includes ${summary.limit} seats and ${inUse}. Subscribe to add more ${noun}.`;
     case "subscription":
-      return `Your plan has ${summary.limit} seats and ${summary.used} are in use. Add ${requested - (summary.available ?? 0)} more to continue.`;
+      return `Your plan has ${summary.limit} seats and ${inUse}. Add ${requested - (summary.available ?? 0)} more to continue.`;
     case "inactive":
       return "Your subscription is not active. Reactivate billing before adding teammates.";
     default:
