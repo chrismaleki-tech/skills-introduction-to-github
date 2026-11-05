@@ -57,6 +57,34 @@ DAYS_TO_FINAL_ROUND = 3
 # Spelled out rather than strftime("%B") so the label cannot follow the runner's locale.
 MONTH_NAMES = ("January", "February", "March", "April", "May", "June",
                "July", "August", "September", "October", "November", "December")
+# SiteGround's bot filter can answer /golflogin with a JS interstitial (/.well-known/sgcaptcha/)
+# instead of the form. It clears itself once the challenge script runs, but datacentre IPs —
+# GitHub's runners included — draw a slower variant that outlasts Playwright's default timeout.
+LOGIN_FORM = "#user_login"
+SG_CAPTCHA = "/sgcaptcha/"
+LOGIN_ATTEMPTS = 3
+LOGIN_FORM_TIMEOUT_MS = 60_000
+# ACF renders the settings tab bar with JS after the page loads. Before it exists the only
+# nodes carrying a tab's text are a hidden <label> and its hidden source anchor, so a plain
+# text= click can pick one of those and wait out its timeout on something never made visible.
+ACF_TAB_BUTTON = "a.acf-tab-button:visible"
+ADMIN_TAB = "Admin Functions"
+TAB_TIMEOUT_MS = 60_000
+# Enough pages to hold a full season of tournament terms, and a stop so a list that always
+# offers a "next page" cannot spin forever.
+TERM_PAGE_LIMIT = 20
+# Signed-out visitors are served from SiteGround's page cache, so the deploy is not finished
+# until that cache has let go of the rebuild's "disabled" page.
+PURGE_ITEM = "#wp-admin-bar-SG_CachePress_Supercacher_Purge a"
+DISABLED_MARK = "Simulator Currently Disabled"
+PUBLIC_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+             "Chrome/151.0.0.0 Safari/537.36")
+PURGE_ATTEMPTS = 3
+PURGE_CHECKS = 6
+PURGE_CHECK_WAIT_MS = 5_000
+# SiteGround answers a challenged request with 202 and a meta-refresh, not the page.
+CHALLENGE_STATUS = 202
+LIVE, DISABLED, UNAVAILABLE = "live", "disabled", "unavailable"
 
 
 def log(msg):
@@ -83,6 +111,26 @@ def event_start_date(key, tour, event):
         if norm_name(row.get("event_name") or "") == norm_name(event):
             return row.get("start_date")
     return None
+
+
+def public_page_state(base, event):
+    """How the simulator page looks to a signed-out visitor.
+
+    LIVE         the page is being served and carries this week's event
+    DISABLED     the rebuild's "currently disabled" page is still cached
+    UNAVAILABLE  SiteGround answered with its bot challenge, or with a page that names no
+                 event — either way the check has learnt nothing and must ask again
+
+    Absence of the disabled notice is not evidence on its own: the challenge page carries no
+    notice either, and reading that as success would let a stale cache through.
+    """
+    r = requests.get(f"{base.rstrip('/')}/matchup-simulator/", timeout=30,
+                     headers={"User-Agent": PUBLIC_UA})
+    if r.status_code == CHALLENGE_STATUS or "SG-Captcha" in r.headers or SG_CAPTCHA in r.text:
+        return UNAVAILABLE
+    if DISABLED_MARK.lower() in r.text.lower():
+        return DISABLED
+    return LIVE if event.lower() in r.text.lower() else UNAVAILABLE
 
 
 def format_event_dates(start_date):
@@ -221,8 +269,24 @@ class Deployer:
         self.base = base.rstrip("/")
         self.SET = f"{self.base}/wp-admin/edit.php?post_type=player&page=additional-settings"
 
+    def open_login(self):
+        """Land on the real login form, sitting out SiteGround's challenge if one is served."""
+        last = None
+        for attempt in range(1, LOGIN_ATTEMPTS + 1):
+            self.pg.goto(f"{self.base}/golflogin", wait_until="domcontentloaded")
+            try:
+                self.pg.wait_for_selector(LOGIN_FORM, timeout=LOGIN_FORM_TIMEOUT_MS)
+                return
+            except Exception as exc:  # noqa: BLE001
+                last = exc
+                held = SG_CAPTCHA in self.pg.url
+                log(f"  login form did not appear (attempt {attempt}/{LOGIN_ATTEMPTS})"
+                    + (" — held at the SiteGround challenge" if held else ""))
+                self.pg.wait_for_timeout(5_000)
+        raise SystemExit(f"could not reach the login form at {self.base}/golflogin: {last}")
+
     def login(self, user, pw):
-        self.pg.goto(f"{self.base}/golflogin", wait_until="domcontentloaded")
+        self.open_login()
         self.pg.fill("#user_login", user)
         self.pg.fill("#user_pass", pw)
         self.pg.click("#wp-submit")
@@ -240,7 +304,9 @@ class Deployer:
 
     def _admin_functions(self):
         self.pg.goto(self.SET, wait_until="networkidle")
-        self.pg.click("text=Admin Functions")
+        tab = self.pg.locator(ACF_TAB_BUTTON).filter(has_text=ADMIN_TAB).first
+        tab.wait_for(state="visible", timeout=TAB_TIMEOUT_MS)
+        tab.click()
         self.pg.wait_for_timeout(900)
 
     def set_status(self, value):
@@ -288,16 +354,36 @@ class Deployer:
         box.fill(dates)
         return True
 
+    def term_rows(self):
+        """Every tournament term, following the admin list's pagination.
+
+        A full season is more terms than WordPress shows on one screen, and the events that
+        fall off page one are exactly the late-season ones — the TOUR Championship among them.
+        Reading only the first screen left those terms unvisited, so they kept whatever dates
+        they were last given by hand.
+        """
+        rows, page = [], 1
+        while page <= TERM_PAGE_LIMIT:
+            self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player&paged={page}",
+                         wait_until="networkidle")
+            found = self.pg.evaluate("""()=>{const o=[];document.querySelectorAll('a.row-title').forEach(a=>{const m=(a.getAttribute('href')||'').match(/tag_ID=(\\d+)/);if(m)o.push({id:m[1],name:a.textContent.trim()});});return o;}""")
+            if not found:
+                break
+            rows += found
+            if not self.pg.locator("a.next-page").count():
+                break
+            page += 1
+        return rows
+
     def set_active_tournament(self, event, dates=None):
-        slug = re.sub(r"[^a-z0-9]+", "-", event.lower()).strip("-")
-        # ensure the term exists
-        self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
-        if event not in self.pg.content():
+        rows = self.term_rows()
+        if not any(norm_name(r["name"]) == norm_name(event) for r in rows):
+            self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
             self.pg.fill("#tag-name", event)
             self.pg.click("#submit"); self.pg.wait_for_load_state("networkidle"); self.pg.wait_for_timeout(1500)
+            rows = self.term_rows()
+        log(f"tournament terms found: {len(rows)}")
         # deactivate any active, activate ours, and date the one we activate
-        self.pg.goto(f"{self.base}/wp-admin/edit-tags.php?taxonomy=tournament&post_type=player", wait_until="networkidle")
-        rows = self.pg.evaluate("""()=>{const o=[];document.querySelectorAll('a.row-title').forEach(a=>{const m=(a.getAttribute('href')||'').match(/tag_ID=(\\d+)/);if(m)o.push({id:m[1],name:a.textContent.trim()});});return o;}""")
         for r in rows:
             self.pg.goto(f"{self.base}/wp-admin/term.php?taxonomy=tournament&post_type=player&tag_ID={r['id']}", wait_until="networkidle")
             cb = self.pg.locator("input.acf-switch-input").first
@@ -345,10 +431,34 @@ class Deployer:
         return json.loads(re.search(r"\[.*\]", ta.input_value(), re.S).group(0))
 
     def purge_cache(self):
+        """Purge SiteGround's page cache. True when a purge was actually triggered.
+
+        The admin-bar entry lives in a hover submenu, so follow its href instead of clicking
+        it. This used to look for a node id the plugin does not use and skip the purge in
+        silence, which left signed-out members on the rebuild's "updating" page for as long
+        as the cache entry lived — a successful deploy that nobody could see.
+        """
         self.pg.goto(f"{self.base}/wp-admin/", wait_until="networkidle")
-        pl = self.pg.locator("#wp-admin-bar-sg-cachepress-purge a").first
-        if pl.count():
-            pl.click(); self.pg.wait_for_timeout(2500)
+        link = self.pg.locator(PURGE_ITEM).first
+        if not link.count():
+            log("  [warn] SiteGround purge control not found — signed-out visitors may be served stale HTML")
+            return False
+        self.pg.goto(link.get_attribute("href"), wait_until="domcontentloaded")
+        self.pg.wait_for_timeout(2500)
+        return True
+
+    def settle_public_page(self, event):
+        """Purge until a signed-out request is served this week's event."""
+        for attempt in range(1, PURGE_ATTEMPTS + 1):
+            self.purge_cache()
+            state = UNAVAILABLE
+            for _ in range(PURGE_CHECKS):
+                self.pg.wait_for_timeout(PURGE_CHECK_WAIT_MS)
+                state = public_page_state(self.base, event)
+                if state == LIVE:
+                    return True
+            log(f"  signed-out page reads '{state}' after purge {attempt}/{PURGE_ATTEMPTS}")
+        return False
 
     def verify(self, tournament_slug, sample_rows):
         """Run run_simulation on sample pairs; return True if they match the sim file."""
@@ -491,7 +601,10 @@ def main():
             sample = [(a, b, rows[(a, b)]) for a, b in random.sample(list(rows), min(3, len(rows)))]
             if d.verify(slug, sample):
                 d.set_status("enabled")
-                d.purge_cache()
+                if not d.settle_public_page(event):
+                    log(f"ERROR: signed-out visitors are not being served '{event}'. The "
+                        "simulator is enabled — purge SiteGround's cache by hand.")
+                    return 6
                 log(f"SUCCESS: '{event}' live with {len(export)} players.")
                 return 0
             log("ERROR: verification failed — leaving simulator DISABLED (safe state).")
