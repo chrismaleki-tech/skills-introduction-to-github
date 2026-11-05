@@ -6,10 +6,12 @@ on:
       week:
         description: "Week-ending Sunday (YYYY-MM-DD). Leave empty for the most recent Sunday."
         default: ""
-  schedule:
-    # Tuesday 12:00 UTC: the completed event is archived and the new field's
-    # course-fit decompositions are posted by then.
-    - cron: "0 12 * * 2"
+  # Scheduled runs are stopped at the owner's request. This workflow now only runs when
+  # someone starts it by hand. To resume, restore:
+  #   schedule:
+  #     # Tuesday 12:00 UTC: the completed event is archived and the new field's
+  #     # course-fit decompositions are posted by then.
+  #     - cron: "0 12 * * 2"
 
 permissions:
   contents: write

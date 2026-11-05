@@ -9,10 +9,12 @@ on:
       dry_run:
         description: "Build field/CSVs but make NO changes to the live site (true/false)."
         default: "false"
-  schedule:
-    # Monday 13:00 UTC = 6:00 AM Pacific during Daylight Time (Mar-Nov).
-    # NOTE: GitHub cron is UTC-only; in Standard Time (Nov-Mar) this is 5:00 AM Pacific.
-    - cron: "0 13 * * 1"
+  # Scheduled runs are stopped at the owner's request. Nothing now writes to the live site
+  # unless someone starts this by hand. To resume, restore:
+  #   schedule:
+  #     # Monday 13:00 UTC = 6:00 AM Pacific during Daylight Time (Mar-Nov).
+  #     # NOTE: GitHub cron is UTC-only; in Standard Time (Nov-Mar) this is 5:00 AM Pacific.
+  #     - cron: "0 13 * * 1"
 
 permissions:
   contents: write

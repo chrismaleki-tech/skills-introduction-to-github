@@ -11,9 +11,11 @@ on:
         type: choice
         options: [pga, euro, kft, alt, liv]
         default: pga
-  schedule:
-    # Daily at 10:00 UTC (after Data Golf's overnight model updates).
-    - cron: "0 10 * * *"
+  # Scheduled runs are stopped at the owner's request. This workflow now only runs when
+  # someone starts it by hand. To resume, restore:
+  #   schedule:
+  #     # Daily at 10:00 UTC (after Data Golf's overnight model updates).
+  #     - cron: "0 10 * * *"
 
 permissions:
   contents: write
