@@ -27,16 +27,19 @@ on:
         required: false
         default: '15'
         type: string
-  schedule:
-    # Run daily at 6 AM UTC to validate production pipeline
-    - cron: '0 6 * * *'
-  push:
-    branches: [ main, 'cursor/**' ]  # Include cursor branches for development
-    paths:
-      - 'part1_data_sourcing/**'
-      - 'part2_api_integration/**'
-      - 'part3_analytics/**'
-      - 'part4_infrastructure/**'
+  # Automatic runs are stopped at the owner's request: this pipeline has never completed
+  # successfully and GitHub had already shut the schedule off for inactivity. It now runs
+  # only when started by hand. To resume, restore:
+  #   schedule:
+  #     # Run daily at 6 AM UTC to validate production pipeline
+  #     - cron: '0 6 * * *'
+  #   push:
+  #     branches: [ main, 'cursor/**' ]
+  #     paths:
+  #       - 'part1_data_sourcing/**'
+  #       - 'part2_api_integration/**'
+  #       - 'part3_analytics/**'
+  #       - 'part4_infrastructure/**'
 
 env:
   AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
