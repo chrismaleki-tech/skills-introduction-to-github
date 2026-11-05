@@ -1,10 +1,12 @@
 name: CDK Deploy (Fixed)
 
 on:
-  push:
-    branches: [ main ]
-    paths: 
-      - 'part4_infrastructure/**'
+  # Automatic runs are stopped at the owner's request, alongside the other AWS deploys.
+  # It now runs only when started by hand. To resume, restore:
+  #   push:
+  #     branches: [ main ]
+  #     paths:
+  #       - 'part4_infrastructure/**'
   workflow_dispatch:
 
 jobs:

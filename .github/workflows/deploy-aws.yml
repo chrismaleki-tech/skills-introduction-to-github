@@ -1,10 +1,13 @@
 name: Deploy to AWS
 
 on:
-  push:
-    branches: [ main, develop, 'cursor/**' ]  # Include cursor branches for development
-  pull_request:
-    branches: [ main ]
+  # Automatic runs are stopped at the owner's request: this deploy fails on every run
+  # (the CDK bootstrap role cannot be assumed) and only produced failure noise on each
+  # push and pull request. It now runs only when started by hand. To resume, restore:
+  #   push:
+  #     branches: [ main, develop, 'cursor/**' ]
+  #   pull_request:
+  #     branches: [ main ]
   workflow_dispatch:
     inputs:
       environment:
