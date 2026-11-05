@@ -1,0 +1,55 @@
+name: Job Scout
+
+on:
+  schedule:
+    - cron: "0 14 * * *" # daily at 14:00 UTC (7am PT)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: job-scout
+  cancel-in-progress: false
+
+jobs:
+  scout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run job scout
+        env:
+          MIN_SALARY: "230000"
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+        run: python3 job_agent/job_scout.py
+
+      - name: Commit report and state
+        run: |
+          git config user.name "job-scout-bot"
+          git config user.email "actions@github.com"
+          git add job_agent/reports job_agent/state
+          git diff --cached --quiet || git commit -m "chore: job scout report $(date -u +%F) [skip ci]"
+          git push
+
+      - name: Open issue with today's matches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          REPORT="job_agent/reports/latest.md"
+          MATCHES=$(grep -oP '\*\*\K[0-9]+(?= matching roles)' "$REPORT" || echo 0)
+          NEW=$(grep -oP '\(\K[0-9]+(?= new since last run\))' "$REPORT" || echo 0)
+          if [ "$NEW" -gt 0 ]; then
+            gh issue create \
+              --title "Job Scout: $NEW new role(s) at \$230K+ ($(date -u +%F))" \
+              --body-file "$REPORT"
+          else
+            echo "No new matches today ($MATCHES total); skipping issue."
+          fi
