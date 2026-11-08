@@ -12,7 +12,7 @@ export function aiAvailable(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
 }
 
-function getClient(): OpenAI {
+export function getClient(): OpenAI {
   if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   return client;
 }

@@ -7,6 +7,7 @@ import { Card, EmptyState, PageHeader, ScoreBadge, StatusPill, fmtDateTime } fro
 import { DeleteScenarioButton } from "@/components/roleplay/delete-scenario-button";
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { StartSessionButton } from "@/components/roleplay/start-session-button";
+import { voiceAvailable } from "@/lib/roleplay";
 
 export default async function ScenarioDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -42,7 +43,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
         actions={
           <div className="flex items-center gap-2">
             <DifficultyPill difficulty={scenario.difficulty} />
-            <StartSessionButton scenarioId={scenario.id} />
+            <StartSessionButton scenarioId={scenario.id} voiceEnabled={voiceAvailable()} compact />
           </div>
         }
       />

@@ -7,9 +7,9 @@ import { currentUser, isManagerRole } from "@/lib/session";
 const practiceTips = [
   "Open Role-Play and choose a scenario.",
   "Read the buyer briefing and the goals for a winning conversation.",
-  "Select Start text role-play, then type your opener.",
-  "Send at least two responses. Enter sends; Shift+Enter starts a new line.",
-  "Select End session & get graded, then review your score, strengths, and next steps.",
+  "Select Start role-play and allow microphone access. The prospect picks up — deliver your opener out loud.",
+  "Talk naturally for at least two turns. You can interrupt, mute, or type a line if you need to.",
+  "Select End call & get graded, then review your score, strengths, and next steps.",
 ];
 
 export default async function GettingStartedPage({

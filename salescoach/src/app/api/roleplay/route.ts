@@ -2,13 +2,16 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { billingError } from "@/lib/billing";
+import { voiceAvailable } from "@/lib/roleplay";
 import {
   assertUsageAvailable,
   UsageLimitError,
   usageLimitPayload,
 } from "@/lib/usage";
 
-// Start a text role-play session against a scenario.
+// Start a role-play session against a scenario. Voice (live spoken call with
+// the AI prospect) is the default whenever the server can mint Realtime
+// sessions; text is the explicit fallback, and the only option without a key.
 export async function POST(req: Request) {
   const user = await currentUser();
   const paymentError = billingError(user.org);
@@ -21,9 +24,22 @@ export async function POST(req: Request) {
     }
     throw error;
   }
-  const body = (await req.json().catch(() => ({}))) as { scenarioId?: string };
+  const body = (await req.json().catch(() => ({}))) as { scenarioId?: string; mode?: string };
   if (!body.scenarioId) {
     return NextResponse.json({ error: "scenarioId required" }, { status: 400 });
+  }
+  if (body.mode !== undefined && body.mode !== "VOICE" && body.mode !== "TEXT") {
+    return NextResponse.json({ error: "mode must be VOICE or TEXT" }, { status: 400 });
+  }
+  const requested = body.mode ?? (voiceAvailable() ? "VOICE" : "TEXT");
+  if (requested === "VOICE" && !voiceAvailable()) {
+    return NextResponse.json(
+      {
+        error: "Voice role-play is not configured on this server. Start a text role-play instead.",
+        code: "VOICE_UNAVAILABLE",
+      },
+      { status: 503 },
+    );
   }
 
   const scenario = await db.scenario.findUnique({ where: { id: body.scenarioId } });
@@ -36,11 +52,11 @@ export async function POST(req: Request) {
       orgId: user.orgId,
       repId: user.id,
       scenarioId: scenario.id,
-      mode: "TEXT",
+      mode: requested,
       status: "ACTIVE",
       messagesJson: "[]",
     },
   });
 
-  return NextResponse.json({ id: session.id });
+  return NextResponse.json({ id: session.id, mode: session.mode });
 }
