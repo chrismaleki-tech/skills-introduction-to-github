@@ -7,6 +7,7 @@ import { billingError } from "@/lib/billing";
 import {
   buildProspectSystemPrompt,
   REALTIME_MODEL,
+  turnDetectionConfig,
   voiceAvailable,
   voiceForPersona,
 } from "@/lib/roleplay";
@@ -85,17 +86,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
         output_modalities: ["audio"],
         audio: {
           input: {
-            transcription: { model: "gpt-4o-mini-transcribe", language: "en" },
-            noise_reduction: { type: "near_field" },
-            turn_detection: {
-              type: "server_vad",
-              create_response: true,
-              interrupt_response: true,
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 650,
-              idle_timeout_ms: 12000,
+            transcription: {
+              model: "gpt-4o-mini-transcribe",
+              language: "en",
+              // Biases the rep-side transcript toward the names in play.
+              prompt: `Sales call between a salesperson and ${persona.name} at ${persona.company}.`,
             },
+            noise_reduction: { type: "near_field" },
+            turn_detection: turnDetectionConfig(),
           },
           output: { voice },
         },

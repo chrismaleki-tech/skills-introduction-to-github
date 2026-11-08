@@ -61,7 +61,7 @@ export function StartSessionButton({
     <div className={`flex flex-col gap-1.5 ${compact ? "items-end" : "items-start"}`}>
       <Button variant={variant} onClick={() => void start("VOICE")} disabled={starting !== null}>
         <MicIcon />
-        {starting === "VOICE" ? "Starting..." : "Start role-play"}
+        {starting === "VOICE" ? "Starting..." : "Start voice role-play"}
       </Button>
       <button
         type="button"

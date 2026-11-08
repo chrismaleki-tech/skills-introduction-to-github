@@ -42,7 +42,7 @@ export default async function RoleplaySessionPage({ params }: { params: Promise<
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted capitalize">{fmtCallType(session.scenario.callType)} call</span>
+          <span className="text-xs text-muted">{fmtCallType(session.scenario.callType)}</span>
           <DifficultyPill difficulty={session.scenario.difficulty} />
         </div>
       </div>
