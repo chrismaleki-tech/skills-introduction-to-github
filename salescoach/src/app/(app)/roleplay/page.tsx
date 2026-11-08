@@ -5,10 +5,12 @@ import { parsePersona } from "@/lib/types";
 import { Card, EmptyState, LinkButton, PageHeader, ScoreBadge, StatusPill, fmtDateTime } from "@/components/ui";
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { StartSessionButton } from "@/components/roleplay/start-session-button";
+import { voiceAvailable } from "@/lib/roleplay";
 
 export default async function RoleplayPage() {
   const user = await currentUser();
   const manager = isManagerRole(user.role);
+  const voice = voiceAvailable();
 
   const [scenarios, sessions] = await Promise.all([
     db.scenario.findMany({
@@ -73,7 +75,7 @@ export default async function RoleplayPage() {
                     {persona.company && <div>{persona.company}</div>}
                     <div className="mt-1 text-xs capitalize">{fmtCallType(s.callType)} call</div>
                   </div>
-                  <StartSessionButton scenarioId={s.id} />
+                  <StartSessionButton scenarioId={s.id} voiceEnabled={voice} />
                 </div>
               );
             })}

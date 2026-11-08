@@ -102,8 +102,8 @@ export async function getGettingStartedSteps(user: {
       complete: scenarioCount > 0,
     },
     {
-      title: "Complete a text role-play",
-      description: "Respond as yourself, end the session when finished, and request your grade.",
+      title: "Complete a role-play call",
+      description: "Talk to the AI prospect out loud (or by text), end the call when finished, and get your grade.",
       href: "/roleplay",
       action: "Start role-play",
       complete: roleplayCount > 0,
