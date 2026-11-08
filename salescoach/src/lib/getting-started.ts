@@ -64,7 +64,7 @@ export async function getGettingStartedSteps(user: {
       {
         title: "Create a practice scenario",
         description: "Build a buyer persona manually or generate one from your company profile.",
-        href: "/scenarios",
+        href: "/scenarios/new",
         action: "Create scenario",
         complete: scenarioCount > 0,
       },

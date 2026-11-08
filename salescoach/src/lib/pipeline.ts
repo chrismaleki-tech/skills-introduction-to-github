@@ -1,5 +1,6 @@
 import { db } from "./db";
 import { advanceAssignments } from "./assignments";
+import { callTypeLabel, difficultyLabel } from "./scenario-options";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
@@ -172,10 +173,19 @@ export async function gradeRoleplay(sessionId: string) {
 
   const persona = parsePersona(session.scenario.personaJson);
   const winConditions = JSON.parse(session.scenario.winConditionsJson || "[]") as string[];
-  const scenarioContext =
-    `The rep was practicing against: ${persona.name}, ${persona.title} at ${persona.company} (${persona.industry}). ` +
-    `Persona: ${persona.personality}. Scripted objections: ${persona.objections.join("; ")}. ` +
-    (winConditions.length ? `A winning conversation: ${winConditions.join("; ")}.` : "");
+  const scenarioContext = [
+    `The rep was practicing a ${callTypeLabel(session.scenario.callType).toLowerCase()} against ${persona.name}, ${persona.title} at ${persona.company} (${persona.industry}).`,
+    persona.situation ? `Situation: ${persona.situation}` : "",
+    persona.offering ? `The rep sells: ${persona.offering}` : "",
+    persona.objective ? `The rep's objective for this call: ${persona.objective}. Judge the call primarily on progress toward this objective.` : "",
+    `Prospect temperament: ${persona.personality}${persona.attitude ? ` (attitude: ${persona.attitude}` : ""}${persona.interest ? `${persona.attitude ? ", " : " ("}starting interest: ${persona.interest}` : ""}${persona.attitude || persona.interest ? ")" : ""}.`,
+    persona.painPoints.length ? `Pain points the rep could have uncovered: ${persona.painPoints.join("; ")}.` : "",
+    persona.objections.length ? `Scripted objections: ${persona.objections.join("; ")}.` : "",
+    `Difficulty: ${difficultyLabel(session.scenario.difficulty)} (${session.scenario.difficulty}). ${difficultyGradingNote(session.scenario.difficulty)}`,
+    winConditions.length ? `A winning conversation: ${winConditions.join("; ")}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   await gradeSubject({
     orgId: session.orgId,
@@ -188,6 +198,12 @@ export async function gradeRoleplay(sessionId: string) {
   });
   await db.roleplaySession.update({ where: { id: sessionId }, data: { status: "GRADED" } });
   await advanceAssignments({ repId: session.repId, type: "ROLEPLAY", scenarioId: session.scenarioId });
+}
+
+function difficultyGradingNote(d: string): string {
+  if (d === "easy") return "This was a beginner scenario: expect fundamentals (clear opening, a few discovery questions, a next step) and reward them; do not penalize for missing advanced technique.";
+  if (d === "hard") return "This was an advanced scenario: the prospect was deliberately tough. Give credit for composure and recovery under pressure, and hold the rep to a high bar on quantifying value and earning the next step.";
+  return "This was an intermediate scenario: expect solid discovery, direct handling of at least one objection, and a concrete next step.";
 }
 
 // Shared grading entry: resolves rubric + company context, runs the engine,

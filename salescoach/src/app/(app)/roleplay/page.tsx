@@ -36,19 +36,26 @@ export default async function RoleplayPage() {
       />
 
       <section className="mb-10">
-        <h2 className="text-sm font-medium text-muted uppercase tracking-wider mb-3">Start a role-play</h2>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-muted uppercase tracking-wider">Start a role-play</h2>
+          {manager && scenarios.length > 0 && (
+            <Link href="/scenarios/new" className="text-sm text-brand hover:underline underline-offset-2">
+              New scenario
+            </Link>
+          )}
+        </div>
         {scenarios.length === 0 ? (
           <Card>
             <EmptyState
               title="No scenarios yet"
               hint={
                 manager
-                  ? "Create one on the Scenarios page to give your team something to practice against."
+                  ? "Pick a ready-made call type and you can be practicing in under a minute."
                   : "Ask your manager to publish a scenario on the Scenarios page."
               }
               action={
                 manager ? (
-                  <LinkButton href="/scenarios">Create a scenario</LinkButton>
+                  <LinkButton href="/scenarios/new">Create a scenario</LinkButton>
                 ) : (
                   <LinkButton href="/getting-started" variant="secondary">View getting started guide</LinkButton>
                 )
@@ -73,7 +80,7 @@ export default async function RoleplayPage() {
                       {persona.title && ` — ${persona.title}`}
                     </div>
                     {persona.company && <div>{persona.company}</div>}
-                    <div className="mt-1 text-xs capitalize">{fmtCallType(s.callType)} call</div>
+                    <div className="mt-1 text-xs">{fmtCallType(s.callType)}</div>
                   </div>
                   <StartSessionButton scenarioId={s.id} voiceEnabled={voice} />
                 </div>

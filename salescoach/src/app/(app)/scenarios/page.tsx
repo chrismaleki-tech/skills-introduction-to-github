@@ -2,9 +2,8 @@ import Link from "next/link";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parsePersona, parseStringArray } from "@/lib/types";
-import { Card, EmptyState, PageHeader } from "@/components/ui";
+import { Card, EmptyState, LinkButton, PageHeader } from "@/components/ui";
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
-import { ScenarioForm } from "@/components/roleplay/scenario-form";
 
 export default async function ScenariosPage() {
   const user = await currentUser();
@@ -22,16 +21,11 @@ export default async function ScenariosPage() {
         title="Scenarios"
         subtitle={
           manager
-            ? "The practice library your reps role-play against. Build personas by hand or generate them from the company profile."
-            : "The practice library. Open a scenario to read the persona brief and start a session."
+            ? "The practice library your reps role-play against. Start from a ready-made call, build your own, or draft one from a prospect's website."
+            : "The practice library. Open a scenario to read the briefing and start a call."
         }
+        actions={manager ? <LinkButton href="/scenarios/new">New scenario</LinkButton> : undefined}
       />
-
-      {manager && (
-        <div className="mb-8">
-          <ScenarioForm />
-        </div>
-      )}
 
       {scenarios.length === 0 ? (
         <Card>
@@ -39,9 +33,10 @@ export default async function ScenariosPage() {
             title="No scenarios yet"
             hint={
               manager
-                ? "Create your first scenario above — or generate one from the company profile in a single click."
+                ? "Pick a ready-made call type and you can be practicing in under a minute."
                 : "Your manager has not published any scenarios yet."
             }
+            action={manager ? <LinkButton href="/scenarios/new">Create your first scenario</LinkButton> : undefined}
           />
         </Card>
       ) : (
@@ -64,11 +59,12 @@ export default async function ScenariosPage() {
                   {persona.title && ` — ${persona.title}`}
                   {persona.company && ` at ${persona.company}`}
                 </div>
-                {persona.personality && (
-                  <p className="text-sm text-muted mt-1 line-clamp-2">{persona.personality}</p>
+                {(persona.situation || persona.personality) && (
+                  <p className="text-sm text-muted mt-1 line-clamp-2">{persona.situation || persona.personality}</p>
                 )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-muted">
-                  <span className="capitalize">{fmtCallType(s.callType)} call</span>
+                  <span>{fmtCallType(s.callType)}</span>
+                  {persona.attitude && <span className="capitalize">{persona.attitude} prospect</span>}
                   <span>
                     {persona.objections.length} {persona.objections.length === 1 ? "objection" : "objections"}
                   </span>
