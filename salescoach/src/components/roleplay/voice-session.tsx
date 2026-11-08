@@ -144,46 +144,6 @@ export function VoiceRoleplay({
     [startedAtMs],
   );
 
-  const syncNow = useCallback(
-    async (opts: { keepalive?: boolean } = {}): Promise<boolean> => {
-      const messages = messagesForServer();
-      const body = JSON.stringify({ messages });
-      if (body === lastSynced.current) return true;
-      try {
-        const res = await fetch(`/api/roleplay/${sessionId}/transcript`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body,
-          keepalive: opts.keepalive,
-        });
-        if (res.status === 402) {
-          const data = (await res.json().catch(() => ({}))) as { error?: string; billingUrl?: string };
-          setError({
-            kind: "limit",
-            message: data.error ?? "This seat has reached its role-play allowance.",
-            billingUrl: data.billingUrl,
-          });
-          return false;
-        }
-        if (res.ok) lastSynced.current = body;
-        return res.ok;
-      } catch {
-        return false;
-      }
-    },
-    [messagesForServer, sessionId],
-  );
-
-  const scheduleSync = useCallback(() => {
-    if (syncTimer.current) clearTimeout(syncTimer.current);
-    syncTimer.current = setTimeout(() => void syncNow(), SYNC_DEBOUNCE_MS);
-  }, [syncNow]);
-
-  useEffect(() => {
-    if (state === "idle" || state === "ended") return;
-    scheduleSync();
-  }, [turns, state, scheduleSync]);
-
   // --- Teardown -----------------------------------------------------------------
 
   const hangUp = useCallback(() => {
@@ -209,6 +169,49 @@ export function VoiceRoleplay({
     }
     setUserSpeaking(false);
   }, []);
+
+  const syncNow = useCallback(
+    async (opts: { keepalive?: boolean } = {}): Promise<boolean> => {
+      const messages = messagesForServer();
+      const body = JSON.stringify({ messages });
+      if (body === lastSynced.current) return true;
+      try {
+        const res = await fetch(`/api/roleplay/${sessionId}/transcript`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body,
+          keepalive: opts.keepalive,
+        });
+        if (res.status === 402) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string; billingUrl?: string };
+          // Allowance exhausted mid-call: stop the call so no more minutes accrue.
+          hangUp();
+          setState("ended");
+          setError({
+            kind: "limit",
+            message: data.error ?? "This seat has reached its role-play allowance.",
+            billingUrl: data.billingUrl,
+          });
+          return false;
+        }
+        if (res.ok) lastSynced.current = body;
+        return res.ok;
+      } catch {
+        return false;
+      }
+    },
+    [hangUp, messagesForServer, sessionId],
+  );
+
+  const scheduleSync = useCallback(() => {
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => void syncNow(), SYNC_DEBOUNCE_MS);
+  }, [syncNow]);
+
+  useEffect(() => {
+    if (state === "idle" || state === "ended") return;
+    scheduleSync();
+  }, [turns, state, scheduleSync]);
 
   useEffect(() => {
     const onPageHide = () => {
@@ -412,12 +415,22 @@ export function VoiceRoleplay({
         el.play().catch(() => setNeedsTap(true));
       };
       mic.getTracks().forEach((t) => pc.addTrack(t, mic));
+      let dropTimer: ReturnType<typeof setTimeout> | null = null;
+      const dropped = () => {
+        if (pcRef.current !== pc) return;
+        hangUp();
+        setError({ kind: "connect", message: "The call dropped. Reconnect to pick up where you left off." });
+        setState("idle");
+      };
       pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-          if (pcRef.current !== pc) return;
-          hangUp();
-          setError({ kind: "connect", message: "The call dropped. Reconnect to pick up where you left off." });
-          setState("idle");
+        if (dropTimer) clearTimeout(dropTimer);
+        dropTimer = null;
+        if (pc.connectionState === "failed" || pc.connectionState === "closed") {
+          if (pc.connectionState === "failed") dropped();
+        } else if (pc.connectionState === "disconnected") {
+          dropTimer = setTimeout(() => {
+            if (pc.connectionState === "disconnected") dropped();
+          }, 4000);
         }
       };
 
@@ -521,9 +534,14 @@ export function VoiceRoleplay({
   const switchToText = useCallback(async () => {
     hangUp();
     setState("ended");
-    await syncNow({ keepalive: true });
+    await fetch(`/api/roleplay/${sessionId}/transcript`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages: messagesForServer(), switchToText: true }),
+      keepalive: true,
+    }).catch(() => {});
     setUseText(true);
-  }, [hangUp, syncNow]);
+  }, [hangUp, messagesForServer, sessionId]);
 
   const resumeAfterNotEnough = useCallback(() => {
     setEnding(null);

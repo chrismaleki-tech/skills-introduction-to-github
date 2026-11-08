@@ -12,8 +12,8 @@ import {
 // Voice sessions run peer-to-peer between the browser and OpenAI, so the
 // browser is the only party holding the transcript. It posts snapshots here
 // (periodically and on end) so the session can be graded like a text one.
-// Snapshots are merge-by-position: the server never drops turns it already
-// has, so an out-of-order or shorter snapshot cannot truncate the record.
+// Snapshots are whole-transcript: the server keeps whichever copy is longer,
+// so an out-of-order or shorter snapshot cannot truncate the record.
 const MAX_MESSAGES = 400;
 const MAX_MESSAGE_CHARS = 4000;
 
@@ -57,7 +57,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Transcript sync is only for voice sessions" }, { status: 409 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as { messages?: unknown };
+  const body = (await req.json().catch(() => ({}))) as { messages?: unknown; switchToText?: unknown };
   const incoming = normalize(body.messages);
   if (!incoming) return NextResponse.json({ error: "messages must be an array of transcript turns" }, { status: 400 });
 
@@ -85,6 +85,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     data: {
       messagesJson: JSON.stringify(merged),
       durationSec: nextDurationSec,
+      // The rep can fall back to typing mid-session (no mic, noisy room);
+      // persisting the switch keeps the chat UI on reload.
+      ...(body.switchToText === true ? { mode: "TEXT" } : {}),
     },
   });
 

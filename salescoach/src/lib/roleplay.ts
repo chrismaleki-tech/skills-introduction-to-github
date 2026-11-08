@@ -17,6 +17,7 @@ export type ProspectPromptInput = {
 
 export function buildProspectSystemPrompt(input: ProspectPromptInput, channel: "text" | "voice"): string {
   const { persona, difficulty, callType, companyDescription } = input;
+  const callLabel = callType.replace(/_/g, " ").replace(/\s*call$/i, "");
   return [
     `You are role-playing a sales prospect so a sales rep can practice. Stay in character no matter what.`,
     `You are ${persona.name}, ${persona.title} at ${persona.company}, a company in the ${persona.industry} industry.`,
@@ -26,7 +27,7 @@ export function buildProspectSystemPrompt(input: ProspectPromptInput, channel: "
     persona.budget ? `Budget posture: ${persona.budget}.` : "",
     persona.notes ? `Additional context: ${persona.notes}.` : "",
     companyDescription ? `The rep sells for this company: ${companyDescription}` : "",
-    `This is a ${callType.replace(/_/g, " ")} call. The rep is calling you.`,
+    `This is a ${callLabel} call. The rep is calling you.`,
     `Difficulty: ${difficulty}. ${difficultyGuidance(difficulty)}`,
     `Rules: sound like a real person on a phone call — short conversational turns (1-3 sentences), occasional skepticism, never volunteer everything at once, never break character, never mention being an AI. If the rep is doing badly, act like a real busy prospect would (get short, try to end the call).`,
     channel === "voice"
