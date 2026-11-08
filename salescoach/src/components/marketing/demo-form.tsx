@@ -48,13 +48,13 @@ export function DemoForm() {
       <div className="rounded-xl border border-brand/25 bg-brand/5 px-5 py-6">
         <p className="font-display text-xl font-semibold text-marketing-ink">Thanks—we have your request.</p>
         <p className="mt-2 text-sm text-muted">
-          We’ll follow up about your team and workflow. Meanwhile you can explore the product.
+          We’ll follow up about your team and how you coach. Meanwhile, you can start practicing.
         </p>
         <a
-          href="/dashboard"
-          className="mt-5 inline-flex rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
+          href="/start"
+          className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
         >
-          Open the demo
+          Try a voice role-play
         </a>
       </div>
     );
@@ -124,9 +124,9 @@ export function DemoForm() {
         disabled={pending}
         className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-accent-hover transition-colors disabled:opacity-60"
       >
-        {pending ? "Sending…" : "Discuss a team pilot"}
+        {pending ? "Sending…" : "Request a team demo"}
       </button>
-      <p className="text-xs text-muted">No spam. We’ll only use this to discuss your evaluation or pilot.</p>
+      <p className="text-xs text-muted">No spam. We’ll only use this to discuss your team’s evaluation.</p>
     </form>
   );
 }

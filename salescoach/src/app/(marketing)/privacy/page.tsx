@@ -35,7 +35,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong className="text-marketing-ink">Product usage:</strong> account profile, uploaded call audio or
-              transcripts, role-play messages, grades, and settings you configure in the app.
+              transcripts, role-play transcripts (voice role-plays are transcribed live; Erota does not store the audio
+              of role-play sessions), grades, and settings you configure in the app.
             </li>
             <li>
               <strong className="text-marketing-ink">Technical data:</strong> basic server logs (IP, user agent, timestamps)

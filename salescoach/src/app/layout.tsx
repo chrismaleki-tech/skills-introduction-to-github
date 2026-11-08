@@ -12,15 +12,23 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   title: {
-    default: "Erota Sales Intelligence — Coach every rep against your playbook",
+    default: "Erota — Practice your next sales call before it counts",
     template: "%s · Erota Sales Intelligence",
   },
   description:
-    "Turn sales conversations into consistent, quote-backed coaching. Score calls against your methodology, surface skill gaps, and assign focused practice.",
+    "Voice sales practice with realistic AI prospects. Handle tough objections out loud, get scored on your team's methodology, and walk into your next customer call prepared.",
   openGraph: {
-    title: "Erota Sales Intelligence",
-    description: "Evidence-backed call coaching and AI role-play built around your sales methodology.",
+    title: "Erota — Practice your next sales call before it counts",
+    description:
+      "Talk with realistic AI prospects, handle tough objections, and get actionable feedback before your next customer call.",
     type: "website",
+    siteName: "Erota Sales Intelligence",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Erota — Practice your next sales call before it counts",
+    description:
+      "Voice sales practice with realistic AI prospects, scored on your team's methodology.",
   },
 };
 

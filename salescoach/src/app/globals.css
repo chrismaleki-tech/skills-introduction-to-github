@@ -118,11 +118,46 @@ body {
   letter-spacing: -0.025em;
 }
 
+@keyframes mkt-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@keyframes mkt-bar {
+  0%,
+  100% {
+    transform: scaleY(0.45);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.mkt-pulse {
+  animation: mkt-pulse 1.8s ease-out infinite;
+}
+
+.mkt-bar {
+  transform-origin: bottom;
+  animation: mkt-bar 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mkt-rise,
   .mkt-fade,
-  .mkt-hero-wash {
+  .mkt-hero-wash,
+  .mkt-pulse,
+  .mkt-bar {
     animation: none;
+  }
+  .mkt-pulse {
+    opacity: 0.5;
   }
 }
 

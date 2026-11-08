@@ -10,7 +10,7 @@ import { ScenarioCreator } from "@/components/roleplay/scenario-creator";
 export default async function NewScenarioPage({
   searchParams,
 }: {
-  searchParams: Promise<{ path?: string }>;
+  searchParams: Promise<{ path?: string; template?: string }>;
 }) {
   const user = await currentUser();
   if (!isManagerRole(user.role)) redirect("/scenarios");
@@ -21,6 +21,7 @@ export default async function NewScenarioPage({
   ]);
   const profile = parseCompanyProfile(context?.profileJson ?? "{}");
   const path = params.path === "build" || params.path === "website" ? params.path : "quick";
+  const template = typeof params.template === "string" ? params.template : undefined;
 
   return (
     <div>
@@ -38,6 +39,7 @@ export default async function NewScenarioPage({
         voiceEnabled={voiceAvailable()}
         seed={scenarioCount}
         initialPath={path}
+        initialTemplate={template}
       />
     </div>
   );
