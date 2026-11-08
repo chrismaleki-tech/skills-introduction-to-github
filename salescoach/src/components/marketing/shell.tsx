@@ -11,13 +11,16 @@ export function MarketingHeader() {
         <BrandLink size="lg" compactOnMobile textClassName="font-display text-marketing-ink" />
         <nav className="flex min-w-0 items-center gap-2 text-sm font-medium text-muted sm:gap-6">
           <a href="#how-it-works" className="hidden sm:inline hover:text-marketing-ink transition-colors">
-            Product
+            How it works
           </a>
-          <a href="#integrations" className="hidden transition-colors hover:text-marketing-ink md:inline">
-            Integrations
+          <a href="#scenarios" className="hidden transition-colors hover:text-marketing-ink md:inline">
+            Scenarios
           </a>
           <a href="#pricing" className="hidden sm:inline hover:text-marketing-ink transition-colors">
             Pricing
+          </a>
+          <a href="#faq" className="hidden transition-colors hover:text-marketing-ink md:inline">
+            FAQ
           </a>
           {clerk ? (
             <ClerkAuthNav />
@@ -26,12 +29,12 @@ export function MarketingHeader() {
               <Link href="/dashboard" className="hover:text-marketing-ink transition-colors">
                 Open app
               </Link>
-              <a
-                href="#demo"
-                className="rounded-lg bg-accent px-3.5 py-2 text-white shadow-sm hover:bg-accent-hover transition-colors"
+              <Link
+                href="/start"
+                className="inline-flex min-h-11 items-center rounded-lg bg-accent px-3.5 py-2 text-white shadow-sm hover:bg-accent-hover transition-colors"
               >
-                Book a demo
-              </a>
+                Try a role-play
+              </Link>
             </>
           )}
         </nav>
@@ -46,14 +49,17 @@ export function MarketingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <BrandLockup size="md" textClassName="font-display text-marketing-ink" />
-          <p className="mt-1 text-sm text-muted">Consistent, evidence-backed coaching for revenue teams.</p>
+          <p className="mt-1 text-sm text-muted">Practice your next sales call before it counts.</p>
         </div>
         <div className="flex flex-wrap gap-5 text-sm text-muted">
+          <a href="#how-it-works" className="hover:text-marketing-ink">
+            How it works
+          </a>
           <a href="#pricing" className="hover:text-marketing-ink">
             Pricing
           </a>
-          <a href="#integrations" className="hover:text-marketing-ink">
-            Integrations
+          <a href="#faq" className="hover:text-marketing-ink">
+            FAQ
           </a>
           <Link href="/privacy" className="hover:text-marketing-ink">
             Privacy
@@ -61,10 +67,12 @@ export function MarketingFooter() {
           <Link href="/terms" className="hover:text-marketing-ink">
             Terms
           </Link>
-          <Link
-            href={isClerkEnabled() ? "/sign-up" : "/dashboard"}
-            className="hover:text-marketing-ink"
-          >
+          {isClerkEnabled() && (
+            <Link href="/sign-in" className="hover:text-marketing-ink">
+              Sign in
+            </Link>
+          )}
+          <Link href={isClerkEnabled() ? "/sign-up" : "/dashboard"} className="hover:text-marketing-ink">
             {isClerkEnabled() ? "Sign up" : "Open app"}
           </Link>
           <a href="mailto:hello@erota.io" className="hover:text-marketing-ink">

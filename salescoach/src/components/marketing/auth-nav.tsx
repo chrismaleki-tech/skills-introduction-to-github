@@ -12,10 +12,10 @@ export function ClerkAuthNav() {
           Sign in
         </Link>
         <Link
-          href="/sign-up"
+          href="/start"
           className="inline-flex min-h-11 items-center rounded-lg bg-accent px-3 py-2 text-white shadow-sm transition-colors hover:bg-accent-hover sm:px-3.5"
         >
-          Start free
+          Try a role-play
         </Link>
       </SignedOut>
       <SignedIn>

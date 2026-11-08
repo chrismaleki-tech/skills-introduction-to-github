@@ -29,11 +29,13 @@ export function ScenarioCreator({
   voiceEnabled,
   seed,
   initialPath = "quick",
+  initialTemplate,
 }: {
   defaultOffering: string;
   voiceEnabled: boolean;
   seed: number;
   initialPath?: Path;
+  initialTemplate?: string;
 }) {
   const [path, setPath] = useState<Path>(initialPath);
   const [result, setResult] = useState<{ draft: ScenarioDraft; analysis?: ScenarioAnalysis | null } | null>(null);
@@ -107,7 +109,7 @@ export function ScenarioCreator({
         />
       </div>
 
-      {path === "quick" && <QuickStart defaultOffering={defaultOffering} seed={seed} onDraft={(draft) => setResult({ draft })} />}
+      {path === "quick" && <QuickStart defaultOffering={defaultOffering} seed={seed} initialTemplate={initialTemplate} onDraft={(draft) => setResult({ draft })} />}
       {path === "build" && <BuildYourOwn defaultOffering={defaultOffering} seed={seed} onDraft={(draft) => setResult({ draft })} />}
       {path === "website" && <FromWebsite defaultOffering={defaultOffering} onDraft={(draft, analysis) => setResult({ draft, analysis })} />}
 
@@ -146,8 +148,10 @@ const inputCls =
 
 // --- Quick start ---------------------------------------------------------------------
 
-function QuickStart({ defaultOffering, seed, onDraft }: { defaultOffering: string; seed: number; onDraft: (d: ScenarioDraft) => void }) {
-  const [selected, setSelected] = useState<string>(QUICK_START_TEMPLATES[1].key);
+function QuickStart({ defaultOffering, seed, initialTemplate, onDraft }: { defaultOffering: string; seed: number; initialTemplate?: string; onDraft: (d: ScenarioDraft) => void }) {
+  const [selected, setSelected] = useState<string>(
+    QUICK_START_TEMPLATES.some((t) => t.key === initialTemplate) ? (initialTemplate as string) : QUICK_START_TEMPLATES[1].key,
+  );
   const [difficulty, setDifficulty] = useState("medium");
   const [industry, setIndustry] = useState("");
   const [offering, setOffering] = useState(defaultOffering);
