@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { PLANS, planForPriceId, priceIdForPlan, type CheckoutPlanKey, type PlanKey } from "@/lib/plans";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { Card, PageHeader } from "@/components/ui";
-import { usageForRep } from "@/lib/usage";
+import { trialStatus, usageSummary } from "@/lib/usage";
+import { TrialStatusCard } from "@/components/billing/trial-status";
 
 function date(value: Date | null) {
   return value
@@ -30,7 +31,7 @@ export default async function BillingPage({
       ? storedPlan
       : "trial";
   const currentPlan = PLANS[planKey];
-  const usage = await usageForRep(user.org, user.id);
+  const [usage, trial] = await Promise.all([usageSummary(user.org, user.id), trialStatus(user.org)]);
   const checkoutReady = {
     pro: Boolean(process.env.STRIPE_SECRET_KEY && priceIdForPlan("pro")),
     max: Boolean(process.env.STRIPE_SECRET_KEY && priceIdForPlan("max")),
@@ -51,6 +52,12 @@ export default async function BillingPage({
       {params.checkout === "canceled" && (
         <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           Checkout was canceled. Your existing access has not changed.
+        </div>
+      )}
+
+      {trial && (
+        <div className="mb-6">
+          <TrialStatusCard status={trial} manager />
         </div>
       )}
 
@@ -86,23 +93,42 @@ export default async function BillingPage({
               <dt className="text-muted">Paid through</dt>
               <dd className="mt-1">{date(user.org.subscriptionEndsAt)}</dd>
             </div>
-            <div>
-              <dt className="text-muted">Your role-play usage</dt>
-              <dd className="mt-1">
-                {minutes(usage.roleplaySeconds)} / {limit(currentPlan.roleplayMinutesPerSeat, "min")}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Your call-scoring usage</dt>
-              <dd className="mt-1">
-                {hours(usage.callScoringSeconds)} / {limit(
-                  currentPlan.callScoringMinutesPerSeat === null
-                    ? null
-                    : currentPlan.callScoringMinutesPerSeat / 60,
-                  "hr",
-                )}
-              </dd>
-            </div>
+            {trial ? (
+              <>
+                <div>
+                  <dt className="text-muted">Workspace AI Role Play</dt>
+                  <dd className="mt-1">
+                    {minutes(usage.roleplay.usedSeconds)} / {limit(currentPlan.trialAllowance?.roleplayMinutes ?? null, "min")} shared
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted">Workspace call review</dt>
+                  <dd className="mt-1">
+                    {minutes(usage.callReview.usedSeconds)} / {limit(currentPlan.trialAllowance?.callReviewMinutes ?? null, "min")} shared
+                  </dd>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <dt className="text-muted">Your AI Role Play usage</dt>
+                  <dd className="mt-1">
+                    {minutes(usage.roleplay.usedSeconds)} / {limit(currentPlan.roleplayMinutesPerSeat, "min")} this period
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-muted">Your call review usage</dt>
+                  <dd className="mt-1">
+                    {hours(usage.callReview.usedSeconds)} / {limit(
+                      currentPlan.callScoringMinutesPerSeat === null
+                        ? null
+                        : currentPlan.callScoringMinutesPerSeat / 60,
+                      "hr",
+                    )} this period
+                  </dd>
+                </div>
+              </>
+            )}
           </dl>
 
           {user.org.stripeSubscriptionId && (
@@ -128,7 +154,7 @@ export default async function BillingPage({
         <Card title="Included">
           <ul className="space-y-3 text-sm">
             <li>✓ Call upload, transcription, and graded scorecards</li>
-            <li>✓ AI sales role-play and coaching feedback</li>
+            <li>✓ AI Role Play and coaching feedback</li>
             <li>✓ Manager dashboard and assignments</li>
             <li>✓ Custom company profile and rubric</li>
           </ul>
@@ -141,7 +167,8 @@ export default async function BillingPage({
       <div className="mt-8">
         <h2 className="text-2xl font-semibold tracking-tight">Choose a plan</h2>
         <p className="mt-2 text-sm text-muted">
-          Paid plans are billed per seat each month. Your organization currently has {teamSize}{" "}
+          Paid plans are billed per seat each month, and their AI Role Play minutes and call review hours are per seat,
+          per month (the trial&apos;s allowances are one shared pool). Your organization currently has {teamSize}{" "}
           {teamSize === 1 ? "member" : "members"}. Buy the seats you need now; you can{" "}
           <Link href="/team" className="font-semibold text-brand hover:underline">
             invite people and add seats

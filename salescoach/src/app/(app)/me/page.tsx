@@ -1,17 +1,19 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { currentUser } from "@/lib/session";
+import { currentUser, isManagerRole } from "@/lib/session";
 import { Card, EmptyState, LinkButton, PageHeader, StatusPill, fmtDate } from "@/components/ui";
 import { RepDetail } from "@/components/dashboard/rep-detail";
 import { monthStart } from "@/components/dashboard/insights";
 import { GettingStartedChecklist } from "@/components/getting-started-checklist";
 import { getGettingStartedSteps } from "@/lib/getting-started";
+import { trialStatus } from "@/lib/usage";
+import { TrialStatusCard } from "@/components/billing/trial-status";
 
 export default async function MePage() {
   const user = await currentUser();
   const now = new Date();
 
-  const [openAssignments, gradedCallsThisMonth, gettingStartedSteps] = await Promise.all([
+  const [openAssignments, gradedCallsThisMonth, gettingStartedSteps, trial] = await Promise.all([
     db.assignment.findMany({
       where: { orgId: user.orgId, assignedToId: user.id, status: { not: "COMPLETED" } },
       include: { scenario: { select: { id: true, title: true } }, assignedBy: { select: { name: true } } },
@@ -25,6 +27,7 @@ export default async function MePage() {
       },
     }),
     getGettingStartedSteps(user),
+    trialStatus(user.org),
   ]);
 
   return (
@@ -37,6 +40,7 @@ export default async function MePage() {
       <GettingStartedChecklist steps={gettingStartedSteps} compact />
 
       <div className="space-y-6 mb-6">
+        {trial && <TrialStatusCard status={trial} manager={isManagerRole(user.role)} />}
         <Card
           title="Open assignments"
           action={
