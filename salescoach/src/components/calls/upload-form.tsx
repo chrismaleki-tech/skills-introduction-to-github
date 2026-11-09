@@ -26,9 +26,17 @@ const inputCls =
 export function UploadForm({
   reps,
   currentUserId,
+  allowance,
+  blockedReason = null,
+  manager = false,
 }: {
   reps: { id: string; name: string }[]; // empty for non-managers
   currentUserId: string;
+  /** Remaining call review for this upload's scope (workspace on trial, seat on paid). */
+  allowance?: { remainingSeconds: number | null; limitSeconds: number | null; basis: string };
+  /** Server-computed reason no upload can be reviewed right now. */
+  blockedReason?: string | null;
+  manager?: boolean;
 }) {
   const router = useRouter();
   const [prospectName, setProspectName] = useState("");
@@ -41,13 +49,22 @@ export function UploadForm({
   const [file, setFile] = useState<File | null>(null);
   const [transcript, setTranscript] = useState("");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(blockedReason);
+  const [billingUrl, setBillingUrl] = useState<string | null>(blockedReason ? "/billing" : null);
 
   const durationSec = (Number(minutes) || 0) * 60 + (Number(seconds) || 0);
+  const remaining = allowance?.remainingSeconds ?? null;
+  const tooLong = remaining !== null && durationSec > remaining;
+  // Mirrors the server's transcript estimate (words at 150 wpm) so the warning
+  // appears before submitting; the server check is authoritative.
+  const transcriptEstimateSec =
+    mode === "transcript" ? Math.round((transcript.split(/\s+/).filter(Boolean).length / 150) * 60) : 0;
+  const meteredSec = mode === "transcript" ? Math.max(durationSec, transcriptEstimateSec) : durationSec;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setBillingUrl(null);
     if (durationSec <= 0) {
       setError("Enter the call duration.");
       return;
@@ -112,15 +129,17 @@ export function UploadForm({
           form.set("audio", file);
         } else {
           setError(upload?.error ?? "Could not prepare the audio upload.");
+          if (direct.status === 402) setBillingUrl((upload as { billingUrl?: string } | null)?.billingUrl ?? "/billing");
           return;
         }
       }
       const res = await fetch("/api/calls/upload", { method: "POST", body: form });
       const data = (await res.json().catch(() => null)) as
-        | { callId?: string; error?: string }
+        | { callId?: string; error?: string; billingUrl?: string }
         | null;
       if (!res.ok || !data?.callId) {
         setError(data?.error ?? "Upload failed. Try again.");
+        if (res.status === 402) setBillingUrl(data?.billingUrl ?? "/billing");
         return;
       }
       router.push(`/calls/${data.callId}`);
@@ -260,11 +279,40 @@ export function UploadForm({
         )}
       </div>
 
-      <div className="flex items-center gap-3">
-        <Button type="submit" disabled={pending}>
+      {remaining !== null && !blockedReason && (
+        <p className={`text-xs ${tooLong || (mode === "transcript" && meteredSec > remaining) ? "font-medium text-amber-700" : "text-muted"}`} data-testid="upload-allowance">
+          {allowance?.basis === "trial"
+            ? `${fmtMin(remaining)} of trial call review left for your workspace (shared, metered by recording length).`
+            : `${fmtMin(remaining)} of call review left on this seat this billing period.`}
+          {mode === "transcript" && transcriptEstimateSec > durationSec && durationSec > 0 && (
+            <> This transcript will be metered at about {fmtMin(transcriptEstimateSec)} (estimated from its length).</>
+          )}
+          {(tooLong || (mode === "transcript" && meteredSec > remaining)) && (
+            <> That is more than the {fmtMin(meteredSec)} this call needs; upload a shorter recording or upgrade.</>
+          )}
+        </p>
+      )}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={pending || blockedReason !== null}>
           {pending ? "Uploading and grading…" : "Upload call"}
         </Button>
-        {error && <span className="text-xs text-rose-700">{error}</span>}
+        {error && (
+          <span className="max-w-xl text-xs text-rose-700" role="alert">
+            {error}
+            {billingUrl &&
+              (manager ? (
+                <>
+                  {" "}
+                  <a href={billingUrl} className="font-semibold underline underline-offset-2">
+                    Upgrade
+                  </a>
+                </>
+              ) : (
+                " Ask a workspace admin to upgrade."
+              ))}
+          </span>
+        )}
       </div>
       <p className="text-xs leading-relaxed text-muted">
         By uploading, you confirm that your organization has the required permission and recording consent for this
@@ -303,4 +351,9 @@ function ModeTab({
       {children}
     </button>
   );
+}
+
+function fmtMin(seconds: number) {
+  const minutes = seconds / 60;
+  return `${minutes >= 10 || Number.isInteger(minutes) ? Math.round(minutes) : Math.round(minutes * 10) / 10} min`;
 }

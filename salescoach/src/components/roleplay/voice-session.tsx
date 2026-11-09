@@ -33,6 +33,10 @@ type CallError = {
   billingUrl?: string;
 };
 
+type UsageInfo = { remainingSeconds: number | null; limitSeconds: number | null };
+
+const LOW_MINUTES_WARNING_SEC = 5 * 60;
+
 type Turn = RoleplayMessage & { id: string; order: number; final: boolean };
 
 const SYNC_DEBOUNCE_MS = 1500;
@@ -69,6 +73,10 @@ export function VoiceRoleplay({
   const [showTyping, setShowTyping] = useState(false);
   const [typed, setTyped] = useState("");
   const [elapsedSec, setElapsedSec] = useState(0);
+  // Workspace allowance as last reported by the server; counted down locally
+  // between heartbeats for display only.
+  const [usage, setUsage] = useState<UsageInfo>({ remainingSeconds: null, limitSeconds: null });
+  const [cutoff, setCutoff] = useState<"allowance_exhausted" | "trial_expired" | null>(null);
   const [turns, setTurns] = useState<Turn[]>(() =>
     initialMessages.map((m, i) => ({ ...m, id: `seed_${i}`, order: i, final: true })),
   );
@@ -102,6 +110,17 @@ export function VoiceRoleplay({
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
   }, [startedAtMs]);
+
+  const inCallNow = state !== "idle" && state !== "ended";
+  useEffect(() => {
+    if (!inCallNow) return;
+    const t = setInterval(() => {
+      setUsage((u) =>
+        u.remainingSeconds === null ? u : { ...u, remainingSeconds: Math.max(0, u.remainingSeconds - 1) },
+      );
+    }, 1000);
+    return () => clearInterval(t);
+  }, [inCallNow]);
 
   const messagesForServer = useCallback(
     (): RoleplayMessage[] =>
@@ -170,11 +189,33 @@ export function VoiceRoleplay({
     setUserSpeaking(false);
   }, []);
 
+  // Grade what was captured after the server ended the call for us. The
+  // transcript is already saved; /end grades a COMPLETED session as-is.
+  const finishAfterCutoff = useCallback(async () => {
+    const enough = messagesForServer().filter((m) => m.role === "rep").length >= 2;
+    if (!enough) {
+      setEnding("notEnough");
+      return;
+    }
+    setEnding("grading");
+    try {
+      const res = await fetch(`/api/roleplay/${sessionId}/end`, { method: "POST" });
+      if (res.ok) {
+        router.push(`/roleplay/${sessionId}`);
+        router.refresh();
+        return;
+      }
+    } catch {}
+    setEnding(null);
+  }, [messagesForServer, router, sessionId]);
+
   const syncNow = useCallback(
-    async (opts: { keepalive?: boolean } = {}): Promise<boolean> => {
+    async (opts: { keepalive?: boolean; heartbeat?: boolean } = {}): Promise<boolean> => {
       const messages = messagesForServer();
       const body = JSON.stringify({ messages });
-      if (body === lastSynced.current) return true;
+      // Heartbeats always go out: each one is the liveness signal the server
+      // meters against, even when the transcript has not changed.
+      if (!opts.heartbeat && body === lastSynced.current) return true;
       try {
         const res = await fetch(`/api/roleplay/${sessionId}/transcript`, {
           method: "POST",
@@ -182,16 +223,30 @@ export function VoiceRoleplay({
           body,
           keepalive: opts.keepalive,
         });
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+          billingUrl?: string;
+          ended?: "allowance_exhausted" | "trial_expired";
+          remainingSeconds?: number | null;
+          limitSeconds?: number | null;
+        };
+        if (data.remainingSeconds !== undefined && data.limitSeconds !== undefined) {
+          setUsage({ remainingSeconds: data.remainingSeconds, limitSeconds: data.limitSeconds });
+        }
         if (res.status === 402) {
-          const data = (await res.json().catch(() => ({}))) as { error?: string; billingUrl?: string };
-          // Allowance exhausted mid-call: stop the call so no more minutes accrue.
+          // The server saved the transcript and ended the session (shared
+          // allowance used up, or the trial expired). Stop audio and the mic
+          // now so nothing else accrues, then grade what we have.
+          lastSynced.current = body;
           hangUp();
           setState("ended");
+          setCutoff(data.ended ?? "allowance_exhausted");
           setError({
             kind: "limit",
-            message: data.error ?? "This seat has reached its role-play allowance.",
+            message: data.error ?? "Your workspace has used all of its AI Role Play minutes, so this call has ended.",
             billingUrl: data.billingUrl,
           });
+          void finishAfterCutoff();
           return false;
         }
         if (res.ok) lastSynced.current = body;
@@ -200,7 +255,7 @@ export function VoiceRoleplay({
         return false;
       }
     },
-    [hangUp, messagesForServer, sessionId],
+    [finishAfterCutoff, hangUp, messagesForServer, sessionId],
   );
 
   const scheduleSync = useCallback(() => {
@@ -387,7 +442,12 @@ export function VoiceRoleplay({
           error?: string;
           code?: string;
           billingUrl?: string;
+          remainingSeconds?: number | null;
+          limitSeconds?: number | null;
         };
+        if (data.remainingSeconds !== undefined && data.limitSeconds !== undefined) {
+          setUsage({ remainingSeconds: data.remainingSeconds, limitSeconds: data.limitSeconds });
+        }
         if (!res.ok || !data.clientSecret) {
           hangUp();
           setError({
@@ -441,7 +501,7 @@ export function VoiceRoleplay({
         setState("listening");
         primeConversation();
         if (heartbeat.current) clearInterval(heartbeat.current);
-        heartbeat.current = setInterval(() => void syncNow(), SYNC_HEARTBEAT_MS);
+        heartbeat.current = setInterval(() => void syncNow({ heartbeat: true }), SYNC_HEARTBEAT_MS);
       };
 
       try {
@@ -484,13 +544,14 @@ export function VoiceRoleplay({
     setState("ended");
     const enough = messagesForServer().filter((m) => m.role === "rep").length >= 2;
     if (!enough) {
-      await syncNow({ keepalive: true });
+      await syncNow({ keepalive: true, heartbeat: true });
       setEnding("notEnough");
       return;
     }
     setEnding("grading");
-    const synced = await syncNow({ keepalive: true });
+    const synced = await syncNow({ keepalive: true, heartbeat: true });
     if (!synced) {
+      if (cutoff) return; // the server ended the call; finishAfterCutoff grades it
       // Retry once; if the transcript still is not saved, do not grade a stale copy.
       const again = await syncNow({ keepalive: true });
       if (!again) {
@@ -516,7 +577,7 @@ export function VoiceRoleplay({
       setEnding(null);
       setState("idle");
     }
-  }, [ending, hangUp, messagesForServer, router, sessionId, syncNow]);
+  }, [cutoff, ending, hangUp, messagesForServer, router, sessionId, syncNow]);
 
   const sendTyped = useCallback(() => {
     const text = typed.trim();
@@ -548,6 +609,9 @@ export function VoiceRoleplay({
     void connect(true);
   }, [connect]);
 
+  const remaining = usage.remainingSeconds;
+  const lowMinutes = remaining !== null && remaining <= LOW_MINUTES_WARNING_SEC;
+
   const inCall = state !== "idle" && state !== "ended";
   const orderedTurns = useMemo(() => [...turns].sort((a, b) => a.order - b.order), [turns]);
 
@@ -577,18 +641,31 @@ export function VoiceRoleplay({
         </div>
         <div className="flex items-center gap-3 text-xs text-muted tabular-nums sm:gap-4">
           <span>{fmtClock(elapsedSec)} elapsed</span>
+          {remaining !== null && (
+            <span className={lowMinutes ? "font-semibold text-amber-700" : ""} title="AI Role Play minutes left for your whole workspace">
+              {fmtClock(remaining)} left
+            </span>
+          )}
           <span>
             {repTurns} {repTurns === 1 ? "turn" : "turns"}
           </span>
         </div>
       </div>
 
+      {lowMinutes && inCall && !cutoff && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 sm:px-5" role="status">
+          {remaining <= 0
+            ? "Your workspace's AI Role Play minutes are about to run out; the call will end and be graded automatically."
+            : `About ${Math.max(1, Math.ceil(remaining / 60))} min of AI Role Play left for your workspace. The call ends automatically when they run out; wrap up your next step.`}
+        </div>
+      )}
+
       {/* Call stage */}
       <div className="flex flex-col items-center gap-5 px-4 py-8 sm:py-10">
         <StateOrb state={state} muted={muted} userSpeaking={userSpeaking} personaName={personaName} />
         <div className="text-center">
           <div className="text-base font-medium">{stateTitle(state, muted, userSpeaking, personaName, ending)}</div>
-          <p className="mt-1 max-w-md text-sm text-muted">{stateHint(state, muted, ending)}</p>
+          <p className="mt-1 max-w-md text-sm text-muted">{stateHint(state, muted, ending, cutoff !== null)}</p>
         </div>
 
         {needsTap && inCall && (
@@ -603,12 +680,19 @@ export function VoiceRoleplay({
         )}
 
         {error && (
-          <div className="w-full max-w-lg rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+          <div className="w-full max-w-lg rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800" role="alert">
             <div>{error.message}</div>
+            {cutoff && (
+              <div className="mt-1 text-xs text-rose-700">
+                {cutoff === "trial_expired"
+                  ? "Your microphone and the prospect's audio have been stopped. Everything said so far is saved."
+                  : "Your microphone and the prospect's audio have been stopped. Everything said so far is saved; upgrading to Pro or Max adds per-seat monthly minutes."}
+              </div>
+            )}
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
               {error.kind === "limit" && (
                 <a href={error.billingUrl ?? "/billing"} className="font-medium underline underline-offset-2">
-                  View plan &amp; usage
+                  Upgrade or view plan &amp; usage
                 </a>
               )}
               {error.kind === "mic_denied" && (
@@ -622,7 +706,7 @@ export function VoiceRoleplay({
 
         {/* Controls */}
         <div className="flex w-full max-w-md flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
-          {!inCall && ending !== "notEnough" && (
+          {!inCall && ending !== "notEnough" && !cutoff && (
             <Button onClick={() => void connect(turns.length > 0)} disabled={ending === "grading"} className="sm:min-w-44">
               <MicIcon />
               {error?.kind === "connect" || turns.length > 0 ? "Reconnect & continue" : "Start call"}
@@ -640,7 +724,7 @@ export function VoiceRoleplay({
               </Button>
             </>
           )}
-          {ending === "notEnough" && (
+          {ending === "notEnough" && !cutoff && (
             <>
               <Button onClick={resumeAfterNotEnough} className="sm:min-w-40">
                 <MicIcon />
@@ -651,9 +735,14 @@ export function VoiceRoleplay({
               </Button>
             </>
           )}
+          {ending === "notEnough" && cutoff && (
+            <Button variant="secondary" onClick={() => router.push("/roleplay")}>
+              Back to role-plays
+            </Button>
+          )}
         </div>
 
-        {!inCall && ending === null && (
+        {!inCall && ending === null && !cutoff && (
           <button type="button" onClick={() => void switchToText()} className="text-xs text-muted underline-offset-2 hover:text-foreground hover:underline">
             Can&apos;t use a microphone right now? Switch to the text role-play
           </button>
@@ -751,8 +840,9 @@ function stateTitle(
   }
 }
 
-function stateHint(state: CallState, muted: boolean, ending: "grading" | "notEnough" | null): string {
+function stateHint(state: CallState, muted: boolean, ending: "grading" | "notEnough" | null, cutoff = false): string {
   if (ending === "grading") return "Saving the transcript and running it through the grading engine.";
+  if (ending === "notEnough" && cutoff) return "Grading needs at least two of your turns, so this short call was saved without a score.";
   if (ending === "notEnough") return "Grading needs at least two of your turns. Resume the call to keep going, or come back later — the session stays open.";
   switch (state) {
     case "idle":
