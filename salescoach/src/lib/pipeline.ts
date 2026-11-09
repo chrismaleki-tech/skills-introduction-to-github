@@ -4,7 +4,13 @@ import { callTypeLabel, difficultyLabel } from "./scenario-options";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
-import { assertUsageAvailable, UsageLimitError } from "./usage";
+import {
+  meterSecondsForCall,
+  releaseCallReview,
+  reserveCallReview,
+  settleCallReview,
+  UsageLimitError,
+} from "./usage";
 import { captureError } from "./monitoring";
 import {
   parseCompanyProfile,
@@ -87,6 +93,11 @@ export async function ingestCall(input: IngestCallInput) {
 }
 
 // Transcribe (if needed) and grade a call. Also used by "grade this call now".
+//
+// Call-review allowance is reserved before any paid work (transcription or
+// grading) and settled when the grade is stored; a failure releases it. The
+// reservation lives on the Call row, so a retry of a call that is already
+// settled or still reserved does not charge a second time.
 export async function processCall(callId: string, input?: Partial<IngestCallInput>) {
   const call = await db.call.findUniqueOrThrow({
     where: { id: callId },
@@ -98,24 +109,27 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
   });
 
   try {
-    if (!call.grade) {
-      await assertUsageAvailable(
-        call.org,
-        call.repId,
-        "call_scoring",
-        call.durationSec,
-      );
+    // Work out the transcript source first; none of this is paid work.
+    let known: { segments: TranscriptSegment[]; engine: string } | null = null;
+    if (call.transcript) {
+      known = { segments: parseSegments(call.transcript.segmentsJson), engine: call.transcript.engine };
+    } else if (input?.providedTranscript) {
+      known = { segments: parseProvidedTranscript(input.providedTranscript), engine: "provided" };
     }
+
+    const meter = meterSecondsForCall({
+      source: call.source,
+      durationSec: call.durationSec,
+      hasAudio: Boolean(call.audioPath || input?.audio),
+      segments: known?.segments ?? null,
+    });
+    const reservation = await reserveCallReview(call.id, meter);
+    if (!reservation.reserved) throw reservation.error;
 
     let segments: TranscriptSegment[];
     let engine: string;
-
-    if (call.transcript) {
-      segments = parseSegments(call.transcript.segmentsJson);
-      engine = call.transcript.engine;
-    } else if (input?.providedTranscript) {
-      segments = parseProvidedTranscript(input.providedTranscript);
-      engine = "provided";
+    if (known) {
+      ({ segments, engine } = known);
     } else if (input?.audio) {
       await db.call.update({ where: { id: callId }, data: { status: "TRANSCRIBING" } });
       const result = await transcribeAudio(input.audio.buffer, input.audio.mimeType);
@@ -138,6 +152,7 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
       segments,
       callType: call.callType,
     });
+    await settleCallReview(callId);
     await db.call.update({ where: { id: callId }, data: { status: "GRADED" } });
   } catch (err) {
     if (!(err instanceof UsageLimitError)) {
@@ -147,6 +162,7 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
         orgId: call.orgId,
         repId: call.repId,
       });
+      await releaseCallReview(callId);
     }
     await db.call.update({
       where: { id: callId },
