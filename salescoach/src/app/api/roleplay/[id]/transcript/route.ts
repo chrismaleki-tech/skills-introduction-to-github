@@ -2,18 +2,19 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { parseMessages, type RoleplayMessage } from "@/lib/types";
-import { billingError } from "@/lib/billing";
-import {
-  assertUsageAvailable,
-  UsageLimitError,
-  usageLimitPayload,
-} from "@/lib/usage";
+import { meterRoleplaySession } from "@/lib/usage";
 
 // Voice sessions run peer-to-peer between the browser and OpenAI, so the
 // browser is the only party holding the transcript. It posts snapshots here
 // (periodically and on end) so the session can be graded like a text one.
 // Snapshots are whole-transcript: the server keeps whichever copy is longer,
 // so an out-of-order or shorter snapshot cannot truncate the record.
+//
+// Every post is also a liveness heartbeat: the time since the previous one
+// (capped) is charged against the AI Role Play allowance. When the allowance
+// runs out or the trial expires, the transcript is still saved, the session
+// is completed server-side, and the response says why (HTTP 402) so the
+// browser can hang up and grade what it has.
 const MAX_MESSAGES = 400;
 const MAX_MESSAGE_CHARS = 4000;
 
@@ -37,12 +38,10 @@ function normalize(raw: unknown): RoleplayMessage[] | null {
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await currentUser();
-  const paymentError = billingError(user.org);
-  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const session = await db.roleplaySession.findUnique({
     where: { id },
-    include: { org: true },
+    include: { grade: { select: { id: true } } },
   });
   if (!session || session.orgId !== user.orgId) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
@@ -50,7 +49,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (session.repId !== user.id) {
     return NextResponse.json({ error: "Only the session owner can update the transcript" }, { status: 403 });
   }
-  if (session.status !== "ACTIVE") {
+  // A session the server ended (allowance or trial) stays writable until it
+  // is graded, so the browser's final snapshot is not lost.
+  if ((session.status !== "ACTIVE" && session.status !== "COMPLETED") || session.grade) {
     return NextResponse.json({ error: "Session is no longer active" }, { status: 409 });
   }
   if (session.mode !== "VOICE") {
@@ -58,41 +59,50 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const body = (await req.json().catch(() => ({}))) as { messages?: unknown; switchToText?: unknown };
-  const incoming = normalize(body.messages);
+  const incoming = body.messages === undefined ? [] : normalize(body.messages);
   if (!incoming) return NextResponse.json({ error: "messages must be an array of transcript turns" }, { status: 400 });
 
   const existing = parseMessages(session.messagesJson);
   const merged = incoming.length >= existing.length ? incoming : existing;
 
-  const nowMs = Date.now() - session.startedAt.getTime();
-  const nextDurationSec = Math.max(session.durationSec, Math.round(nowMs / 1000));
-  try {
-    await assertUsageAvailable(
-      session.org,
-      session.repId,
-      "roleplay",
-      Math.max(0, nextDurationSec - session.durationSec),
-    );
-  } catch (error) {
-    if (error instanceof UsageLimitError) {
-      return NextResponse.json(usageLimitPayload(error), { status: 402 });
-    }
-    throw error;
-  }
-
   await db.roleplaySession.update({
     where: { id },
     data: {
       messagesJson: JSON.stringify(merged),
-      durationSec: nextDurationSec,
       // The rep can fall back to typing mid-session (no mic, noisy room);
       // persisting the switch keeps the chat UI on reload.
       ...(body.switchToText === true ? { mode: "TEXT" } : {}),
     },
   });
 
-  return NextResponse.json({
-    saved: merged.length,
-    repTurns: merged.filter((m) => m.role === "rep").length,
-  });
+  const saved = { saved: merged.length, repTurns: merged.filter((m) => m.role === "rep").length };
+  if (session.status !== "ACTIVE") {
+    return NextResponse.json({ ...saved, status: session.status, durationSec: session.durationSec });
+  }
+
+  const meter = await meterRoleplaySession(id);
+  const usage = {
+    durationSec: meter.durationSec,
+    remainingSeconds: meter.remainingSeconds,
+    limitSeconds: meter.limitSeconds,
+    basis: meter.basis,
+    status: meter.status,
+  };
+  if (meter.endedReason) {
+    return NextResponse.json(
+      {
+        ...saved,
+        ...usage,
+        ended: meter.endedReason,
+        code: meter.endedReason === "trial_expired" ? "TRIAL_EXPIRED" : "ROLEPLAY_LIMIT_EXCEEDED",
+        error:
+          meter.endedReason === "trial_expired"
+            ? "Your free trial ended during this call. The call has been saved; upgrade to Pro or Max to keep practicing."
+            : "Your workspace has used all of its trial AI Role Play minutes, so this call has ended. The transcript is saved; upgrade to Pro or Max for more.",
+        billingUrl: "/billing",
+      },
+      { status: 402 },
+    );
+  }
+  return NextResponse.json({ ...saved, ...usage });
 }

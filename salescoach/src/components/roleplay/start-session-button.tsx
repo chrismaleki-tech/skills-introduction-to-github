@@ -13,15 +13,22 @@ export function StartSessionButton({
   variant = "primary",
   voiceEnabled = true,
   compact = false,
+  blockedReason = null,
+  manager = false,
 }: {
   scenarioId: string;
   variant?: "primary" | "secondary";
   voiceEnabled?: boolean;
   compact?: boolean;
+  /** Server-computed reason no session can start (allowance used up, trial ended). */
+  blockedReason?: string | null;
+  manager?: boolean;
 }) {
   const router = useRouter();
   const [starting, setStarting] = useState<"VOICE" | "TEXT" | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(blockedReason);
+  const [billingUrl, setBillingUrl] = useState<string | null>(blockedReason ? "/billing" : null);
+  const blocked = blockedReason !== null;
 
   async function start(mode: "VOICE" | "TEXT") {
     if (starting) return;
@@ -33,9 +40,10 @@ export function StartSessionButton({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ scenarioId, mode }),
       });
-      const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { id?: string; error?: string; billingUrl?: string };
       if (!res.ok || !data.id) {
         setError(data.error ?? "Could not start the session.");
+        setBillingUrl(res.status === 402 ? data.billingUrl ?? "/billing" : null);
         setStarting(null);
         return;
       }
@@ -46,32 +54,51 @@ export function StartSessionButton({
     }
   }
 
+  const errorLine = error && (
+    <span className={`max-w-sm text-xs text-rose-700 ${compact ? "text-right" : ""}`} role="alert">
+      {error}
+      {billingUrl &&
+        (manager ? (
+          <>
+            {" "}
+            <a href={billingUrl} className="font-semibold underline underline-offset-2">
+              Upgrade
+            </a>
+          </>
+        ) : (
+          " Ask a workspace admin to upgrade."
+        ))}
+    </span>
+  );
+
   if (!voiceEnabled) {
     return (
       <div className="flex flex-col items-start gap-1.5">
-        <Button variant={variant} onClick={() => void start("TEXT")} disabled={starting !== null}>
+        <Button variant={variant} onClick={() => void start("TEXT")} disabled={starting !== null || blocked}>
           {starting ? "Starting..." : "Start text role-play"}
         </Button>
-        {error && <span className="text-xs text-rose-700">{error}</span>}
+        {errorLine}
       </div>
     );
   }
 
   return (
     <div className={`flex flex-col gap-1.5 ${compact ? "items-end" : "items-start"}`}>
-      <Button variant={variant} onClick={() => void start("VOICE")} disabled={starting !== null}>
+      <Button variant={variant} onClick={() => void start("VOICE")} disabled={starting !== null || blocked}>
         <MicIcon />
         {starting === "VOICE" ? "Starting..." : "Start voice role-play"}
       </Button>
-      <button
-        type="button"
-        onClick={() => void start("TEXT")}
-        disabled={starting !== null}
-        className="text-xs text-muted underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
-      >
-        {starting === "TEXT" ? "Starting..." : "Prefer to type? Start a text role-play"}
-      </button>
-      {error && <span className="text-xs text-rose-700">{error}</span>}
+      {!blocked && (
+        <button
+          type="button"
+          onClick={() => void start("TEXT")}
+          disabled={starting !== null}
+          className="text-xs text-muted underline-offset-2 hover:text-foreground hover:underline disabled:opacity-50"
+        >
+          {starting === "TEXT" ? "Starting..." : "Prefer to type? Start a text role-play"}
+        </button>
+      )}
+      {errorLine}
     </div>
   );
 }

@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     repId = rep.id;
   }
   try {
-    await assertUsageAvailable(user.org, repId, "call_scoring", durationSec);
+    await assertUsageAvailable(user.org, repId, "call_review", durationSec);
   } catch (error) {
     if (error instanceof UsageLimitError) {
       return NextResponse.json(usageLimitPayload(error), { status: 402 });

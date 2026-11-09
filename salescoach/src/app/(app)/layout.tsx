@@ -7,6 +7,7 @@ import { ClerkUserMenu } from "@/components/clerk-user-menu";
 import { aiAvailable } from "@/lib/ai";
 import { storageBackend } from "@/lib/storage";
 import { billingAccess } from "@/lib/billing";
+import { fmtMinutes, trialStatus } from "@/lib/usage";
 import { MobileNav } from "@/components/mobile-nav";
 import { BrandMark } from "@/components/brand-logo";
 
@@ -19,6 +20,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   });
 
   const manager = isManagerRole(user.role);
+  const access = billingAccess(user.org);
+  const trial = access.status === "active" ? null : await trialStatus(user.org);
   const items: NavItem[] = [
     { href: "/getting-started", label: "Getting Started" },
     ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
@@ -95,24 +98,37 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </aside>
       <main className="w-full min-w-0 flex-1 px-4 py-5 sm:px-6 md:max-w-6xl md:px-8 md:py-8">
         {(() => {
-          const access = billingAccess(user.org);
           if (access.status === "active") return null;
+          const exhausted =
+            trial && !trial.expired
+              ? [
+                  trial.roleplay.remainingSeconds === 0 ? "AI Role Play" : null,
+                  trial.callReview.remainingSeconds === 0 ? "call review" : null,
+                ].filter((x): x is string => Boolean(x))
+              : [];
+          const attention = !access.entitled || exhausted.length > 0;
+          const summary = trial
+            ? trial.expired
+              ? `Your ${trial.totalDays}-day free trial has ended. Saved results stay viewable; upgrade to resume AI Role Play and call review.`
+              : `Free trial: ${trial.daysLeft} day${trial.daysLeft === 1 ? "" : "s"} remaining · AI Role Play ${fmtMinutes(trial.roleplay.remainingSeconds ?? 0)} left · call review ${fmtMinutes(trial.callReview.remainingSeconds ?? 0)} left (shared by the workspace).${exhausted.length ? ` ${exhausted.join(" and ")} ${exhausted.length === 1 ? "is" : "are"} used up.` : ""}`
+            : access.entitled
+              ? `${access.status === "canceled" ? "Subscription canceled: access continues through the paid period." : ""}`
+              : "Your subscription is inactive.";
+          if (!summary) return null;
           return (
             <div
               className={`mb-6 rounded-lg border px-4 py-3 text-sm ${
-                access.entitled
-                  ? "border-brand/30 bg-brand/5 text-marketing-ink"
-                  : "border-rose-200 bg-rose-50 text-rose-800"
+                attention ? "border-rose-200 bg-rose-50 text-rose-800" : "border-brand/30 bg-brand/5 text-marketing-ink"
               }`}
             >
-              {access.entitled
-                ? `Free trial: ${access.daysLeft} day${access.daysLeft === 1 ? "" : "s"} remaining.`
-                : "Your trial or subscription is inactive."}{" "}
-              {manager && (
+              {summary}{" "}
+              {manager ? (
                 <a href="/billing" className="font-semibold underline underline-offset-2">
-                  {access.entitled ? "Choose a plan" : "Restore access"}
+                  {attention ? "Upgrade" : "Choose a plan"}
                 </a>
-              )}
+              ) : attention ? (
+                <span>Ask a workspace admin to upgrade.</span>
+              ) : null}
             </div>
           );
         })()}

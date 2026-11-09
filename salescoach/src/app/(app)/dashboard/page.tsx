@@ -8,6 +8,8 @@ import { ChartLegend, TrendArrow, WeeklyTrendChart, type WeekPoint } from "@/com
 import { SkillHeatmap, type HeatmapRow } from "@/components/dashboard/heatmap";
 import { GettingStartedChecklist } from "@/components/getting-started-checklist";
 import { getGettingStartedSteps } from "@/lib/getting-started";
+import { trialStatus } from "@/lib/usage";
+import { TrialStatusCard } from "@/components/billing/trial-status";
 import {
   activityDate,
   avg,
@@ -33,7 +35,7 @@ export default async function DashboardPage() {
   const last14 = daysAgo(now, 14);
   const earliest = new Date(Math.min(pStart.getTime(), trendStart.getTime(), last30.getTime()));
 
-  const [reps, methodology, grades, monthCalls, activeAssignments, gettingStartedSteps] = await Promise.all([
+  const [reps, methodology, grades, monthCalls, activeAssignments, gettingStartedSteps, trial] = await Promise.all([
     db.user.findMany({ where: { orgId: user.orgId, role: "REP", removedAt: null }, orderBy: { name: "asc" } }),
     user.org.activeMethodologyId
       ? db.methodology.findUnique({ where: { id: user.org.activeMethodologyId } })
@@ -60,6 +62,7 @@ export default async function DashboardPage() {
       select: { dueDate: true },
     }),
     getGettingStartedSteps(user),
+    trialStatus(user.org),
   ]);
 
   const repOf = (g: (typeof grades)[number]) => g.call?.repId ?? g.roleplay?.repId ?? null;
@@ -155,6 +158,12 @@ export default async function DashboardPage() {
       />
 
       <GettingStartedChecklist steps={gettingStartedSteps} compact />
+
+      {trial && (
+        <div className="mb-6">
+          <TrialStatusCard status={trial} manager />
+        </div>
+      )}
 
       <div className="mb-6 grid grid-cols-1 gap-4 min-[360px]:grid-cols-2 lg:grid-cols-4">
         <Stat

@@ -4,11 +4,7 @@ import { prospectReply } from "@/lib/roleplay";
 import { currentUser } from "@/lib/session";
 import { parseMessages, type RoleplayMessage } from "@/lib/types";
 import { billingError } from "@/lib/billing";
-import {
-  assertUsageAvailable,
-  UsageLimitError,
-  usageLimitPayload,
-} from "@/lib/usage";
+import { meterRoleplaySession } from "@/lib/usage";
 
 const MAX_MESSAGE_CHARS = 2000;
 
@@ -46,31 +42,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const atMs = Date.now() - session.startedAt.getTime();
-  const nextDurationSec = Math.round(atMs / 1000);
-  try {
-    await assertUsageAvailable(
-      session.org,
-      session.repId,
-      "roleplay",
-      Math.max(0, nextDurationSec - session.durationSec),
-    );
-  } catch (error) {
-    if (error instanceof UsageLimitError) {
-      return NextResponse.json(usageLimitPayload(error), { status: 402 });
-    }
-    throw error;
-  }
   const repMessage: RoleplayMessage = { role: "rep", text, atMs };
   const history = [...parseMessages(session.messagesJson), repMessage];
 
-  // Persist the rep turn before calling the prospect engine.
+  // Persist the rep turn before anything that can fail, so nothing typed is lost.
   await db.roleplaySession.update({
     where: { id },
-    data: {
-      messagesJson: JSON.stringify(history),
-      durationSec: nextDurationSec,
-    },
+    data: { messagesJson: JSON.stringify(history) },
   });
+
+  // Charge the (capped) time since the previous turn. If that empties the
+  // allowance or the trial has expired, the session is completed and the
+  // prospect does not reply; the rep's message is kept for grading.
+  const meter = await meterRoleplaySession(id);
+  if (meter.endedReason) {
+    return NextResponse.json(
+      {
+        error:
+          meter.endedReason === "trial_expired"
+            ? "Your free trial ended during this session. Your messages are saved; end the session to get graded, and upgrade to keep practicing."
+            : "Your workspace has used all of its trial AI Role Play minutes, so this session has ended. Your messages are saved; end the session to get graded, or upgrade for more.",
+        code: meter.endedReason === "trial_expired" ? "TRIAL_EXPIRED" : "ROLEPLAY_LIMIT_EXCEEDED",
+        ended: meter.endedReason,
+        remainingSeconds: meter.remainingSeconds,
+        limitSeconds: meter.limitSeconds,
+        billingUrl: "/billing",
+      },
+      { status: 402 },
+    );
+  }
 
   let reply: string;
   try {
@@ -86,11 +86,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const prospectMessage: RoleplayMessage = { role: "prospect", text: reply, atMs: replyAtMs };
   await db.roleplaySession.update({
     where: { id },
-    data: {
-      messagesJson: JSON.stringify([...history, prospectMessage]),
-      durationSec: Math.round(replyAtMs / 1000),
-    },
+    data: { messagesJson: JSON.stringify([...history, prospectMessage]) },
   });
 
-  return NextResponse.json({ reply });
+  return NextResponse.json({
+    reply,
+    remainingSeconds: meter.remainingSeconds,
+    limitSeconds: meter.limitSeconds,
+    durationSec: meter.durationSec,
+  });
 }

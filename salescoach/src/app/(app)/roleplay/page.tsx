@@ -6,13 +6,14 @@ import { Card, EmptyState, LinkButton, PageHeader, ScoreBadge, StatusPill, fmtDa
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { StartSessionButton } from "@/components/roleplay/start-session-button";
 import { voiceAvailable } from "@/lib/roleplay";
+import { allowance, fmtMinutes, LOW_ALLOWANCE_WARNING_SECONDS, startBlockReason } from "@/lib/usage";
 
 export default async function RoleplayPage() {
   const user = await currentUser();
   const manager = isManagerRole(user.role);
   const voice = voiceAvailable();
 
-  const [scenarios, sessions] = await Promise.all([
+  const [scenarios, sessions, block, roleplayAllowance] = await Promise.all([
     db.scenario.findMany({
       where: { orgId: user.orgId },
       orderBy: { createdAt: "desc" },
@@ -26,7 +27,11 @@ export default async function RoleplayPage() {
       },
       orderBy: { startedAt: "desc" },
     }),
+    startBlockReason(user.org, user.id, "roleplay"),
+    allowance(user.org, user.id, "roleplay"),
   ]);
+  const remaining = roleplayAllowance.remainingSeconds;
+  const lowMinutes = remaining !== null && remaining > 0 && remaining <= LOW_ALLOWANCE_WARNING_SECONDS;
 
   return (
     <div>
@@ -44,6 +49,25 @@ export default async function RoleplayPage() {
             </Link>
           )}
         </div>
+        {block && (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+            {block.reason}{" "}
+            {manager ? (
+              <Link href="/billing" className="font-semibold underline underline-offset-2">
+                Upgrade
+              </Link>
+            ) : (
+              "Ask a workspace admin to upgrade."
+            )}
+          </div>
+        )}
+        {!block && remaining !== null && (
+          <p className={`mb-4 text-sm ${lowMinutes ? "font-medium text-amber-700" : "text-muted"}`}>
+            {roleplayAllowance.basis === "trial"
+              ? `${fmtMinutes(remaining)} of AI Role Play left in your workspace's trial allowance (shared by everyone, for the full trial).`
+              : `${fmtMinutes(remaining)} of AI Role Play left on your seat this billing period.`}
+          </p>
+        )}
         {scenarios.length === 0 ? (
           <Card>
             <EmptyState
@@ -82,7 +106,7 @@ export default async function RoleplayPage() {
                     {persona.company && <div>{persona.company}</div>}
                     <div className="mt-1 text-xs">{fmtCallType(s.callType)}</div>
                   </div>
-                  <StartSessionButton scenarioId={s.id} voiceEnabled={voice} />
+                  <StartSessionButton scenarioId={s.id} voiceEnabled={voice} blockedReason={block?.reason ?? null} manager={manager} />
                 </div>
               );
             })}

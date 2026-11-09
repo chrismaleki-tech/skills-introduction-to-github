@@ -3,20 +3,17 @@ import { db } from "@/lib/db";
 import { gradeRoleplay } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseMessages } from "@/lib/types";
-import { billingError } from "@/lib/billing";
-import {
-  assertUsageAvailable,
-  UsageLimitError,
-  usageLimitPayload,
-} from "@/lib/usage";
+import { meterRoleplaySession } from "@/lib/usage";
 
 // End a session and grade it. Idempotent: an already-COMPLETED session is
 // simply graded; an already-GRADED session returns its existing score.
+//
+// Ending is never blocked by billing: the minutes were charged while the
+// session ran, and a session cut off by the allowance or by trial expiry must
+// still be able to save its feedback.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await currentUser();
-  const paymentError = billingError(user.org);
-  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const session = await db.roleplaySession.findUnique({
     where: { id },
@@ -42,28 +39,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   if (session.status === "ACTIVE") {
-    const finalDurationSec = Math.round((Date.now() - session.startedAt.getTime()) / 1000);
-    try {
-      await assertUsageAvailable(
-        session.org,
-        session.repId,
-        "roleplay",
-        Math.max(0, finalDurationSec - session.durationSec),
-      );
-    } catch (error) {
-      if (error instanceof UsageLimitError) {
-        return NextResponse.json(usageLimitPayload(error), { status: 402 });
-      }
-      throw error;
-    }
-    await db.roleplaySession.update({
-      where: { id },
-      data: {
-        status: "COMPLETED",
-        endedAt: new Date(),
-        durationSec: finalDurationSec,
-      },
-    });
+    // Charges the final (capped) gap since the last heartbeat and completes
+    // the session under the org lock.
+    await meterRoleplaySession(id, { final: true });
   }
 
   try {

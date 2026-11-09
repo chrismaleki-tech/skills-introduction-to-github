@@ -39,7 +39,11 @@ export default async function CallReviewPage({
     <div>
       <PageHeader
         title={call.prospectName || "Unknown prospect"}
-        subtitle={`${call.rep.name} · ${fmtDateTime(call.callDate)} · ${call.callType.replaceAll("_", " ")} · ${call.direction} · ${fmtDuration(call.durationSec)} · via ${call.source.toLowerCase()}`}
+        subtitle={`${call.rep.name} · ${fmtDateTime(call.callDate)} · ${call.callType.replaceAll("_", " ")} · ${call.direction} · ${fmtDuration(call.durationSec)} · via ${call.source.toLowerCase()}${
+          call.meterStatus === "SETTLED" || call.meterStatus === "RESERVED"
+            ? ` · ${fmtDuration(call.meteredSec)} of call review${call.meterEstimated ? " (estimated from the transcript)" : ""}`
+            : ""
+        }`}
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <SamplingPill status={call.samplingStatus} />

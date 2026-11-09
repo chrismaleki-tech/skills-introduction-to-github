@@ -1,12 +1,13 @@
 import type { Org } from "@prisma/client";
 import { db } from "./db";
 import { billingAccess } from "./billing";
+import { TRIAL_ALLOWANCE } from "./plans";
 
 /**
  * Seats a trialing workspace may fill before subscribing. Large enough for a
  * team lead to evaluate with a few reps; a solo customer never notices it.
  */
-export const TRIAL_SEAT_LIMIT = 5;
+export const TRIAL_SEAT_LIMIT = TRIAL_ALLOWANCE.seats;
 
 /** Hard ceiling on one invite batch, matching the checkout seat cap. */
 export const MAX_SEATS = 500;
@@ -44,7 +45,7 @@ export function seatLimitFor(org: SeatOrg): { limit: number | null; basis: SeatS
   if (org.planKey === "enterprise" || access.status === "active") {
     return { limit: null, basis: "enterprise" };
   }
-  if (access.status === "trialing") {
+  if (access.entitled && access.status === "trialing") {
     return { limit: TRIAL_SEAT_LIMIT, basis: "trial" };
   }
   // Lapsed trial or unpaid subscription: no new seats until billing is sorted.

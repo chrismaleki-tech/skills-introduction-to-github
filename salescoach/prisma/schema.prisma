@@ -12,29 +12,29 @@ datasource db {
 }
 
 model Org {
-  id                  String  @id @default(cuid())
-  name                String
-  slug                String  @unique
+  id                   String    @id @default(cuid())
+  name                 String
+  slug                 String    @unique
   // Ingestion + sampling policy (JSON: IngestionPolicy in src/lib/types.ts)
-  ingestionPolicyJson String  @default("{}")
-  audioRetentionDays  Int     @default(90)
-  dataRetentionDays   Int     @default(365)
-  webhookSecret       String  @default(cuid())
-  activeMethodologyId String?
-  onboardingComplete  Boolean @default(false)
-  planStatus          String   @default("trialing") // trialing | active | past_due | canceled | unpaid
-  planKey             String   @default("trial") // trial | pro | max | enterprise
-  trialEndsAt         DateTime?
-  stripeCustomerId    String?  @unique
-  stripeSubscriptionId String? @unique
-  stripePriceId       String?
-  stripeSeatCount     Int      @default(1)
+  ingestionPolicyJson  String    @default("{}")
+  audioRetentionDays   Int       @default(90)
+  dataRetentionDays    Int       @default(365)
+  webhookSecret        String    @default(cuid())
+  activeMethodologyId  String?
+  onboardingComplete   Boolean   @default(false)
+  planStatus           String    @default("trialing") // trialing | active | past_due | canceled | unpaid
+  planKey              String    @default("trial") // trial | pro | max | enterprise
+  trialEndsAt          DateTime?
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  stripePriceId        String?
+  stripeSeatCount      Int       @default(1)
   subscriptionStartsAt DateTime?
-  subscriptionEndsAt  DateTime?
-  cancelAtPeriodEnd   Boolean  @default(false)
+  subscriptionEndsAt   DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
   // Shareable join link. Null when disabled; anyone with the code joins as REP
   // while seats remain.
-  joinCode            String?  @unique
+  joinCode             String?   @unique
 
   users          User[]
   invites        Invite[]
@@ -57,10 +57,10 @@ model User {
   org     Org     @relation(fields: [orgId], references: [id])
   clerkId String? @unique
 
-  name  String
-  email String @unique
-  role  String // REP | MANAGER | TRAINER | ADMIN
-  title String @default("")
+  name      String
+  email     String    @unique
+  role      String // REP | MANAGER | TRAINER | ADMIN
+  title     String    @default("")
   // Soft removal: history stays attributed, access and seat usage end.
   removedAt DateTime?
 
@@ -78,21 +78,21 @@ model User {
 // A pending seat in an org. Accepted when a Clerk user with the matching
 // (verified) email first signs in, or when a signed-in user opens the link.
 model Invite {
-  id          String   @id @default(cuid())
-  orgId       String
-  org         Org      @relation(fields: [orgId], references: [id])
-  email       String
-  role        String   @default("REP")
-  token       String   @unique @default(cuid())
-  status      String   @default("pending") // pending | accepted | revoked
-  invitedById String?
-  invitedBy   User?    @relation("InvitedBy", fields: [invitedById], references: [id])
+  id                String    @id @default(cuid())
+  orgId             String
+  org               Org       @relation(fields: [orgId], references: [id])
+  email             String
+  role              String    @default("REP")
+  token             String    @unique @default(cuid())
+  status            String    @default("pending") // pending | accepted | revoked
+  invitedById       String?
+  invitedBy         User?     @relation("InvitedBy", fields: [invitedById], references: [id])
   // Clerk invitation id when Clerk delivered the email; null when link-only.
   clerkInvitationId String?
-  expiresAt   DateTime
-  acceptedAt  DateTime?
-  acceptedUserId String?
-  createdAt   DateTime @default(now())
+  expiresAt         DateTime
+  acceptedAt        DateTime?
+  acceptedUserId    String?
+  createdAt         DateTime  @default(now())
 
   @@index([orgId, status])
   @@index([email, status])
@@ -139,19 +139,30 @@ model Call {
   rep   User   @relation("RepCalls", fields: [repId], references: [id])
 
   source       String // UPLOAD | WEBHOOK | API | DIALER
-  direction    String @default("outbound") // outbound | inbound
-  callType     String @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
-  durationSec  Int    @default(0)
+  direction    String  @default("outbound") // outbound | inbound
+  callType     String  @default("unknown") // cold_call | discovery | demo | negotiation | renewal | unknown
+  durationSec  Int     @default(0)
   externalId   String? // provider call id, used for dedup
   // local:uploads/... or s3:object-key
   audioPath    String?
-  prospectName String @default("")
+  prospectName String  @default("")
 
-  status String @default("INGESTED") // INGESTED | SKIPPED | QUEUED | TRANSCRIBING | GRADING | GRADED | FAILED
+  status         String  @default("INGESTED") // INGESTED | SKIPPED | QUEUED | TRANSCRIBING | GRADING | GRADED | FAILED
   // Why this call was (not) graded under the sampling policy:
   // SAMPLED | NOT_SAMPLED | BELOW_MIN_DURATION | MANUAL_UPLOAD | REP_FLAGGED | MANAGER_REQUESTED | WITHIN_THRESHOLD
-  samplingStatus String @default("NOT_SAMPLED")
+  samplingStatus String  @default("NOT_SAMPLED")
   failReason     String?
+
+  // Call-review metering (see src/lib/usage.ts). One reservation per call:
+  // NONE (not metered yet) | RESERVED (processing in flight) | SETTLED (counts
+  // against the allowance) | RELEASED (processing failed; nothing charged).
+  // Retries and duplicate jobs reuse the same row, so a call is charged once.
+  meterStatus    String    @default("NONE")
+  meteredSec     Int       @default(0)
+  // True when the metered length was estimated from a transcript rather
+  // than taken from a recording or timestamps.
+  meterEstimated Boolean   @default(false)
+  meteredAt      DateTime?
 
   transcript Transcript?
   grade      Grade?
@@ -159,8 +170,9 @@ model Call {
   callDate  DateTime @default(now())
   createdAt DateTime @default(now())
 
-  @@index([orgId, repId, callDate])
   @@unique([orgId, externalId])
+  @@index([orgId, repId, callDate])
+  @@index([orgId, meterStatus])
 }
 
 model Transcript {
@@ -181,11 +193,11 @@ model Scenario {
   orgId String
   org   Org    @relation(fields: [orgId], references: [id])
 
-  title       String
-  callType    String @default("discovery")
-  difficulty  String @default("medium") // easy | medium | hard
+  title             String
+  callType          String @default("discovery")
+  difficulty        String @default("medium") // easy | medium | hard
   // JSON: ScenarioPersona (src/lib/types.ts)
-  personaJson String
+  personaJson       String
   // JSON: string[] — what a winning conversation accomplishes
   winConditionsJson String @default("[]")
 
@@ -208,12 +220,17 @@ model RoleplaySession {
   scenarioId String
   scenario   Scenario @relation(fields: [scenarioId], references: [id])
 
-  mode   String @default("TEXT") // TEXT | VOICE
-  status String @default("ACTIVE") // ACTIVE | COMPLETED | GRADED | FAILED
+  mode         String    @default("TEXT") // TEXT | VOICE
+  status       String    @default("ACTIVE") // ACTIVE | COMPLETED | GRADED | FAILED
   // JSON: RoleplayMessage[] ({ role: "rep"|"prospect", text, atMs })
-  messagesJson String @default("[]")
+  messagesJson String    @default("[]")
   vapiCallId   String?
-  durationSec  Int    @default(0)
+  // Billed seconds. Settled incrementally from liveness heartbeats while the
+  // session is active, so setup time and abandoned sessions are not charged.
+  durationSec  Int       @default(0)
+  // Last liveness signal from the client (token mint, transcript sync, message).
+  // Null once the session has ended.
+  meteredAt    DateTime?
 
   grade Grade?
 
@@ -221,6 +238,7 @@ model RoleplaySession {
   endedAt   DateTime?
 
   @@index([orgId, repId, startedAt])
+  @@index([orgId, status])
 }
 
 model Grade {
@@ -242,12 +260,12 @@ model Grade {
   overallScore        Int // 0..100, weighted rollup — see src/lib/scoring.ts
   band                String // exceptional | strong | developing | needs_coaching
   // JSON: string[]
-  strengthsJson    String @default("[]")
-  improvementsJson String @default("[]")
-  summary          String @default("")
+  strengthsJson       String @default("[]")
+  improvementsJson    String @default("[]")
+  summary             String @default("")
   // JSON: Mechanics ({ talkRatio, questionCount, longestMonologueSec, fillerWords, interruptions })
-  mechanicsJson String @default("{}")
-  gradedBy      String @default("mock") // model id, or "mock"
+  mechanicsJson       String @default("{}")
+  gradedBy            String @default("mock") // model id, or "mock"
 
   // Manager calibration layer
   managerOverrideScore Int?
@@ -326,12 +344,12 @@ model SignupEvent {
   // Optional link to a prior marketing Lead row
   leadId String?
 
-  signedUpAt     DateTime  @default(now())
-  provisionedAt  DateTime?
-  activatedAt    DateTime?
-  convertedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  signedUpAt    DateTime  @default(now())
+  provisionedAt DateTime?
+  activatedAt   DateTime?
+  convertedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@unique([clerkUserId])
   @@index([email])

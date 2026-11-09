@@ -13,6 +13,7 @@ import {
 } from "@/lib/roleplay";
 import {
   assertUsageAvailable,
+  meterRoleplaySession,
   UsageLimitError,
   usageLimitPayload,
 } from "@/lib/usage";
@@ -54,7 +55,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   try {
-    await assertUsageAvailable(session.org, session.repId, "roleplay", 1);
+    await assertUsageAvailable(session.org, session.repId, "roleplay", 0);
   } catch (error) {
     if (error instanceof UsageLimitError) {
       return NextResponse.json(usageLimitPayload(error), { status: 402 });
@@ -74,6 +75,26 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     "voice",
   );
   const voice = voiceForPersona(persona);
+
+  // Metering starts now: the microphone prompt is already behind us and the
+  // WebRTC handshake takes a second or two. On a reconnect this also charges
+  // the (capped) gap since the last heartbeat of the dropped leg.
+  const meter = await meterRoleplaySession(id);
+  if (meter.endedReason) {
+    return NextResponse.json(
+      {
+        error:
+          meter.endedReason === "trial_expired"
+            ? "Your free trial has ended, so this call cannot start. Upgrade to keep practicing."
+            : "Your workspace has used all of its AI Role Play minutes, so this call cannot start. Upgrade for more.",
+        code: meter.endedReason === "trial_expired" ? "TRIAL_EXPIRED" : "ROLEPLAY_LIMIT_EXCEEDED",
+        remainingSeconds: meter.remainingSeconds,
+        limitSeconds: meter.limitSeconds,
+        billingUrl: "/billing",
+      },
+      { status: 402 },
+    );
+  }
 
   let secret: { value: string; expires_at: number };
   try {
@@ -121,5 +142,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     model: REALTIME_MODEL,
     voice,
     personaName: persona.name,
+    remainingSeconds: meter.remainingSeconds,
+    limitSeconds: meter.limitSeconds,
+    durationSec: meter.durationSec,
   });
 }

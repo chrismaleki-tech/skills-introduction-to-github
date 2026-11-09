@@ -9,6 +9,7 @@ import { DuplicateScenarioButton } from "@/components/roleplay/duplicate-scenari
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { StartSessionButton } from "@/components/roleplay/start-session-button";
 import { voiceAvailable } from "@/lib/roleplay";
+import { startBlockReason } from "@/lib/usage";
 
 export default async function ScenarioDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -32,6 +33,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
     },
   });
   if (!scenario || scenario.orgId !== user.orgId) notFound();
+  const block = await startBlockReason(user.org, user.id, "roleplay");
 
   const persona = parsePersona(scenario.personaJson);
   const winConditions = parseStringArray(scenario.winConditionsJson);
@@ -46,7 +48,7 @@ export default async function ScenarioDetailPage({ params }: { params: Promise<{
             <DifficultyPill difficulty={scenario.difficulty} />
             {manager && <LinkButton href={`/scenarios/${scenario.id}/edit`} variant="secondary">Edit</LinkButton>}
             {manager && <DuplicateScenarioButton scenarioId={scenario.id} />}
-            <StartSessionButton scenarioId={scenario.id} voiceEnabled={voiceAvailable()} compact />
+            <StartSessionButton scenarioId={scenario.id} voiceEnabled={voiceAvailable()} compact blockedReason={block?.reason ?? null} manager={manager} />
           </div>
         }
       />

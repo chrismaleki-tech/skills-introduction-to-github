@@ -5,6 +5,7 @@ import { isClerkEnabled } from "@/lib/auth-mode";
 import { BrandLockup } from "@/components/brand-logo";
 import { StartFreshButton } from "@/components/team/start-fresh-button";
 import { ClerkUserMenu } from "@/components/clerk-user-menu";
+import { TRIAL_ALLOWANCE } from "@/lib/plans";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function RemovedPage() {
           then sign in; you&apos;ll be placed right back on the team.
         </p>
         <p className="mt-3 text-sm text-muted">
-          Or keep practicing on your own: start a personal workspace with a fresh 14-day trial.
+          Or keep practicing on your own: start a personal workspace with a fresh {TRIAL_ALLOWANCE.days}-day trial.
         </p>
         <div className="mt-6 flex flex-col gap-3">
           <StartFreshButton />
