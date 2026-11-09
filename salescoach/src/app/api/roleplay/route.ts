@@ -12,12 +12,17 @@ import {
 // Start a role-play session against a scenario. Voice (live spoken call with
 // the AI prospect) is the default whenever the server can mint Realtime
 // sessions; text is the explicit fallback, and the only option without a key.
+//
+// Starting is refused when the trial has ended or the workspace's AI Role Play
+// allowance is used up. Minutes are charged while the session runs (see
+// meterRoleplaySession), not here.
 export async function POST(req: Request) {
   const user = await currentUser();
   const paymentError = billingError(user.org);
   if (paymentError) return NextResponse.json(paymentError, { status: 402 });
+  let remainingSeconds: number | null;
   try {
-    await assertUsageAvailable(user.org, user.id, "roleplay", 1);
+    remainingSeconds = (await assertUsageAvailable(user.org, user.id, "roleplay", 0)).remainingSeconds;
   } catch (error) {
     if (error instanceof UsageLimitError) {
       return NextResponse.json(usageLimitPayload(error), { status: 402 });
@@ -55,8 +60,11 @@ export async function POST(req: Request) {
       mode: requested,
       status: "ACTIVE",
       messagesJson: "[]",
+      // A text chat is live as soon as it opens; a voice call starts metering
+      // when the Realtime token is minted, after the microphone prompt.
+      meteredAt: requested === "TEXT" ? new Date() : null,
     },
   });
 
-  return NextResponse.json({ id: session.id, mode: session.mode });
+  return NextResponse.json({ id: session.id, mode: session.mode, remainingSeconds });
 }

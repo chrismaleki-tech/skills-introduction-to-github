@@ -3,11 +3,7 @@ import { db } from "@/lib/db";
 import { gradeRoleplay } from "@/lib/pipeline";
 import type { RoleplayMessage } from "@/lib/types";
 import { billingError } from "@/lib/billing";
-import {
-  assertUsageAvailable,
-  UsageLimitError,
-  usageLimitPayload,
-} from "@/lib/usage";
+import { meterRoleplaySession } from "@/lib/usage";
 
 // Voice-mode ingestion for Vapi (https://vapi.ai) end-of-call reports.
 //
@@ -81,29 +77,14 @@ export async function POST(req: Request) {
 
   const lastAtMs = messages.length ? messages[messages.length - 1].atMs : 0;
   const durationSec = Math.round(lastAtMs / 1000);
-  try {
-    await assertUsageAvailable(
-      session.org,
-      session.repId,
-      "roleplay",
-      Math.max(0, durationSec - session.durationSec),
-    );
-  } catch (error) {
-    if (error instanceof UsageLimitError) {
-      return NextResponse.json(usageLimitPayload(error), { status: 402 });
-    }
-    throw error;
-  }
   await db.roleplaySession.update({
     where: { id: session.id },
-    data: {
-      mode: "VOICE",
-      status: "COMPLETED",
-      messagesJson: JSON.stringify(messages),
-      durationSec,
-      endedAt: new Date(),
-    },
+    data: { mode: "VOICE", messagesJson: JSON.stringify(messages) },
   });
+  // Charge the provider-reported length (capped at the remaining allowance)
+  // and complete the session under the org lock. Re-delivered reports hit a
+  // COMPLETED session and charge nothing more.
+  await meterRoleplaySession(session.id, { final: true, reportedSeconds: durationSec });
 
   await gradeRoleplay(session.id);
 

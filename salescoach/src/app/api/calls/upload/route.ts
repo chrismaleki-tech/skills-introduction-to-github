@@ -6,9 +6,11 @@ import { deleteAudio, readAudio, storeAudio } from "@/lib/storage";
 import { billingError } from "@/lib/billing";
 import {
   assertUsageAvailable,
+  meterSecondsForCall,
   UsageLimitError,
   usageLimitPayload,
 } from "@/lib/usage";
+import { parseProvidedTranscript } from "@/lib/transcription";
 import {
   AUDIO_TYPES,
   audioExtension,
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
     );
   }
   try {
-    await assertUsageAvailable(user.org, repId, "call_scoring", durationSec);
+    await assertUsageAvailable(user.org, repId, "call_review", durationSec);
   } catch (error) {
     if (error instanceof UsageLimitError) {
       return NextResponse.json(usageLimitPayload(error), { status: 402 });
@@ -153,6 +155,27 @@ export async function POST(req: Request) {
       { error: "Provide either an audio file or a pasted transcript." },
       { status: 400 },
     );
+  }
+
+  // A pasted transcript has no recording to measure, so it is metered by the
+  // documented estimate (stated length or spoken length, whichever is larger).
+  // Check that estimate up front so an oversized paste is refused with an
+  // explanation instead of leaving a failed call behind.
+  if (!audio) {
+    const meter = meterSecondsForCall({
+      source: "UPLOAD",
+      durationSec,
+      hasAudio: false,
+      segments: parseProvidedTranscript(transcriptText),
+    });
+    try {
+      await assertUsageAvailable(user.org, repId, "call_review", meter.seconds);
+    } catch (error) {
+      if (error instanceof UsageLimitError) {
+        return NextResponse.json({ ...usageLimitPayload(error), estimated: meter.estimated }, { status: 402 });
+      }
+      throw error;
+    }
   }
 
   const startedAt = new Date(Date.now() - 1000);
