@@ -54,7 +54,7 @@ export function DemoForm() {
           href="/start"
           className="mt-5 inline-flex min-h-11 items-center rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-hover transition-colors"
         >
-          Try a voice role-play
+          Try AI Role Play
         </a>
       </div>
     );
