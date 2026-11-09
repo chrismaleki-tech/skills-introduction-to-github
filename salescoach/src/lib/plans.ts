@@ -1,14 +1,37 @@
 export type PlanKey = "trial" | "pro" | "max" | "enterprise";
 export type CheckoutPlanKey = Extract<PlanKey, "pro" | "max">;
 
+/**
+ * A one-off allowance shared by every member of a trialing workspace for the
+ * whole trial. It is not per seat and does not reset monthly; inviting
+ * teammates never multiplies it.
+ */
+export type WorkspaceTrialAllowance = {
+  days: number;
+  seats: number;
+  roleplayMinutes: number;
+  callReviewMinutes: number;
+};
+
 export type PlanDefinition = {
   key: PlanKey;
   name: string;
   pricePerSeat: number | null;
+  /** Paid plans: per seat, per billing month. null = no fixed cap. */
   roleplayMinutesPerSeat: number | null;
+  /** Paid plans: per seat, per billing month. null = no fixed cap. */
   callScoringMinutesPerSeat: number | null;
+  /** Present only on the trial plan; replaces the per-seat fields above. */
+  trialAllowance?: WorkspaceTrialAllowance;
   description: string;
   features: string[];
+};
+
+export const TRIAL_ALLOWANCE: WorkspaceTrialAllowance = {
+  days: 14,
+  seats: 5,
+  roleplayMinutes: 30,
+  callReviewMinutes: 120,
 };
 
 export const PLANS: Record<PlanKey, PlanDefinition> = {
@@ -18,15 +41,16 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     pricePerSeat: 0,
     roleplayMinutesPerSeat: null,
     callScoringMinutesPerSeat: null,
+    trialAllowance: TRIAL_ALLOWANCE,
     description: "Explore the core sales intelligence workflow before choosing a paid plan.",
     features: [
-      "AI Role Play trial",
-      "AI call review trial",
-      "AI Sales Manager trial",
-      "Metrics and analytics",
-      "Custom scoring",
-      "Standard support",
-      "Security controls",
+      `${TRIAL_ALLOWANCE.days}-day free trial`,
+      `${TRIAL_ALLOWANCE.roleplayMinutes} minutes of AI Role Play`,
+      `${TRIAL_ALLOWANCE.callReviewMinutes / 60} hours of call review`,
+      `Up to ${TRIAL_ALLOWANCE.seats} seats`,
+      "Usage shared across your workspace for the full trial",
+      "AI Sales Manager, metrics, and custom scoring",
+      "No credit card required",
     ],
   },
   pro: {

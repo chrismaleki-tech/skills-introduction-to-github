@@ -4,6 +4,7 @@ import { METHODOLOGY_PRESETS } from "./presets";
 import { EMPTY_COMPANY_PROFILE } from "./types";
 import { markSignupProvisioned, recordSignup, type Attribution } from "./signups";
 import { hasSeatFor, markInviteAccepted, pendingPlacementFor } from "./invites";
+import { TRIAL_ALLOWANCE } from "./plans";
 
 function slugify(input: string) {
   const base = input
@@ -60,7 +61,7 @@ export async function createOrgWithDefaults(tx: Prisma.TransactionClient, orgNam
       slug,
       onboardingComplete: false,
       planStatus: "trialing",
-      trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      trialEndsAt: new Date(Date.now() + TRIAL_ALLOWANCE.days * 24 * 60 * 60 * 1000),
       companyContext: {
         create: { profileJson: JSON.stringify(EMPTY_COMPANY_PROFILE) },
       },
