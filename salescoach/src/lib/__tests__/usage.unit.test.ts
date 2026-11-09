@@ -73,7 +73,7 @@ describe("allowance windows", () => {
     const w = allowanceWindow(org, new Date("2026-11-05T00:00:00Z"));
     assert.equal(w.basis, "trial");
     assert.equal(w.scope, "workspace");
-    assert.equal(w.start.getTime(), org.createdAt.getTime());
+    assert.equal(w.start.getTime(), 0, "nothing the workspace ever recorded is excluded");
     assert.equal(w.end?.getTime(), org.trialEndsAt?.getTime());
   });
 

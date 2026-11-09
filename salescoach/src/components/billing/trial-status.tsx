@@ -68,6 +68,9 @@ export function TrialStatusCard({
   const rp = poolState(status.roleplay);
   const cr = poolState(status.callReview);
   const seatsFull = status.seats.used >= status.seats.limit;
+  // A workspace left on the trial plan with an "active" status (comped or
+  // demo) keeps the trial pools but has no end date to count down to.
+  const timed = status.active || status.expired;
   const alerts: { tone: "rose" | "amber"; text: string }[] = [];
   if (status.expired) {
     alerts.push({
@@ -79,7 +82,7 @@ export function TrialStatusCard({
     else if (rp === "low") alerts.push({ tone: "amber", text: `Only ${fmtMinutes(status.roleplay.remainingSeconds ?? 0)} of AI Role Play left for the whole workspace.` });
     if (cr === "exhausted") alerts.push({ tone: "rose", text: `Call review minutes are used up. AI Role Play is still available while that allowance lasts.` });
     else if (cr === "low") alerts.push({ tone: "amber", text: `Only ${fmtMinutes(status.callReview.remainingSeconds ?? 0)} of call review left for the whole workspace.` });
-    if (status.daysLeft <= 3) alerts.push({ tone: "amber", text: `${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"} left in the trial.` });
+    if (timed && status.daysLeft <= 3) alerts.push({ tone: "amber", text: `${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"} left in the trial.` });
   }
   const needsUpgrade = status.expired || rp === "exhausted" || cr === "exhausted";
 
@@ -89,10 +92,14 @@ export function TrialStatusCard({
         <div>
           <h2 className="text-sm font-medium uppercase tracking-wider text-muted">{title}</h2>
           <div className="mt-1 text-xl font-semibold">
-            {status.expired ? "Trial ended" : `${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"} remaining`}
+            {!timed ? "Trial allowances" : status.expired ? "Trial ended" : `${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"} remaining`}
           </div>
           <div className="mt-0.5 text-xs text-muted">
-            {status.expired ? `Ended ${fmtDate(status.trialEndsAt)}` : `Ends ${fmtDate(status.trialEndsAt)} · no card on file`}
+            {!timed
+              ? "Workspace on the trial plan · no end date"
+              : status.expired
+                ? `Ended ${fmtDate(status.trialEndsAt)}`
+                : `Ends ${fmtDate(status.trialEndsAt)} · no card on file`}
           </div>
         </div>
         <UpgradeAction manager={manager} label={needsUpgrade ? "Upgrade to continue" : "Choose a plan"} />
@@ -126,7 +133,9 @@ export function TrialStatusCard({
       )}
 
       <p className="border-t border-line px-4 py-3 text-xs text-muted sm:px-5">
-        Trial allowances are shared across your workspace for the full {status.totalDays}-day trial.
+        {timed
+          ? `Trial allowances are shared across your workspace for the full ${status.totalDays}-day trial.`
+          : "Trial allowances are shared across your workspace."}
       </p>
     </section>
   );

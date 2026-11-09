@@ -183,12 +183,13 @@ export function billingPeriod(org: UsageOrg, now = new Date()) {
 export function allowanceWindow(org: UsageOrg, now = new Date()) {
   const planKey = resolvedPlanKey(org);
   if (planKey === "trial") {
-    // The whole trial, from workspace creation. Nothing can predate the org.
+    // One pool for the whole trial: every role-play and reviewed call the
+    // workspace has ever recorded counts, whatever its timestamp.
     return {
       planKey,
       basis: "trial" as const,
       scope: "workspace" as const,
-      start: org.createdAt,
+      start: new Date(0),
       end: billingAccess(org).trialEndsAt,
     };
   }

@@ -436,7 +436,10 @@ describe("trial usage metering (database)", { skip: TEST_DB ? false : "USAGE_TES
       const org = await makeOrg({ createdAt, trialEndsAt });
       const rep = await makeUser(org, 1);
       const scenario = await makeScenario(org);
-      await makeSession(org, rep.id, scenario.id, { durationSec: 45 * 60, status: "GRADED" });
+      await makeSession(org, rep.id, scenario.id, { durationSec: 40 * 60, status: "GRADED" });
+      // Timestamps older than the workspace row (imports, seeds) still count.
+      const old = await makeSession(org, rep.id, scenario.id, { durationSec: 5 * 60, status: "GRADED" });
+      await db.roleplaySession.update({ where: { id: old.id }, data: { startedAt: new Date(createdAt.getTime() - 30 * DAY) } });
       await makeCall(org, rep.id, { durationSec: 20 * 60, meterStatus: "SETTLED", meteredSec: 20 * 60 });
 
       const status = await usage.trialStatus(org);
