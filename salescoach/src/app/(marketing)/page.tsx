@@ -40,7 +40,7 @@ export default function MarketingHomePage() {
       <section className="mkt-hero-wash relative overflow-hidden pt-24 sm:pt-28">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-6 sm:px-6 sm:pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <div className="min-w-0">
-            <p className="mkt-rise text-xs font-bold uppercase tracking-[0.2em] text-brand">Voice sales practice</p>
+            <p className="mkt-rise text-xs font-bold uppercase tracking-[0.2em] text-brand">AI Role Play</p>
             <h1 className="mkt-rise mkt-rise-delay-1 mt-4 font-display text-4xl font-semibold leading-[1.08] tracking-tight text-marketing-ink sm:text-5xl lg:text-[3.4rem]">
               Practice your next sales call before it counts.
             </h1>
@@ -50,7 +50,7 @@ export default function MarketingHomePage() {
             </p>
             <div className="mkt-rise mkt-rise-delay-3 mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link href={startHref} className={primaryBtn}>
-                <MicIcon /> Try a voice role-play
+                <MicIcon /> Try AI Role Play
               </Link>
               <a href="#how-it-works" className={secondaryBtn}>
                 See how it works
@@ -365,7 +365,7 @@ export default function MarketingHomePage() {
               Per seat, billed monthly
             </h2>
             <p className="mt-3 text-muted">
-              Start with a free {TRIAL_DAYS}-day trial. Paid plans are billed monthly per seat; role-play minutes and call
+              Start with a free {TRIAL_DAYS}-day trial. Paid plans are billed monthly per seat; AI Role Play minutes and call
               review hours are per seat, per month.
             </p>
           </div>
@@ -378,20 +378,20 @@ export default function MarketingHomePage() {
               const glance: [string, string][] =
                 key === "trial"
                   ? [
-                      ["Voice role-play", "Included"],
+                      ["AI Role Play", "Included"],
                       ["Call review", "Included"],
                       ["Seats", `Up to ${TRIAL_SEAT_LIMIT}`],
                       ["Length", `${TRIAL_DAYS} days`],
                     ]
                   : key === "enterprise"
                     ? [
-                        ["Voice role-play", "Custom"],
+                        ["AI Role Play", "Custom"],
                         ["Call review", "Custom"],
                         ["Seats", "Custom"],
                         ["Billing", "Contract"],
                       ]
                     : [
-                        ["Voice role-play", `${plan.roleplayMinutesPerSeat} min / seat / mo`],
+                        ["AI Role Play", `${plan.roleplayMinutesPerSeat} min / seat / mo`],
                         ["Call review", `${(plan.callScoringMinutesPerSeat ?? 0) / 60} hrs / seat / mo`],
                         ["Seats", "Add or remove any time"],
                         ["Billing", "Monthly"],
@@ -457,7 +457,7 @@ export default function MarketingHomePage() {
             <h3 className="text-sm font-semibold text-marketing-ink">How the free trial works</h3>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
               <li className="flex gap-2"><Check /> {TRIAL_DAYS} days from the day you create your workspace. No credit card.</li>
-              <li className="flex gap-2"><Check /> Voice role-play, call review, scoring, and dashboards are all included, for up to {TRIAL_SEAT_LIMIT} seats.</li>
+              <li className="flex gap-2"><Check /> AI Role Play, call review, scoring, and dashboards are all included, for up to {TRIAL_SEAT_LIMIT} seats.</li>
               <li className="flex gap-2"><Check /> When the trial ends, role-play and call review pause until you choose Pro or Max. Your scenarios, calls, and scores stay in your workspace.</li>
               <li className="flex gap-2"><Check /> Paid plans start a monthly subscription the day you subscribe; cancel from Billing any time and keep access through the paid period.</li>
             </ul>
@@ -531,7 +531,7 @@ export default function MarketingHomePage() {
                 q: "Are sessions recorded or transcribed?",
                 a: (
                   <>
-                    Voice role-plays are transcribed live so you and your manager can read the conversation afterwards;
+                    AI Role Play sessions are spoken conversations that are transcribed live so you and your manager can read the conversation afterwards;
                     Erota stores that transcript and the score, not the audio of the role-play. Calls you upload for
                     review are stored as audio and transcribed; audio is deleted after 90 days by default and records after
                     365 days, or sooner if you delete them. Details are in our{" "}
@@ -546,7 +546,7 @@ export default function MarketingHomePage() {
                 q: "What is included in the trial?",
                 a: (
                   <>
-                    Everything, for {TRIAL_DAYS} days and up to {TRIAL_SEAT_LIMIT} seats: voice role-play, call review, scoring,
+                    Everything, for {TRIAL_DAYS} days and up to {TRIAL_SEAT_LIMIT} seats: AI Role Play (spoken conversations with an AI prospect), call review, scoring,
                     scenarios, and dashboards. No credit card. When the trial ends, role-play and call review pause until
                     you pick a plan; your data stays.
                   </>
@@ -580,7 +580,7 @@ export default function MarketingHomePage() {
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
               <Link href={startHref} className={primaryBtn}>
-                <MicIcon /> Try a voice role-play
+                <MicIcon /> Try AI Role Play
               </Link>
             </div>
             <p className="mt-3 text-xs text-muted">{accountNote}</p>

@@ -13,9 +13,9 @@ export function ClerkAuthNav() {
         </Link>
         <Link
           href="/start"
-          className="inline-flex min-h-11 items-center rounded-lg bg-accent px-3 py-2 text-white shadow-sm transition-colors hover:bg-accent-hover sm:px-3.5"
+          className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg bg-accent px-3 py-2 text-white shadow-sm transition-colors hover:bg-accent-hover sm:px-3.5"
         >
-          Try a role-play
+          Try AI Role Play
         </Link>
       </SignedOut>
       <SignedIn>

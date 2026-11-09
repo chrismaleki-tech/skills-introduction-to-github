@@ -20,7 +20,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     callScoringMinutesPerSeat: null,
     description: "Explore the core sales intelligence workflow before choosing a paid plan.",
     features: [
-      "AI role-play trial",
+      "AI Role Play trial",
       "AI call review trial",
       "AI Sales Manager trial",
       "Metrics and analytics",
@@ -37,10 +37,10 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     callScoringMinutesPerSeat: 25 * 60,
     description: "For growing sales teams building a consistent coaching cadence.",
     features: [
-      "180 minutes of AI role-play",
+      "180 minutes of AI Role Play",
       "25 hours of live call scoring",
       "AI Call Review",
-      "AI Role-play",
+      "AI Role Play",
       "Metrics and data",
       "AI Sales Manager",
       "Security controls",
@@ -54,10 +54,10 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     callScoringMinutesPerSeat: 100 * 60,
     description: "For high-volume teams that need more practice and call intelligence.",
     features: [
-      "480 minutes of AI role-play",
+      "480 minutes of AI Role Play",
       "100 hours of live call scoring",
       "AI Call Review",
-      "AI Role-play",
+      "AI Role Play",
       "Metrics and data",
       "AI Sales Manager",
       "Security controls",
@@ -71,7 +71,7 @@ export const PLANS: Record<PlanKey, PlanDefinition> = {
     callScoringMinutesPerSeat: null,
     description: "A tailored rollout for organizations with advanced operational requirements.",
     features: [
-      "AI role-play",
+      "AI Role Play",
       "Live call scoring",
       "Custom done-for-you setup",
       "Done-for-you customization",

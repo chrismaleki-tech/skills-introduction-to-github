@@ -31,9 +31,9 @@ export function MarketingHeader() {
               </Link>
               <Link
                 href="/start"
-                className="inline-flex min-h-11 items-center rounded-lg bg-accent px-3.5 py-2 text-white shadow-sm hover:bg-accent-hover transition-colors"
+                className="inline-flex min-h-11 items-center whitespace-nowrap rounded-lg bg-accent px-3.5 py-2 text-white shadow-sm hover:bg-accent-hover transition-colors"
               >
-                Try a role-play
+                Try AI Role Play
               </Link>
             </>
           )}
