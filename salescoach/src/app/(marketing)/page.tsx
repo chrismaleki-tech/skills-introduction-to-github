@@ -6,10 +6,13 @@ import { FeedbackIllustration, VoiceIllustration } from "@/components/marketing/
 import { isClerkEnabled } from "@/lib/auth-mode";
 import { PLANS, type PlanKey } from "@/lib/plans";
 import { CALL_TYPES } from "@/lib/scenario-options";
-import { TRIAL_SEAT_LIMIT } from "@/lib/seats";
+import { TRIAL_ALLOWANCE } from "@/lib/plans";
 
 // Trial length is set at provisioning (src/lib/provision.ts). Keep in sync.
-const TRIAL_DAYS = 14;
+const TRIAL_DAYS = TRIAL_ALLOWANCE.days;
+const TRIAL_SEAT_LIMIT = TRIAL_ALLOWANCE.seats;
+const TRIAL_ROLEPLAY_MIN = TRIAL_ALLOWANCE.roleplayMinutes;
+const TRIAL_CALL_REVIEW_HOURS = TRIAL_ALLOWANCE.callReviewMinutes / 60;
 
 const SCENARIO_HIGHLIGHTS: Record<string, string> = {
   cold_call: "Earn thirty seconds with a busy stranger.",
@@ -365,8 +368,9 @@ export default function MarketingHomePage() {
               Per seat, billed monthly
             </h2>
             <p className="mt-3 text-muted">
-              Start with a free {TRIAL_DAYS}-day trial. Paid plans are billed monthly per seat; AI Role Play minutes and call
-              review hours are per seat, per month.
+              Start with a {TRIAL_DAYS}-day free trial: {TRIAL_ROLEPLAY_MIN} minutes of AI Role Play and {TRIAL_CALL_REVIEW_HOURS} hours of call review, shared across
+              your workspace for the full trial. Paid plans are billed monthly per seat, and their AI Role Play minutes and
+              call review hours are per seat, per month.
             </p>
           </div>
 
@@ -378,8 +382,8 @@ export default function MarketingHomePage() {
               const glance: [string, string][] =
                 key === "trial"
                   ? [
-                      ["AI Role Play", "Included"],
-                      ["Call review", "Included"],
+                      ["AI Role Play", `${TRIAL_ROLEPLAY_MIN} min total, shared`],
+                      ["Call review", `${TRIAL_CALL_REVIEW_HOURS} hrs total, shared`],
                       ["Seats", `Up to ${TRIAL_SEAT_LIMIT}`],
                       ["Length", `${TRIAL_DAYS} days`],
                     ]
@@ -456,10 +460,10 @@ export default function MarketingHomePage() {
           <div className="mt-8 rounded-xl border border-line bg-white p-5 text-sm text-muted sm:p-6">
             <h3 className="text-sm font-semibold text-marketing-ink">How the free trial works</h3>
             <ul className="mt-3 grid gap-2 sm:grid-cols-2">
-              <li className="flex gap-2"><Check /> {TRIAL_DAYS} days from the day you create your workspace. No credit card.</li>
-              <li className="flex gap-2"><Check /> AI Role Play, call review, scoring, and dashboards are all included, for up to {TRIAL_SEAT_LIMIT} seats.</li>
-              <li className="flex gap-2"><Check /> When the trial ends, role-play and call review pause until you choose Pro or Max. Your scenarios, calls, and scores stay in your workspace.</li>
-              <li className="flex gap-2"><Check /> Paid plans start a monthly subscription the day you subscribe; cancel from Billing any time and keep access through the paid period.</li>
+              <li className="flex gap-2"><Check /> {TRIAL_DAYS}-day free trial from the day you create your workspace. No credit card.</li>
+              <li className="flex gap-2"><Check /> {TRIAL_ROLEPLAY_MIN} minutes of AI Role Play and {TRIAL_CALL_REVIEW_HOURS} hours of call review, for up to {TRIAL_SEAT_LIMIT} seats. Usage shared across your workspace for the full trial; inviting teammates does not add minutes.</li>
+              <li className="flex gap-2"><Check /> When an allowance is used up or the trial ends, that activity pauses until you choose Pro or Max. Your scenarios, calls, transcripts, and scores stay viewable.</li>
+              <li className="flex gap-2"><Check /> Paid plans start a monthly subscription the day you subscribe, with fresh per-seat monthly allowances; cancel from Billing any time and keep access through the paid period.</li>
             </ul>
           </div>
         </div>
@@ -546,9 +550,10 @@ export default function MarketingHomePage() {
                 q: "What is included in the trial?",
                 a: (
                   <>
-                    Everything, for {TRIAL_DAYS} days and up to {TRIAL_SEAT_LIMIT} seats: AI Role Play (spoken conversations with an AI prospect), call review, scoring,
-                    scenarios, and dashboards. No credit card. When the trial ends, role-play and call review pause until
-                    you pick a plan; your data stays.
+                    A {TRIAL_DAYS}-day free trial with {TRIAL_ROLEPLAY_MIN} minutes of AI Role Play (spoken conversations with an AI prospect) and{" "}
+                    {TRIAL_CALL_REVIEW_HOURS} hours of call review, plus scoring, scenarios, and dashboards, for up to {TRIAL_SEAT_LIMIT} seats. Usage is shared
+                    across your workspace for the full trial, so inviting teammates does not add minutes. No credit card. When
+                    an allowance runs out or the trial ends, that activity pauses until you pick a plan; your data stays.
                   </>
                 ),
               },
