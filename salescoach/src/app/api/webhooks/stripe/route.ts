@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getStripe } from "@/lib/stripe";
+import { isCheckoutPlan, planForPriceId, priceIdForPlan } from "@/lib/plans";
+import { captureError } from "@/lib/monitoring";
 
 export const dynamic = "force-dynamic";
 
@@ -48,12 +50,17 @@ export async function POST(req: Request) {
       const session = event.data.object as Stripe.Checkout.Session;
       orgId = session.metadata?.orgId || session.client_reference_id || null;
       if (orgId) {
+        const metadataPlan = session.metadata?.plan || "";
+        const planKey = isCheckoutPlan(metadataPlan) ? metadataPlan : "pro";
+        const seats = Math.max(1, Number(session.metadata?.seats) || 1);
         await db.org.update({
           where: { id: orgId },
           data: {
             stripeCustomerId: id(session.customer),
             stripeSubscriptionId: id(session.subscription),
-            stripePriceId: process.env.STRIPE_PRICE_ID || undefined,
+            stripePriceId: priceIdForPlan(planKey),
+            planKey,
+            stripeSeatCount: seats,
           },
         });
       }
@@ -78,16 +85,22 @@ export async function POST(req: Request) {
       }
 
       if (orgId) {
-        const periodEnd = subscription.items.data[0]?.current_period_end;
+        const subscriptionItem = subscription.items.data[0];
+        const periodStart = subscriptionItem?.current_period_start;
+        const periodEnd = subscriptionItem?.current_period_end;
+        const priceId = subscriptionItem?.price.id;
         const status = appStatus(subscription.status);
         await db.org.update({
           where: { id: orgId },
           data: {
             stripeCustomerId: customerId,
             stripeSubscriptionId: subscription.id,
-            stripePriceId: subscription.items.data[0]?.price.id ?? undefined,
+            stripePriceId: priceId ?? undefined,
+            stripeSeatCount: Math.max(1, subscriptionItem?.quantity ?? 1),
+            planKey: planForPriceId(priceId),
             planStatus: status,
             trialEndsAt: dateFromSeconds(subscription.trial_end),
+            subscriptionStartsAt: dateFromSeconds(periodStart),
             subscriptionEndsAt: dateFromSeconds(periodEnd),
             cancelAtPeriodEnd: subscription.cancel_at_period_end,
           },
@@ -113,7 +126,11 @@ export async function POST(req: Request) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return NextResponse.json({ received: true, duplicate: true });
     }
-    console.error("Stripe webhook processing failed", event.id, error);
+    await captureError(error, {
+      operation: "stripe_webhook",
+      eventId: event.id,
+      eventType: event.type,
+    });
     return NextResponse.json({ error: "Webhook processing failed." }, { status: 500 });
   }
 

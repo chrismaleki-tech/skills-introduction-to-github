@@ -10,7 +10,7 @@ export default function GlobalError({
   return (
     <html lang="en">
       <body style={{ fontFamily: "system-ui, sans-serif", padding: 40, maxWidth: 640 }}>
-        <h1 style={{ fontSize: 22, marginBottom: 8 }}>SalesCoach couldn&apos;t load</h1>
+        <h1 style={{ fontSize: 22, marginBottom: 8 }}>Erota Sales Intelligence couldn&apos;t load</h1>
         <p style={{ color: "#555", fontSize: 14, marginBottom: 16 }}>
           {error.message || "Unexpected server error."}
           {error.digest ? ` (digest ${error.digest})` : ""}

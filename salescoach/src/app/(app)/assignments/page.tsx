@@ -134,7 +134,7 @@ export default async function AssignmentsPage({
   if (manager) {
     [reps, scenarios] = await Promise.all([
       db.user.findMany({
-        where: { orgId: user.orgId, role: "REP" },
+        where: { orgId: user.orgId, role: "REP", removedAt: null },
         select: { id: true, name: true, title: true },
         orderBy: { name: "asc" },
       }),

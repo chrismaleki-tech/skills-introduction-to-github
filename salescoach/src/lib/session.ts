@@ -1,6 +1,8 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { db } from "./db";
 import { isClerkEnabled } from "./auth-mode";
+import { JOIN_COOKIE, reactivateIfInvited } from "./invites";
 import { provisionOrgForUser } from "./provision";
 import {
   ATTRIBUTION_COOKIE,
@@ -27,11 +29,19 @@ async function resolveClerkUser() {
     throw new Error("Unauthorized — sign in required.");
   }
 
+  const store = await cookies();
+  const joinToken = store.get(JOIN_COOKIE)?.value ?? null;
+
   const existing = await db.user.findUnique({
     where: { clerkId: userId },
     include: { org: true },
   });
   if (existing) {
+    if (existing.removedAt) {
+      const reactivated = await reactivateIfInvited(existing.id, existing.email, joinToken);
+      if (!reactivated) redirect("/removed");
+      return reactivated;
+    }
     await markSignupActivated(userId);
     return existing;
   }
@@ -48,15 +58,15 @@ async function resolveClerkUser() {
     clerkUser?.fullName ||
     email.split("@")[0];
 
-  const store = await cookies();
   const attribution = parseAttributionCookie(store.get(ATTRIBUTION_COOKIE)?.value);
 
   const user = await provisionOrgForUser({
     clerkId: userId,
     email,
     name: name || "Founder",
-    source: "first_login",
+    source: joinToken ? "invite" : "first_login",
     attribution,
+    joinToken,
   });
 
   await markSignupActivated(userId);
@@ -71,7 +81,7 @@ async function resolveDemoUser() {
     if (user) return user;
   }
   const fallback = await db.user.findFirst({
-    where: { role: "MANAGER" },
+    where: { role: "MANAGER", removedAt: null },
     include: { org: true },
     orderBy: { createdAt: "asc" },
   });

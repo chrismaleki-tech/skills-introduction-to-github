@@ -3,11 +3,14 @@ import { db } from "@/lib/db";
 import { processCall } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { billingError } from "@/lib/billing";
+import { UsageLimitError, usageLimitPayload } from "@/lib/usage";
 
 // On-demand grading: "grade this call now" for ungraded calls and retry for
 // FAILED ones. A rep grading their own call is the rep-flag path; a manager
 // requesting it is recorded as MANAGER_REQUESTED. Neither consumes the
 // sampling budget (see src/lib/sampling.ts).
+
+export const maxDuration = 300;
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,6 +40,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   try {
     await processCall(call.id);
   } catch (err) {
+    if (err instanceof UsageLimitError) {
+      return NextResponse.json(usageLimitPayload(err), { status: 402 });
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Grading failed." },
       { status: 500 },

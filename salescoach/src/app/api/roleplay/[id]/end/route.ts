@@ -3,19 +3,21 @@ import { db } from "@/lib/db";
 import { gradeRoleplay } from "@/lib/pipeline";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { parseMessages } from "@/lib/types";
-import { billingError } from "@/lib/billing";
+import { meterRoleplaySession } from "@/lib/usage";
 
 // End a session and grade it. Idempotent: an already-COMPLETED session is
 // simply graded; an already-GRADED session returns its existing score.
+//
+// Ending is never blocked by billing: the minutes were charged while the
+// session ran, and a session cut off by the allowance or by trial expiry must
+// still be able to save its feedback.
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await currentUser();
-  const paymentError = billingError(user.org);
-  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const session = await db.roleplaySession.findUnique({
     where: { id },
-    include: { grade: true },
+    include: { grade: true, org: true },
   });
   if (!session || session.orgId !== user.orgId) {
     return NextResponse.json({ error: "Session not found" }, { status: 404 });
@@ -37,14 +39,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   }
 
   if (session.status === "ACTIVE") {
-    await db.roleplaySession.update({
-      where: { id },
-      data: {
-        status: "COMPLETED",
-        endedAt: new Date(),
-        durationSec: Math.round((Date.now() - session.startedAt.getTime()) / 1000),
-      },
-    });
+    // Charges the final (capped) gap since the last heartbeat and completes
+    // the session under the org lock.
+    await meterRoleplaySession(id, { final: true });
   }
 
   try {

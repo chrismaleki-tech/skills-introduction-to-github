@@ -6,6 +6,7 @@ import { GradeView } from "@/components/grade-view";
 import { TranscriptView } from "@/components/transcript-view";
 import { GradeNowButton } from "@/components/calls/grade-now-button";
 import { OverrideForm } from "@/components/calls/override-form";
+import { DeleteCallButton } from "@/components/calls/delete-call-button";
 import {
   Card,
   EmptyState,
@@ -38,11 +39,16 @@ export default async function CallReviewPage({
     <div>
       <PageHeader
         title={call.prospectName || "Unknown prospect"}
-        subtitle={`${call.rep.name} · ${fmtDateTime(call.callDate)} · ${call.callType.replaceAll("_", " ")} · ${call.direction} · ${fmtDuration(call.durationSec)} · via ${call.source.toLowerCase()}`}
+        subtitle={`${call.rep.name} · ${fmtDateTime(call.callDate)} · ${call.callType.replaceAll("_", " ")} · ${call.direction} · ${fmtDuration(call.durationSec)} · via ${call.source.toLowerCase()}${
+          call.meterStatus === "SETTLED" || call.meterStatus === "RESERVED"
+            ? ` · ${fmtDuration(call.meteredSec)} of call review${call.meterEstimated ? " (estimated from the transcript)" : ""}`
+            : ""
+        }`}
         actions={
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <SamplingPill status={call.samplingStatus} />
             <StatusPill status={call.status} />
+            <DeleteCallButton callId={call.id} />
           </div>
         }
       />

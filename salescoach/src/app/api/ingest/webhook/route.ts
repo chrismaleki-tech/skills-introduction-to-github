@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ingestCall } from "@/lib/pipeline";
 import { billingError } from "@/lib/billing";
+import { UsageLimitError, usageLimitPayload } from "@/lib/usage";
+import {
+  MAX_CALL_DURATION_SECONDS,
+  MAX_TRANSCRIPT_CHARS,
+} from "@/lib/upload-limits";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Generic auto-ingestion front door for dialers / call providers. Authenticated
 // by the org's webhook secret (shown in Settings). The pipeline runs inline in
@@ -21,7 +27,13 @@ interface WebhookPayload {
   transcript?: string | unknown[];
 }
 
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
+  const contentLength = Number(req.headers.get("content-length") || 0);
+  if (contentLength > MAX_TRANSCRIPT_CHARS * 2) {
+    return NextResponse.json({ error: "Webhook payload is too large." }, { status: 413 });
+  }
   const body = (await req.json().catch(() => null)) as WebhookPayload | null;
   if (!body) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
@@ -29,7 +41,14 @@ export async function POST(req: Request) {
 
   const { secret, repEmail, externalId } = body;
   const durationSec = Math.round(Number(body.durationSec));
-  if (!secret || !repEmail || !externalId || !Number.isFinite(durationSec) || durationSec < 0) {
+  if (
+    !secret ||
+    !repEmail ||
+    !externalId ||
+    !Number.isFinite(durationSec) ||
+    durationSec < 0 ||
+    durationSec > MAX_CALL_DURATION_SECONDS
+  ) {
     return NextResponse.json(
       { error: "secret, repEmail, externalId and a numeric durationSec are required." },
       { status: 400 },
@@ -40,10 +59,25 @@ export async function POST(req: Request) {
   if (!org) {
     return NextResponse.json({ error: "Unknown webhook secret." }, { status: 401 });
   }
+  const rate = await checkRateLimit({
+    scope: "ingest",
+    identity: org.id,
+    limit: 120,
+    windowSeconds: 60,
+  });
+  if (!rate.allowed) {
+    return NextResponse.json(
+      { error: "Ingestion rate limit exceeded." },
+      {
+        status: 429,
+        headers: { "retry-after": String(rate.retryAfterSeconds) },
+      },
+    );
+  }
   const paymentError = billingError(org);
   if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
-  const rep = await db.user.findFirst({ where: { orgId: org.id, email: repEmail } });
+  const rep = await db.user.findFirst({ where: { orgId: org.id, email: repEmail, removedAt: null } });
   if (!rep) {
     // TODO: land unmatched calls in a review queue so an admin can map the
     // provider identity to a rep instead of dropping the call.
@@ -59,6 +93,12 @@ export async function POST(req: Request) {
       : Array.isArray(body.transcript)
         ? JSON.stringify(body.transcript)
         : undefined;
+  if (providedTranscript && providedTranscript.length > MAX_TRANSCRIPT_CHARS) {
+    return NextResponse.json(
+      { error: `Transcript is too long (maximum ${MAX_TRANSCRIPT_CHARS.toLocaleString()} characters).` },
+      { status: 413 },
+    );
+  }
 
   const callDate = body.callDate ? new Date(body.callDate) : undefined;
   if (callDate && Number.isNaN(callDate.getTime())) {
@@ -85,6 +125,9 @@ export async function POST(req: Request) {
       deduped,
     });
   } catch (err) {
+    if (err instanceof UsageLimitError) {
+      return NextResponse.json(usageLimitPayload(err), { status: 402 });
+    }
     // Grading failures mark the Call FAILED before rethrowing; report the row
     // if it exists so the integrator can retry from the review page.
     const failed = await db.call.findUnique({

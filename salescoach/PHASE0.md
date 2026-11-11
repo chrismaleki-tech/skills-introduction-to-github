@@ -14,9 +14,14 @@ npm run db:push
 npm run db:seed   # optional Meridian demo tenant for local demo-auth
 ```
 
-**Production:** create a Neon / Supabase / Vercel Postgres database and set `DATABASE_URL` in Vercel.
+**Production:** create separate production and preview databases and scope each
+`DATABASE_URL` to the matching Vercel environment. Schema changes are not run
+during application builds. Apply a reviewed schema update to each target before
+deploying:
 
-Build runs `prisma db push` (see `vercel.json`). Prefer `prisma migrate` once the schema stabilizes.
+```bash
+DATABASE_URL="..." npm run db:push
+```
 
 ## 2. Clerk (required for real signup)
 
@@ -35,7 +40,7 @@ NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
 Without these keys the app stays in **demo auth** (cookie user switcher + seeded Meridian).
 
-On first Clerk sign-in/sign-up, SalesCoach auto-creates:
+On first Clerk sign-in/sign-up, Erota Sales Intelligence auto-creates:
 - an `Org` (slug + trial plan status)
 - an `ADMIN` user linked via `clerkId`
 - empty company profile
@@ -54,23 +59,43 @@ S3_ENDPOINT=https://<accountid>.r2.cloudflarestorage.com   # R2 only
 ```
 
 Audio refs are stored as `s3:<key>` (or `local:uploads/...` when unset).
+Browser uploads go directly to R2/S3. Configure bucket CORS to permit PUT from
+the production application:
+
+```json
+[
+  {
+    "AllowedOrigins": ["https://www.erota.io", "https://erota.io"],
+    "AllowedMethods": ["PUT"],
+    "AllowedHeaders": ["Content-Type"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]
+```
 
 ## 4. Route protection
 
 `src/middleware.ts` protects all app + API routes when Clerk is enabled.
-Public: `/`, `/privacy`, `/sign-in`, `/sign-up`, `/api/leads`, `/api/health`, ingest + vapi webhooks.
+Public: `/`, `/privacy`, `/terms`, `/sign-in`, `/sign-up`, `/api/leads`,
+minimal `/api/health`, signed ingest/webhooks, and `CRON_SECRET`-protected cron routes.
 
 ## 5. Verify
 
 ```bash
 curl -s localhost:3000/api/health
-# { "ok": true, "auth": "clerk"|"demo", "storage": "s3"|"local", ... }
+# { "ok": true }
+
+curl -H "Authorization: Bearer $OPS_SECRET" \
+  "localhost:3000/api/health?deep=1"
 ```
 
 Sign up → land on `/dashboard` with an empty org (managers) or `/me` after role changes in Phase 1 invites.
 
-## Still demo until Phase 1
+## Production controls
 
-- No Stripe billing yet (`planStatus` is always `trialing` / seed `active`)
-- No email invites
-- No guided onboarding UI (org is empty but usable)
+- Vercel production fails fast unless live Clerk and Stripe keys, durable
+  storage, AI providers, webhook secrets, and operations secrets are present.
+- Preview and production must never share `DATABASE_URL`.
+- Audio is deleted after 90 days and product records after 365 days by the
+  retention cron unless an organization has a different configured policy.

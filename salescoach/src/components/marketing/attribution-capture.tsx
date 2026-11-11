@@ -2,6 +2,10 @@
 
 import { useEffect } from "react";
 import { ATTRIBUTION_COOKIE } from "@/lib/attribution";
+import {
+  COOKIE_CONSENT_EVENT,
+  COOKIE_CONSENT_KEY,
+} from "@/lib/consent";
 
 /**
  * Captures UTM + referrer into a first-party cookie on marketing pages
@@ -9,7 +13,9 @@ import { ATTRIBUTION_COOKIE } from "@/lib/attribution";
  */
 export function AttributionCapture() {
   useEffect(() => {
-    try {
+    function capture() {
+      if (window.localStorage.getItem(COOKIE_CONSENT_KEY) !== "accepted") return;
+      try {
       const url = new URL(window.location.href);
       const keys = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
       const hasUtm = keys.some((k) => url.searchParams.get(k));
@@ -29,9 +35,13 @@ export function AttributionCapture() {
       };
       const maxAge = 60 * 60 * 24 * 30; // 30 days
       document.cookie = `${ATTRIBUTION_COOKIE}=${encodeURIComponent(JSON.stringify(payload))}; path=/; max-age=${maxAge}; SameSite=Lax`;
-    } catch {
-      // ignore
+      } catch {
+        // Attribution must never block the page.
+      }
     }
+    capture();
+    window.addEventListener(COOKIE_CONSENT_EVENT, capture);
+    return () => window.removeEventListener(COOKIE_CONSENT_EVENT, capture);
   }, []);
 
   return null;

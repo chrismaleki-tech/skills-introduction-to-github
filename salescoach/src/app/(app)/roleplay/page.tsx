@@ -5,12 +5,15 @@ import { parsePersona } from "@/lib/types";
 import { Card, EmptyState, LinkButton, PageHeader, ScoreBadge, StatusPill, fmtDateTime } from "@/components/ui";
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { StartSessionButton } from "@/components/roleplay/start-session-button";
+import { voiceAvailable } from "@/lib/roleplay";
+import { allowance, fmtMinutes, LOW_ALLOWANCE_WARNING_SECONDS, startBlockReason } from "@/lib/usage";
 
 export default async function RoleplayPage() {
   const user = await currentUser();
   const manager = isManagerRole(user.role);
+  const voice = voiceAvailable();
 
-  const [scenarios, sessions] = await Promise.all([
+  const [scenarios, sessions, block, roleplayAllowance] = await Promise.all([
     db.scenario.findMany({
       where: { orgId: user.orgId },
       orderBy: { createdAt: "desc" },
@@ -24,7 +27,11 @@ export default async function RoleplayPage() {
       },
       orderBy: { startedAt: "desc" },
     }),
+    startBlockReason(user.org, user.id, "roleplay"),
+    allowance(user.org, user.id, "roleplay"),
   ]);
+  const remaining = roleplayAllowance.remainingSeconds;
+  const lowMinutes = remaining !== null && remaining > 0 && remaining <= LOW_ALLOWANCE_WARNING_SECONDS;
 
   return (
     <div>
@@ -34,19 +41,45 @@ export default async function RoleplayPage() {
       />
 
       <section className="mb-10">
-        <h2 className="text-sm font-medium text-muted uppercase tracking-wider mb-3">Start a role-play</h2>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-medium text-muted uppercase tracking-wider">Start a role-play</h2>
+          {manager && scenarios.length > 0 && (
+            <Link href="/scenarios/new" className="text-sm text-brand hover:underline underline-offset-2">
+              New scenario
+            </Link>
+          )}
+        </div>
+        {block && (
+          <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
+            {block.reason}{" "}
+            {manager ? (
+              <Link href="/billing" className="font-semibold underline underline-offset-2">
+                Upgrade
+              </Link>
+            ) : (
+              "Ask a workspace admin to upgrade."
+            )}
+          </div>
+        )}
+        {!block && remaining !== null && (
+          <p className={`mb-4 text-sm ${lowMinutes ? "font-medium text-amber-700" : "text-muted"}`}>
+            {roleplayAllowance.basis === "trial"
+              ? `${fmtMinutes(remaining)} of AI Role Play left in your workspace's trial allowance (shared by everyone, for the full trial).`
+              : `${fmtMinutes(remaining)} of AI Role Play left on your seat this billing period.`}
+          </p>
+        )}
         {scenarios.length === 0 ? (
           <Card>
             <EmptyState
               title="No scenarios yet"
               hint={
                 manager
-                  ? "Create one on the Scenarios page to give your team something to practice against."
+                  ? "Pick a ready-made call type and you can be practicing in under a minute."
                   : "Ask your manager to publish a scenario on the Scenarios page."
               }
               action={
                 manager ? (
-                  <LinkButton href="/scenarios">Create a scenario</LinkButton>
+                  <LinkButton href="/scenarios/new">Create a scenario</LinkButton>
                 ) : (
                   <LinkButton href="/getting-started" variant="secondary">View getting started guide</LinkButton>
                 )
@@ -71,9 +104,9 @@ export default async function RoleplayPage() {
                       {persona.title && ` — ${persona.title}`}
                     </div>
                     {persona.company && <div>{persona.company}</div>}
-                    <div className="mt-1 text-xs capitalize">{fmtCallType(s.callType)} call</div>
+                    <div className="mt-1 text-xs">{fmtCallType(s.callType)}</div>
                   </div>
-                  <StartSessionButton scenarioId={s.id} />
+                  <StartSessionButton scenarioId={s.id} voiceEnabled={voice} blockedReason={block?.reason ?? null} manager={manager} />
                 </div>
               );
             })}

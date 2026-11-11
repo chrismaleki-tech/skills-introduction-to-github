@@ -129,6 +129,9 @@ export type ScoreBand = "exceptional" | "strong" | "developing" | "needs_coachin
 
 // ---------- Scenarios / role-play ----------
 
+export type ProspectAttitude = "friendly" | "neutral" | "skeptical" | "busy";
+export type ProspectInterest = "low" | "medium" | "high";
+
 export interface ScenarioPersona {
   name: string;
   title: string;
@@ -139,6 +142,19 @@ export interface ScenarioPersona {
   objections: string[]; // objections this persona will raise
   budget: string;
   notes: string;
+  // --- Guided-builder fields (optional; scenarios created before the builder omit them) ---
+  attitude?: ProspectAttitude;
+  interest?: ProspectInterest; // starting level of interest in the rep's offering
+  priorities?: string[]; // what this person is measured on / cares about this quarter
+  businessSize?: string; // e.g. "50-200 employees"
+  authority?: string; // decision authority, e.g. "Can approve up to $25k; larger needs the CFO"
+  offering?: string; // what the rep sells (the seller's side of the call)
+  objective?: string; // the rep's goal for this call
+  situation?: string; // backstory for the call (how it came about, what happened before)
+  facts?: string[]; // verified public facts about the business (website path)
+  assumptions?: string[]; // simulation assumptions, clearly not verified
+  sourceUrl?: string; // business website the scenario was drafted from
+  voice?: string; // Realtime voice id override for this prospect
 }
 
 export interface RoleplayMessage {
