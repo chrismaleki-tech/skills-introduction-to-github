@@ -43,8 +43,8 @@ export default function MarketingHomePage() {
       <section className="mkt-hero-wash relative overflow-hidden pt-24 sm:pt-28">
         <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-16 pt-6 sm:px-6 sm:pb-20 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
           <div className="min-w-0">
-            <p className="mkt-rise text-xs font-bold uppercase tracking-[0.2em] text-brand">AI Role Play</p>
-            <h1 className="mkt-rise mkt-rise-delay-1 mt-4 font-display text-4xl font-semibold leading-[1.08] tracking-tight text-marketing-ink sm:text-5xl lg:text-[3.4rem]">
+            <p className="mkt-rise-visible text-xs font-bold uppercase tracking-[0.2em] text-brand">AI Role Play</p>
+            <h1 className="mkt-rise-visible mt-4 font-display text-4xl font-semibold leading-[1.08] tracking-tight text-marketing-ink sm:text-5xl lg:text-[3.4rem]">
               Practice your next sales call before it counts.
             </h1>
             <p className="mkt-rise mkt-rise-delay-2 mt-5 max-w-xl text-base leading-relaxed text-muted sm:text-lg">
@@ -351,7 +351,7 @@ export default function MarketingHomePage() {
               src="/marketing/team-dashboard.png"
               alt="Erota team dashboard with graded calls, role-plays, score trend, and skill heatmap"
               width={1280}
-              height={800}
+              height={880}
               sizes="(min-width: 1152px) 1152px, 100vw"
               className="h-auto w-full"
             />

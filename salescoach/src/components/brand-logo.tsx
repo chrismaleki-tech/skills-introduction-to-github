@@ -15,7 +15,16 @@ const MARK_CLASS: Record<Size, string> = {
   lg: "h-9 w-9 sm:h-11 sm:w-11",
 };
 
-export function BrandMark({ size = 32, className = "" }: { size?: number; className?: string }) {
+export function BrandMark({
+  size = 32,
+  className = "",
+  priority = true,
+}: {
+  size?: number;
+  className?: string;
+  /** Preload the mark. Leave on for headers; turn off below the fold (footers). */
+  priority?: boolean;
+}) {
   return (
     <Image
       src="/brand/erota-mark.png"
@@ -23,7 +32,7 @@ export function BrandMark({ size = 32, className = "" }: { size?: number; classN
       aria-hidden
       width={size}
       height={size}
-      priority
+      priority={priority}
       className={`shrink-0 select-none ${className}`}
     />
   );
@@ -34,16 +43,18 @@ export function BrandLockup({
   className = "",
   textClassName = "",
   compactOnMobile = false,
+  priority = true,
 }: {
   size?: Size;
   className?: string;
   textClassName?: string;
   /** Hide the "Sales Intelligence" suffix below the `sm` breakpoint so tight headers don't wrap. */
   compactOnMobile?: boolean;
+  priority?: boolean;
 }) {
   return (
     <span className={`inline-flex min-w-0 items-center gap-2 ${className}`}>
-      <BrandMark size={MARK_PX[size]} className={MARK_CLASS[size]} />
+      <BrandMark size={MARK_PX[size]} className={MARK_CLASS[size]} priority={priority} />
       <span className={`truncate font-semibold tracking-tight ${TEXT_CLASS[size]} ${textClassName}`}>
         <span className="text-brand">Erota</span>
         <span className={compactOnMobile ? "hidden sm:inline" : ""}> Sales Intelligence</span>

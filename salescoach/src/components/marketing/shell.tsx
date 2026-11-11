@@ -48,7 +48,7 @@ export function MarketingFooter() {
     <footer className="border-t border-line bg-white">
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <BrandLockup size="md" textClassName="font-display text-marketing-ink" />
+          <BrandLockup size="md" textClassName="font-display text-marketing-ink" priority={false} />
           <p className="mt-1 text-sm text-muted">Practice your next sales call before it counts.</p>
         </div>
         <div className="flex flex-wrap gap-5 text-sm text-muted">
