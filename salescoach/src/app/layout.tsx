@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { isClerkEnabled } from "@/lib/auth-mode";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -32,48 +30,12 @@ export const metadata: Metadata = {
   },
 };
 
+// Clerk's provider is mounted per route group (see components/clerk-root.tsx)
+// rather than here, so the public marketing pages ship without clerk-js.
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const tree = (
+  return (
     <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );
-
-  if (isClerkEnabled()) {
-    return (
-      <ClerkProvider
-        signInUrl="/sign-in"
-        signUpUrl="/sign-up"
-        signInFallbackRedirectUrl="/dashboard"
-        signUpFallbackRedirectUrl="/dashboard"
-        afterSignOutUrl="/"
-        appearance={{
-          layout: {
-            logoImageUrl: "/brand/erota-mark.png",
-            logoPlacement: "inside",
-            termsPageUrl: "/terms",
-            privacyPageUrl: "/privacy",
-          },
-          variables: { colorPrimary: "#0091ae" },
-        }}
-        localization={{
-          signIn: {
-            start: {
-              title: "Sign in to Erota Sales Intelligence",
-              subtitle: "Welcome back. Sign in to continue to your workspace.",
-            },
-          },
-          signUp: {
-            start: {
-              title: "Create your Erota Sales Intelligence account",
-              subtitle: "Start your free trial. No credit card required.",
-            },
-          },
-        }}
-      >
-        {tree}
-      </ClerkProvider>
-    );
-  }
-  return tree;
 }
