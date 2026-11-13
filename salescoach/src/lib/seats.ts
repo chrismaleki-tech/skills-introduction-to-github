@@ -32,7 +32,7 @@ export type SeatSummary = {
   used: number;
   available: number | null;
   /** Why the limit is what it is; drives the upsell copy. */
-  basis: "trial" | "subscription" | "enterprise" | "inactive";
+  basis: "trial" | "subscription" | "enterprise" | "inactive" | "comp";
 };
 
 export function seatLimitFor(org: SeatOrg): { limit: number | null; basis: SeatSummary["basis"] } {
@@ -47,6 +47,9 @@ export function seatLimitFor(org: SeatOrg): { limit: number | null; basis: SeatS
   }
   if (access.entitled && access.status === "trialing") {
     return { limit: TRIAL_SEAT_LIMIT, basis: "trial" };
+  }
+  if (access.entitled && access.status === "comped") {
+    return { limit: TRIAL_SEAT_LIMIT, basis: "comp" };
   }
   // Lapsed trial or unpaid subscription: no new seats until billing is sorted.
   return { limit: 0, basis: "inactive" };
@@ -83,6 +86,8 @@ export function seatLimitMessage(summary: SeatSummary, requested: number) {
       return `Your plan has ${summary.limit} seats and ${inUse}. Add ${requested - (summary.available ?? 0)} more to continue.`;
     case "inactive":
       return "Your subscription is not active. Reactivate billing before adding teammates.";
+    case "comp":
+      return `Complimentary access includes ${summary.limit} seats and ${inUse}.`;
     default:
       return "No seats available.";
   }

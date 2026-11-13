@@ -36,6 +36,22 @@ model Org {
   // while seats remain.
   joinCode             String?   @unique
 
+  // Platform suspension. Independent of Stripe: a paused workspace keeps its
+  // subscription and its data, and new AI Role Play / call review is refused.
+  suspendedAt     DateTime?
+  suspendedReason String    @default("")
+
+  // Extra seconds granted by a platform owner, added on top of the plan cap.
+  // Trial: shared by the workspace. Paid: added to each seat's monthly cap.
+  bonusRoleplaySec   Int @default(0)
+  bonusCallReviewSec Int @default(0)
+
+  // Complimentary entitlement. Never written into planKey / planStatus / Stripe
+  // columns. Ignored while a paid subscription is still entitled.
+  compPlanKey   String?
+  compExpiresAt DateTime?
+  compReason    String    @default("")
+
   users          User[]
   invites        Invite[]
   methodologies  Methodology[]
@@ -47,6 +63,7 @@ model Org {
   assignments    Assignment[]
   signupEvents   SignupEvent[]
   billingEvents  BillingEvent[]
+  adminAudits    AdminAudit[]
 
   createdAt DateTime @default(now())
 }
@@ -315,6 +332,24 @@ model Lead {
 
 // Immutable signup funnel record — identity (Clerk) + tenant (Org/User) + attribution.
 // Status advances: signed_up → provisioned → activated → converted (Stripe, Phase 1).
+// Who changed a workspace from the platform dashboard, and what changed.
+// Actor identity comes from Clerk on the server. No secrets, transcripts, or recordings.
+model AdminAudit {
+  id           String   @id @default(cuid())
+  actorClerkId String
+  actorEmail   String
+  orgId        String?
+  org          Org?     @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  action       String
+  reason       String   @default("")
+  beforeJson   String   @default("{}")
+  afterJson    String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([orgId, createdAt])
+  @@index([createdAt])
+}
+
 model SignupEvent {
   id          String @id @default(cuid())
   clerkUserId String

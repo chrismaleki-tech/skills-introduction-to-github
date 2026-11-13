@@ -7,6 +7,7 @@ import { ClerkUserMenu } from "@/components/clerk-user-menu";
 import { aiAvailable } from "@/lib/ai";
 import { storageBackend } from "@/lib/storage";
 import { billingAccess } from "@/lib/billing";
+import { isCurrentUserPlatformOwner } from "@/lib/platform-admin";
 import { fmtMinutes, trialStatus } from "@/lib/usage";
 import { MobileNav } from "@/components/mobile-nav";
 import { BrandMark } from "@/components/brand-logo";
@@ -22,7 +23,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const manager = isManagerRole(user.role);
   const access = billingAccess(user.org);
-  const trial = access.status === "active" ? null : await trialStatus(user.org);
+  const platformOwner = await isCurrentUserPlatformOwner();
+  const trial =
+    access.status === "active" || access.status === "suspended" || access.status === "comped"
+      ? null
+      : await trialStatus(user.org);
   const items: NavItem[] = [
     { href: "/getting-started", label: "Getting Started" },
     ...(manager ? [{ href: "/dashboard", label: "Team Dashboard" }] : []),
@@ -40,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           { href: "/settings", label: "Settings" },
         ]
       : []),
+    ...(platformOwner ? [{ href: "/admin", label: "Admin" }] : []),
   ];
 
   return (
@@ -101,6 +107,29 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <main className="w-full min-w-0 flex-1 px-4 py-5 sm:px-6 md:max-w-6xl md:px-8 md:py-8">
           {(() => {
             if (access.status === "active") return null;
+            if (access.status === "suspended") {
+              return (
+                <div className="mb-6 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                  Erota has paused AI Role Play and call review for this workspace.
+                  {access.suspendedReason ? ` ${access.suspendedReason}` : ""} This is not a subscription cancellation.
+                  Saved results stay viewable.
+                </div>
+              );
+            }
+            if (access.status === "comped" && access.compExpiresAt) {
+              const until = new Intl.DateTimeFormat("en-US", {
+                month: "long",
+                day: "numeric",
+                year: "numeric",
+                timeZone: "UTC",
+              }).format(access.compExpiresAt);
+              const planName = access.compPlanKey === "max" ? "Max" : "Pro";
+              return (
+                <div className="mb-6 rounded-lg border border-brand/30 bg-brand/5 px-4 py-3 text-sm text-marketing-ink">
+                  Complimentary {planName} access until {until} UTC. Your Stripe subscription is unchanged.
+                </div>
+              );
+            }
             const exhausted =
               trial && !trial.expired
                 ? [

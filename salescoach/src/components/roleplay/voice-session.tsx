@@ -76,7 +76,7 @@ export function VoiceRoleplay({
   // Workspace allowance as last reported by the server; counted down locally
   // between heartbeats for display only.
   const [usage, setUsage] = useState<UsageInfo>({ remainingSeconds: null, limitSeconds: null });
-  const [cutoff, setCutoff] = useState<"allowance_exhausted" | "trial_expired" | null>(null);
+  const [cutoff, setCutoff] = useState<"allowance_exhausted" | "trial_expired" | "workspace_suspended" | null>(null);
   const [turns, setTurns] = useState<Turn[]>(() =>
     initialMessages.map((m, i) => ({ ...m, id: `seed_${i}`, order: i, final: true })),
   );
@@ -226,7 +226,7 @@ export function VoiceRoleplay({
         const data = (await res.json().catch(() => ({}))) as {
           error?: string;
           billingUrl?: string;
-          ended?: "allowance_exhausted" | "trial_expired";
+          ended?: "allowance_exhausted" | "trial_expired" | "workspace_suspended";
           remainingSeconds?: number | null;
           limitSeconds?: number | null;
         };
@@ -684,9 +684,11 @@ export function VoiceRoleplay({
             <div>{error.message}</div>
             {cutoff && (
               <div className="mt-1 text-xs text-rose-700">
-                {cutoff === "trial_expired"
-                  ? "Your microphone and the prospect's audio have been stopped. Everything said so far is saved."
-                  : "Your microphone and the prospect's audio have been stopped. Everything said so far is saved; upgrading to Pro or Max adds per-seat monthly minutes."}
+                {cutoff === "workspace_suspended"
+                  ? "Your microphone and the prospect's audio have been stopped. Everything said so far is saved. This pause is not a subscription cancellation."
+                  : cutoff === "trial_expired"
+                    ? "Your microphone and the prospect's audio have been stopped. Everything said so far is saved."
+                    : "Your microphone and the prospect's audio have been stopped. Everything said so far is saved; upgrading to Pro or Max adds per-seat monthly minutes."}
               </div>
             )}
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">

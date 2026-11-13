@@ -83,6 +83,25 @@ export default async function BillingPage({
               {access.status.replace("_", " ")}
             </span>
           </div>
+          {access.status === "suspended" && (
+            <p className="mt-4 text-sm text-rose-800">
+              Erota has paused this workspace.{access.suspendedReason ? ` ${access.suspendedReason}` : ""} This is a
+              platform pause, not a Stripe cancellation. The plan name above was not changed.
+            </p>
+          )}
+          {access.status === "comped" && (
+            <p className="mt-4 text-sm">
+              Complimentary {access.compPlanKey === "max" ? "Max" : "Pro"} access is in effect until{" "}
+              {date(access.compExpiresAt ?? null)} UTC. Stripe remains the record of any paid subscription, and the
+              plan name above was not changed to match it.
+            </p>
+          )}
+          {(user.org.bonusRoleplaySec > 0 || user.org.bonusCallReviewSec > 0) && (
+            <p className="mt-4 text-sm text-muted">
+              Extra allowance from Erota: {Math.round(user.org.bonusRoleplaySec / 60)} min of AI Role Play and{" "}
+              {Math.round(user.org.bonusCallReviewSec / 60)} min of call review, added to the plan cap.
+            </p>
+          )}
 
           <dl className="mt-6 grid grid-cols-2 gap-4 text-sm">
             <div>
@@ -98,13 +117,13 @@ export default async function BillingPage({
                 <div>
                   <dt className="text-muted">Workspace AI Role Play</dt>
                   <dd className="mt-1">
-                    {minutes(usage.roleplay.usedSeconds)} / {limit(currentPlan.trialAllowance?.roleplayMinutes ?? null, "min")} shared
+                    {minutes(usage.roleplay.usedSeconds)} / {limit(usage.roleplay.limitSeconds === null ? null : Math.ceil(usage.roleplay.limitSeconds / 60), "min")} shared
                   </dd>
                 </div>
                 <div>
                   <dt className="text-muted">Workspace call review</dt>
                   <dd className="mt-1">
-                    {minutes(usage.callReview.usedSeconds)} / {limit(currentPlan.trialAllowance?.callReviewMinutes ?? null, "min")} shared
+                    {minutes(usage.callReview.usedSeconds)} / {limit(usage.callReview.limitSeconds === null ? null : Math.ceil(usage.callReview.limitSeconds / 60), "min")} shared
                   </dd>
                 </div>
               </>
@@ -113,16 +132,14 @@ export default async function BillingPage({
                 <div>
                   <dt className="text-muted">Your AI Role Play usage</dt>
                   <dd className="mt-1">
-                    {minutes(usage.roleplay.usedSeconds)} / {limit(currentPlan.roleplayMinutesPerSeat, "min")} this period
+                    {minutes(usage.roleplay.usedSeconds)} / {limit(usage.roleplay.limitSeconds === null ? null : Math.ceil(usage.roleplay.limitSeconds / 60), "min")} this period
                   </dd>
                 </div>
                 <div>
                   <dt className="text-muted">Your call review usage</dt>
                   <dd className="mt-1">
                     {hours(usage.callReview.usedSeconds)} / {limit(
-                      currentPlan.callScoringMinutesPerSeat === null
-                        ? null
-                        : currentPlan.callScoringMinutesPerSeat / 60,
+                      usage.callReview.limitSeconds === null ? null : Number((usage.callReview.limitSeconds / 3600).toFixed(1)),
                       "hr",
                     )} this period
                   </dd>

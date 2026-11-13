@@ -460,8 +460,10 @@ describe("trial usage metering (database)", { skip: TEST_DB ? false : "USAGE_TES
       const org = await makeOrg();
       const [a, b] = await Promise.all([makeUser(org, 1), makeUser(org, 2)]);
       const scenario = await makeScenario(org);
-      // Trial fully used up by rep A.
-      await makeSession(org, a.id, scenario.id, { durationSec: TRIAL_ALLOWANCE.roleplayMinutes * 60, status: "GRADED" });
+      // Trial fully used up by rep A. Pin the start before the paid period so a
+      // database clock that is slightly ahead of Node cannot pull it inside.
+      const prior = await makeSession(org, a.id, scenario.id, { durationSec: TRIAL_ALLOWANCE.roleplayMinutes * 60, status: "GRADED" });
+      await db.roleplaySession.update({ where: { id: prior.id }, data: { startedAt: new Date(Date.now() - DAY) } });
       assert.equal((await usage.allowance(org, b.id, "roleplay")).remainingSeconds, 0);
 
       // Stripe webhook outcome: active Pro subscription, period starting now.

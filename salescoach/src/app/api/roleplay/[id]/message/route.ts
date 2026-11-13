@@ -4,7 +4,7 @@ import { prospectReply } from "@/lib/roleplay";
 import { currentUser } from "@/lib/session";
 import { parseMessages, type RoleplayMessage } from "@/lib/types";
 import { billingError } from "@/lib/billing";
-import { meterRoleplaySession } from "@/lib/usage";
+import { meterRoleplaySession, roleplayCutoffMessage } from "@/lib/usage";
 
 const MAX_MESSAGE_CHARS = 2000;
 
@@ -58,11 +58,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (meter.endedReason) {
     return NextResponse.json(
       {
-        error:
-          meter.endedReason === "trial_expired"
-            ? "Your free trial ended during this session. Your messages are saved; end the session to get graded, and upgrade to keep practicing."
-            : "Your workspace has used all of its trial AI Role Play minutes, so this session has ended. Your messages are saved; end the session to get graded, or upgrade for more.",
-        code: meter.endedReason === "trial_expired" ? "TRIAL_EXPIRED" : "ROLEPLAY_LIMIT_EXCEEDED",
+        ...roleplayCutoffMessage(meter.endedReason),
         ended: meter.endedReason,
         remainingSeconds: meter.remainingSeconds,
         limitSeconds: meter.limitSeconds,

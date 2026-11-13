@@ -50,7 +50,9 @@ Stripe (Phase 1) → SignupEvent (converted)
    CLERK_WEBHOOK_SECRET=whsec_...
    ```
 
-3. Redeploy. Open `/admin/signups` while signed in as an admin email.
+3. Redeploy. Open `/admin` while signed in as an email listed in `ADMIN_EMAILS`.
+
+`ADMIN_EMAILS` is the platform-owner allowlist. It is compared to the email Clerk verifies for the signed-in user. It does not create a Clerk account, it does not apply to every `@erota.io` address, and a customer's workspace Admin role does not grant it. To authorize an account that already exists, sign up or sign in with that exact email first, then add it to the existing `ADMIN_EMAILS` value (comma-separated) and redeploy. The same steps are shown at `/admin/access`.
 
 ## Attribution
 

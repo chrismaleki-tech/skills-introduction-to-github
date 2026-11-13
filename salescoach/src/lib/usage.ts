@@ -1,6 +1,6 @@
 import type { Org, Prisma } from "@prisma/client";
 import { db } from "./db";
-import { billingAccess } from "./billing";
+import { billingAccess, billingError, complimentaryAccess } from "./billing";
 import { PLANS, planForPriceId, TRIAL_ALLOWANCE, type PlanKey } from "./plans";
 import type { TranscriptSegment } from "./types";
 
@@ -38,7 +38,18 @@ type UsageOrg = Pick<
   | "stripePriceId"
   | "subscriptionStartsAt"
   | "subscriptionEndsAt"
->;
+> &
+  Partial<
+    Pick<
+      Org,
+      | "bonusRoleplaySec"
+      | "bonusCallReviewSec"
+      | "compPlanKey"
+      | "compExpiresAt"
+      | "suspendedAt"
+      | "suspendedReason"
+    >
+  >;
 
 type DbClient = Prisma.TransactionClient | typeof db;
 
@@ -158,7 +169,13 @@ function limitMessage(opts: {
 
 // --- Plan resolution --------------------------------------------------------------
 
-export function resolvedPlanKey(org: Pick<UsageOrg, "planKey" | "stripePriceId">): PlanKey {
+export function resolvedPlanKey(
+  org: Pick<UsageOrg, "planKey" | "stripePriceId"> &
+    Partial<Pick<Org, "compPlanKey" | "compExpiresAt" | "planStatus" | "subscriptionEndsAt">>,
+  now = new Date(),
+): PlanKey {
+  const comp = complimentaryAccess(org, now);
+  if (comp?.planKey === "pro" || comp?.planKey === "max") return comp.planKey;
   if (org.stripePriceId) return planForPriceId(org.stripePriceId);
   return org.planKey in PLANS ? (org.planKey as PlanKey) : "trial";
 }
@@ -181,7 +198,7 @@ export function billingPeriod(org: UsageOrg, now = new Date()) {
 
 /** The window usage is counted over, and whether it is per workspace or per seat. */
 export function allowanceWindow(org: UsageOrg, now = new Date()) {
-  const planKey = resolvedPlanKey(org);
+  const planKey = resolvedPlanKey(org, now);
   if (planKey === "trial") {
     // One pool for the whole trial: every role-play and reviewed call the
     // workspace has ever recorded counts, whatever its timestamp.
@@ -231,6 +248,37 @@ export function limitSecondsFor(planKey: PlanKey, kind: UsageKind): number | nul
   }
   const minutes = kind === "roleplay" ? plan.roleplayMinutesPerSeat : plan.callScoringMinutesPerSeat;
   return minutes === null ? null : minutes * 60;
+}
+
+/** Customer-facing explanation when a live role-play is stopped by the server. */
+export function roleplayCutoffMessage(endedReason: "allowance_exhausted" | "trial_expired" | "workspace_suspended") {
+  if (endedReason === "workspace_suspended") {
+    return {
+      code: "WORKSPACE_SUSPENDED" as const,
+      error: "Erota has paused this workspace, so this call has ended. The transcript is saved. This is not a subscription cancellation.",
+    };
+  }
+  if (endedReason === "trial_expired") {
+    return {
+      code: "TRIAL_EXPIRED" as const,
+      error: "Your free trial ended during this call. The call has been saved; upgrade to Pro or Max to keep practicing.",
+    };
+  }
+  return {
+    code: "ROLEPLAY_LIMIT_EXCEEDED" as const,
+    error: "Your workspace has used all of its trial AI Role Play minutes, so this call has ended. The transcript is saved; upgrade to Pro or Max for more.",
+  };
+}
+
+export function limitSecondsForOrg(
+  org: Partial<Pick<Org, "bonusRoleplaySec" | "bonusCallReviewSec">>,
+  planKey: PlanKey,
+  kind: UsageKind,
+): number | null {
+  const base = limitSecondsFor(planKey, kind);
+  if (base === null) return null;
+  const bonus = kind === "roleplay" ? (org.bonusRoleplaySec ?? 0) : (org.bonusCallReviewSec ?? 0);
+  return base + Math.max(0, Math.round(bonus));
 }
 
 // --- Reading the ledger ------------------------------------------------------------
@@ -307,8 +355,8 @@ export async function usageSummary(
   return {
     planKey: window.planKey,
     basis: window.basis,
-    roleplay: allowanceFor("roleplay", limitSecondsFor(window.planKey, "roleplay"), roleplayUsed, window),
-    callReview: allowanceFor("call_review", limitSecondsFor(window.planKey, "call_review"), callReviewUsed, window),
+    roleplay: allowanceFor("roleplay", limitSecondsForOrg(org, window.planKey, "roleplay"), roleplayUsed, window),
+    callReview: allowanceFor("call_review", limitSecondsForOrg(org, window.planKey, "call_review"), callReviewUsed, window),
   };
 }
 
@@ -325,7 +373,7 @@ export async function allowance(
     kind === "roleplay"
       ? await roleplaySecondsUsed(client, org.id, scopedRep, window.start, window.end)
       : await callReviewSecondsUsed(client, org.id, scopedRep, window.start, window.end);
-  return allowanceFor(kind, limitSecondsFor(window.planKey, kind), used, window);
+  return allowanceFor(kind, limitSecondsForOrg(org, window.planKey, kind), used, window);
 }
 
 /**
@@ -384,7 +432,7 @@ export type RoleplayMeterResult = {
   limitSeconds: number | null;
   basis: AllowanceBasis;
   /** Set when this call had to end the session. */
-  endedReason: "allowance_exhausted" | "trial_expired" | null;
+  endedReason: "allowance_exhausted" | "trial_expired" | "workspace_suspended" | null;
 };
 
 /**
@@ -417,7 +465,7 @@ export async function meterRoleplaySession(
       include: { org: true },
     });
     const window = allowanceWindow(session.org, now);
-    const limitSeconds = limitSecondsFor(window.planKey, "roleplay");
+    const limitSeconds = limitSecondsForOrg(session.org, window.planKey, "roleplay");
     const scopedRep = window.scope === "workspace" ? null : session.repId;
 
     const used = await roleplaySecondsUsed(tx, session.orgId, scopedRep, window.start, window.end);
@@ -445,7 +493,7 @@ export async function meterRoleplaySession(
 
     let endedReason: RoleplayMeterResult["endedReason"] = null;
     const access = billingAccess(session.org);
-    if (!access.entitled) endedReason = "trial_expired";
+    if (!access.entitled) endedReason = access.status === "suspended" ? "workspace_suspended" : "trial_expired";
     if (remainingBefore !== null && charge >= remainingBefore) {
       charge = remainingBefore;
       endedReason = endedReason ?? "allowance_exhausted";
@@ -528,7 +576,7 @@ export async function reserveCallReview(callId: string, meter: { seconds: number
       return { reserved: true, meteredSec: call.meteredSec, estimated: call.meterEstimated, alreadyHeld: true };
     }
     const window = allowanceWindow(call.org);
-    const limitSeconds = limitSecondsFor(window.planKey, "call_review");
+    const limitSeconds = limitSecondsForOrg(call.org, window.planKey, "call_review");
     const scopedRep = window.scope === "workspace" ? null : call.repId;
     const used = await callReviewSecondsUsed(tx, call.orgId, scopedRep, window.start, window.end);
     if (limitSeconds !== null && used + meter.seconds > limitSeconds) {
@@ -617,6 +665,9 @@ export async function startBlockReason(
 ): Promise<{ reason: string; code: string; allowance: Allowance | null } | null> {
   const access = billingAccess(org);
   if (!access.entitled) {
+    if (access.status === "suspended") {
+      return { code: "WORKSPACE_SUSPENDED", reason: billingError(org)!.error, allowance: null };
+    }
     const trial = org.planStatus === "trialing";
     return {
       code: trial ? "TRIAL_EXPIRED" : "SUBSCRIPTION_REQUIRED",

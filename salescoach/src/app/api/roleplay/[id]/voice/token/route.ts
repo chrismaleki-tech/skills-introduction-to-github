@@ -14,6 +14,7 @@ import {
 import {
   assertUsageAvailable,
   meterRoleplaySession,
+  roleplayCutoffMessage,
   UsageLimitError,
   usageLimitPayload,
 } from "@/lib/usage";
@@ -83,11 +84,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (meter.endedReason) {
     return NextResponse.json(
       {
-        error:
-          meter.endedReason === "trial_expired"
-            ? "Your free trial has ended, so this call cannot start. Upgrade to keep practicing."
-            : "Your workspace has used all of its AI Role Play minutes, so this call cannot start. Upgrade for more.",
-        code: meter.endedReason === "trial_expired" ? "TRIAL_EXPIRED" : "ROLEPLAY_LIMIT_EXCEEDED",
+        ...roleplayCutoffMessage(meter.endedReason),
         remainingSeconds: meter.remainingSeconds,
         limitSeconds: meter.limitSeconds,
         billingUrl: "/billing",

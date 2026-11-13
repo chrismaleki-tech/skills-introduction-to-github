@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser } from "@/lib/session";
 import { parseMessages, type RoleplayMessage } from "@/lib/types";
-import { meterRoleplaySession } from "@/lib/usage";
+import { meterRoleplaySession, roleplayCutoffMessage } from "@/lib/usage";
 
 // Voice sessions run peer-to-peer between the browser and OpenAI, so the
 // browser is the only party holding the transcript. It posts snapshots here
@@ -94,11 +94,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ...saved,
         ...usage,
         ended: meter.endedReason,
-        code: meter.endedReason === "trial_expired" ? "TRIAL_EXPIRED" : "ROLEPLAY_LIMIT_EXCEEDED",
-        error:
-          meter.endedReason === "trial_expired"
-            ? "Your free trial ended during this call. The call has been saved; upgrade to Pro or Max to keep practicing."
-            : "Your workspace has used all of its trial AI Role Play minutes, so this call has ended. The transcript is saved; upgrade to Pro or Max for more.",
+        ...roleplayCutoffMessage(meter.endedReason),
         billingUrl: "/billing",
       },
       { status: 402 },
