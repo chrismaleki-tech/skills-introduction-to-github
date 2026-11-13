@@ -1,52 +1,29 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
-import type { ScenarioPersona } from "@/lib/types";
+import { normalizeScenario, type ScenarioInput } from "@/lib/scenario-input";
 
-interface CreateScenarioBody {
-  title?: string;
-  callType?: string;
-  difficulty?: string;
-  persona?: Partial<ScenarioPersona>;
-  winConditions?: string[];
-}
-
-const CALL_TYPES = ["cold_call", "discovery", "demo", "negotiation", "renewal"];
-const DIFFICULTIES = ["easy", "medium", "hard"];
-
-// Create a scenario (managers and trainers only).
+// Create a scenario (managers and trainers only). Solo customers are admins
+// of their own workspace, so this covers the one-person case too.
 export async function POST(req: Request) {
   const user = await currentUser();
   if (!isManagerRole(user.role)) {
     return NextResponse.json({ error: "Only managers and trainers can create scenarios" }, { status: 403 });
   }
 
-  const body = (await req.json().catch(() => ({}))) as CreateScenarioBody;
-  const title = (body.title ?? "").trim();
-  if (!title) return NextResponse.json({ error: "Title required" }, { status: 400 });
-
-  const p = body.persona ?? {};
-  const persona: ScenarioPersona = {
-    name: (p.name ?? "").trim(),
-    title: (p.title ?? "").trim(),
-    company: (p.company ?? "").trim(),
-    industry: (p.industry ?? "").trim(),
-    personality: (p.personality ?? "").trim(),
-    painPoints: (p.painPoints ?? []).map((s) => s.trim()).filter(Boolean),
-    objections: (p.objections ?? []).map((s) => s.trim()).filter(Boolean),
-    budget: (p.budget ?? "").trim(),
-    notes: (p.notes ?? "").trim(),
-  };
-  if (!persona.name) return NextResponse.json({ error: "Persona name required" }, { status: 400 });
+  const body = (await req.json().catch(() => ({}))) as ScenarioInput;
+  const parsed = normalizeScenario(body);
+  if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });
+  const v = parsed.value;
 
   const scenario = await db.scenario.create({
     data: {
       orgId: user.orgId,
-      title,
-      callType: CALL_TYPES.includes(body.callType ?? "") ? body.callType! : "discovery",
-      difficulty: DIFFICULTIES.includes(body.difficulty ?? "") ? body.difficulty! : "medium",
-      personaJson: JSON.stringify(persona),
-      winConditionsJson: JSON.stringify((body.winConditions ?? []).map((s) => s.trim()).filter(Boolean)),
+      title: v.title,
+      callType: v.callType,
+      difficulty: v.difficulty,
+      personaJson: JSON.stringify(v.persona),
+      winConditionsJson: JSON.stringify(v.winConditions),
       methodologyId: user.org.activeMethodologyId,
     },
   });

@@ -19,15 +19,18 @@ export function GradeNowButton({
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [billingUrl, setBillingUrl] = useState<string | null>(null);
 
   async function gradeNow() {
     setPending(true);
     setError(null);
+    setBillingUrl(null);
     try {
       const res = await fetch(`/api/calls/${callId}/grade`, { method: "POST" });
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
+        const data = (await res.json().catch(() => null)) as { error?: string; billingUrl?: string } | null;
         setError(data?.error ?? "Grading failed. Try again.");
+        if (res.status === 402) setBillingUrl(data?.billingUrl ?? "/billing");
       }
       router.refresh();
     } catch {
@@ -42,7 +45,19 @@ export function GradeNowButton({
       <Button variant={variant} onClick={gradeNow} disabled={pending}>
         {pending ? "Grading…" : label}
       </Button>
-      {error && <p className="text-xs text-rose-700">{error}</p>}
+      {error && (
+        <p className="text-xs text-rose-700" role="alert">
+          {error}
+          {billingUrl && (
+            <>
+              {" "}
+              <a href={billingUrl} className="font-semibold underline underline-offset-2">
+                View plan &amp; usage
+              </a>
+            </>
+          )}
+        </p>
+      )}
     </div>
   );
 }

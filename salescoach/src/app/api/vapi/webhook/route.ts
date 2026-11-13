@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { gradeRoleplay } from "@/lib/pipeline";
 import type { RoleplayMessage } from "@/lib/types";
+import { billingError } from "@/lib/billing";
+import { meterRoleplaySession } from "@/lib/usage";
 
 // Voice-mode ingestion for Vapi (https://vapi.ai) end-of-call reports.
 //
@@ -53,10 +55,15 @@ export async function POST(req: Request) {
 
   // Voice sessions are created with vapiCallId when initiated from the UI in a
   // future iteration; a missing session means the call is not one of ours.
-  const session = await db.roleplaySession.findFirst({ where: { vapiCallId: callId } });
+  const session = await db.roleplaySession.findFirst({
+    where: { vapiCallId: callId },
+    include: { org: true },
+  });
   if (!session) {
     return NextResponse.json({ error: "No role-play session for this call" }, { status: 404 });
   }
+  const paymentError = billingError(session.org);
+  if (paymentError) return NextResponse.json(paymentError, { status: 402 });
 
   const artifactMessages = message.artifact?.messages ?? [];
   const messages: RoleplayMessage[] = artifactMessages
@@ -69,16 +76,15 @@ export async function POST(req: Request) {
     }));
 
   const lastAtMs = messages.length ? messages[messages.length - 1].atMs : 0;
+  const durationSec = Math.round(lastAtMs / 1000);
   await db.roleplaySession.update({
     where: { id: session.id },
-    data: {
-      mode: "VOICE",
-      status: "COMPLETED",
-      messagesJson: JSON.stringify(messages),
-      durationSec: Math.round(lastAtMs / 1000),
-      endedAt: new Date(),
-    },
+    data: { mode: "VOICE", messagesJson: JSON.stringify(messages) },
   });
+  // Charge the provider-reported length (capped at the remaining allowance)
+  // and complete the session under the org lock. Re-delivered reports hit a
+  // COMPLETED session and charge nothing more.
+  await meterRoleplaySession(session.id, { final: true, reportedSeconds: durationSec });
 
   await gradeRoleplay(session.id);
 

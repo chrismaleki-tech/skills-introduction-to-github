@@ -7,6 +7,8 @@ import { Card, EmptyState, PageHeader, StatusPill, fmtDateTime, fmtDuration } fr
 import { GradeView } from "@/components/grade-view";
 import { TranscriptView } from "@/components/transcript-view";
 import { RoleplayChat } from "@/components/roleplay/chat";
+import { VoiceRoleplay } from "@/components/roleplay/voice-session";
+import { voiceAvailable } from "@/lib/roleplay";
 import { DifficultyPill, fmtCallType } from "@/components/roleplay/difficulty-pill";
 import { GradeSessionButton } from "@/components/roleplay/grade-session-button";
 
@@ -40,7 +42,7 @@ export default async function RoleplaySessionPage({ params }: { params: Promise<
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted capitalize">{fmtCallType(session.scenario.callType)} call</span>
+          <span className="text-xs text-muted">{fmtCallType(session.scenario.callType)}</span>
           <DifficultyPill difficulty={session.scenario.difficulty} />
         </div>
       </div>
@@ -60,23 +62,40 @@ export default async function RoleplaySessionPage({ params }: { params: Promise<
     </Card>
   );
 
-  // --- ACTIVE, owned by the current user: live chat ---
+  // --- ACTIVE, owned by the current user: live call (voice) or chat (text) ---
   if (session.status === "ACTIVE" && isOwner) {
+    const voice = session.mode === "VOICE" && voiceAvailable();
     return (
       <div>
         <PageHeader
           title={session.scenario.title}
-          subtitle="You are the rep, the AI is the prospect — start with your opener."
+          subtitle={
+            voice
+              ? "You are the rep, the AI is the prospect — it's a live call, so just talk."
+              : "You are the rep, the AI is the prospect — start with your opener."
+          }
           actions={<StatusPill status={session.status} />}
         />
         {briefing}
-        <RoleplayChat
-          sessionId={session.id}
-          initialMessages={messages}
-          personaName={persona.name}
-          repName={user.name}
-          startedAtIso={session.startedAt.toISOString()}
-        />
+        {voice ? (
+          <VoiceRoleplay
+            sessionId={session.id}
+            initialMessages={messages}
+            personaName={persona.name}
+            personaTitle={persona.title}
+            personaCompany={persona.company}
+            repName={user.name}
+            startedAtIso={session.startedAt.toISOString()}
+          />
+        ) : (
+          <RoleplayChat
+            sessionId={session.id}
+            initialMessages={messages}
+            personaName={persona.name}
+            repName={user.name}
+            startedAtIso={session.startedAt.toISOString()}
+          />
+        )}
       </div>
     );
   }

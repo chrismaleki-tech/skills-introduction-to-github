@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
-import { isClerkEnabled } from "@/lib/auth-mode";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -10,45 +8,34 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ["400", "500", "600", "700", "800"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-});
-
 export const metadata: Metadata = {
   title: {
-    default: "SalesCoach AI — AI sales training that grades real calls",
-    template: "%s · SalesCoach AI",
+    default: "Erota — Practice your next sales call before it counts",
+    template: "%s · Erota Sales Intelligence",
   },
   description:
-    "Upload sales calls and practice against AI prospects. Get scored 0–100 on your methodology. Built for reps and sales managers. $50/month.",
+    "Voice sales practice with realistic AI prospects. Handle tough objections out loud, get scored on your team's methodology, and walk into your next customer call prepared.",
   openGraph: {
-    title: "SalesCoach AI",
-    description: "AI sales training: graded call review, AI role-play, and coaching analytics.",
+    title: "Erota — Practice your next sales call before it counts",
+    description:
+      "Talk with realistic AI prospects, handle tough objections, and get actionable feedback before your next customer call.",
     type: "website",
+    siteName: "Erota Sales Intelligence",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Erota — Practice your next sales call before it counts",
+    description:
+      "Voice sales practice with realistic AI prospects, scored on your team's methodology.",
   },
 };
 
+// Clerk's provider is mounted per route group (see components/clerk-root.tsx)
+// rather than here, so the public marketing pages ship without clerk-js.
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const tree = (
-    <html lang="en" className={`${plusJakarta.variable} ${fraunces.variable} h-full antialiased`}>
+  return (
+    <html lang="en" className={`${plusJakarta.variable} h-full antialiased`}>
       <body className="min-h-full font-sans">{children}</body>
     </html>
   );
-
-  if (isClerkEnabled()) {
-    return (
-      <ClerkProvider
-        signInUrl="/sign-in"
-        signUpUrl="/sign-up"
-        signInFallbackRedirectUrl="/dashboard"
-        signUpFallbackRedirectUrl="/dashboard"
-        afterSignOutUrl="/"
-      >
-        {tree}
-      </ClerkProvider>
-    );
-  }
-  return tree;
 }

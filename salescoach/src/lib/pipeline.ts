@@ -1,7 +1,17 @@
 import { db } from "./db";
+import { advanceAssignments } from "./assignments";
+import { callTypeLabel, difficultyLabel } from "./scenario-options";
 import { gradeTranscript } from "./grading";
 import { decideSampling, durationBand, type RepMonthStats } from "./sampling";
 import { mockTranscript, parseProvidedTranscript, transcribeAudio } from "./transcription";
+import {
+  meterSecondsForCall,
+  releaseCallReview,
+  reserveCallReview,
+  settleCallReview,
+  UsageLimitError,
+} from "./usage";
+import { captureError } from "./monitoring";
 import {
   parseCompanyProfile,
   parseDimensions,
@@ -67,6 +77,10 @@ export async function ingestCall(input: IngestCallInput) {
     },
   });
 
+  if (input.source === "UPLOAD") {
+    await advanceAssignments({ repId: input.repId, type: "UPLOAD_CALLS", at: now });
+  }
+
   if (decision.grade) {
     await processCall(call.id, input);
   } else if (input.providedTranscript) {
@@ -79,22 +93,43 @@ export async function ingestCall(input: IngestCallInput) {
 }
 
 // Transcribe (if needed) and grade a call. Also used by "grade this call now".
+//
+// Call-review allowance is reserved before any paid work (transcription or
+// grading) and settled when the grade is stored; a failure releases it. The
+// reservation lives on the Call row, so a retry of a call that is already
+// settled or still reserved does not charge a second time.
 export async function processCall(callId: string, input?: Partial<IngestCallInput>) {
   const call = await db.call.findUniqueOrThrow({
     where: { id: callId },
-    include: { transcript: true, org: { include: { companyContext: true } } },
+    include: {
+      transcript: true,
+      grade: true,
+      org: { include: { companyContext: true } },
+    },
   });
 
   try {
+    // Work out the transcript source first; none of this is paid work.
+    let known: { segments: TranscriptSegment[]; engine: string } | null = null;
+    if (call.transcript) {
+      known = { segments: parseSegments(call.transcript.segmentsJson), engine: call.transcript.engine };
+    } else if (input?.providedTranscript) {
+      known = { segments: parseProvidedTranscript(input.providedTranscript), engine: "provided" };
+    }
+
+    const meter = meterSecondsForCall({
+      source: call.source,
+      durationSec: call.durationSec,
+      hasAudio: Boolean(call.audioPath || input?.audio),
+      segments: known?.segments ?? null,
+    });
+    const reservation = await reserveCallReview(call.id, meter);
+    if (!reservation.reserved) throw reservation.error;
+
     let segments: TranscriptSegment[];
     let engine: string;
-
-    if (call.transcript) {
-      segments = parseSegments(call.transcript.segmentsJson);
-      engine = call.transcript.engine;
-    } else if (input?.providedTranscript) {
-      segments = parseProvidedTranscript(input.providedTranscript);
-      engine = "provided";
+    if (known) {
+      ({ segments, engine } = known);
     } else if (input?.audio) {
       await db.call.update({ where: { id: callId }, data: { status: "TRANSCRIBING" } });
       const result = await transcribeAudio(input.audio.buffer, input.audio.mimeType);
@@ -117,8 +152,18 @@ export async function processCall(callId: string, input?: Partial<IngestCallInpu
       segments,
       callType: call.callType,
     });
+    await settleCallReview(callId);
     await db.call.update({ where: { id: callId }, data: { status: "GRADED" } });
   } catch (err) {
+    if (!(err instanceof UsageLimitError)) {
+      await captureError(err, {
+        operation: "process_call",
+        callId,
+        orgId: call.orgId,
+        repId: call.repId,
+      });
+      await releaseCallReview(callId);
+    }
     await db.call.update({
       where: { id: callId },
       data: { status: "FAILED", failReason: err instanceof Error ? err.message : String(err) },
@@ -144,10 +189,19 @@ export async function gradeRoleplay(sessionId: string) {
 
   const persona = parsePersona(session.scenario.personaJson);
   const winConditions = JSON.parse(session.scenario.winConditionsJson || "[]") as string[];
-  const scenarioContext =
-    `The rep was practicing against: ${persona.name}, ${persona.title} at ${persona.company} (${persona.industry}). ` +
-    `Persona: ${persona.personality}. Scripted objections: ${persona.objections.join("; ")}. ` +
-    (winConditions.length ? `A winning conversation: ${winConditions.join("; ")}.` : "");
+  const scenarioContext = [
+    `The rep was practicing a ${callTypeLabel(session.scenario.callType).toLowerCase()} against ${persona.name}, ${persona.title} at ${persona.company} (${persona.industry}).`,
+    persona.situation ? `Situation: ${persona.situation}` : "",
+    persona.offering ? `The rep sells: ${persona.offering}` : "",
+    persona.objective ? `The rep's objective for this call: ${persona.objective}. Judge the call primarily on progress toward this objective.` : "",
+    `Prospect temperament: ${persona.personality}${persona.attitude ? ` (attitude: ${persona.attitude}` : ""}${persona.interest ? `${persona.attitude ? ", " : " ("}starting interest: ${persona.interest}` : ""}${persona.attitude || persona.interest ? ")" : ""}.`,
+    persona.painPoints.length ? `Pain points the rep could have uncovered: ${persona.painPoints.join("; ")}.` : "",
+    persona.objections.length ? `Scripted objections: ${persona.objections.join("; ")}.` : "",
+    `Difficulty: ${difficultyLabel(session.scenario.difficulty)} (${session.scenario.difficulty}). ${difficultyGradingNote(session.scenario.difficulty)}`,
+    winConditions.length ? `A winning conversation: ${winConditions.join("; ")}.` : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   await gradeSubject({
     orgId: session.orgId,
@@ -159,6 +213,13 @@ export async function gradeRoleplay(sessionId: string) {
     methodologyId: session.scenario.methodologyId ?? undefined,
   });
   await db.roleplaySession.update({ where: { id: sessionId }, data: { status: "GRADED" } });
+  await advanceAssignments({ repId: session.repId, type: "ROLEPLAY", scenarioId: session.scenarioId });
+}
+
+function difficultyGradingNote(d: string): string {
+  if (d === "easy") return "This was a beginner scenario: expect fundamentals (clear opening, a few discovery questions, a next step) and reward them; do not penalize for missing advanced technique.";
+  if (d === "hard") return "This was an advanced scenario: the prospect was deliberately tough. Give credit for composure and recovery under pressure, and hold the rep to a high bar on quantifying value and earning the next step.";
+  return "This was an intermediate scenario: expect solid discovery, direct handling of at least one objection, and a concrete next step.";
 }
 
 // Shared grading entry: resolves rubric + company context, runs the engine,

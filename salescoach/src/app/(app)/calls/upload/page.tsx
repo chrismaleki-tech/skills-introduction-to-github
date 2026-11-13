@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { currentUser, isManagerRole } from "@/lib/session";
 import { Card, PageHeader } from "@/components/ui";
 import { UploadForm } from "@/components/calls/upload-form";
+import { allowance, startBlockReason } from "@/lib/usage";
 
 const WEBHOOK_EXAMPLE = `curl -X POST https://your-host/api/ingest/webhook \\
   -H "Content-Type: application/json" \\
@@ -21,11 +22,15 @@ export default async function UploadCallPage() {
   const user = await currentUser();
   const reps = isManagerRole(user.role)
     ? await db.user.findMany({
-        where: { orgId: user.orgId, role: "REP" },
+        where: { orgId: user.orgId, role: "REP", removedAt: null },
         orderBy: { name: "asc" },
         select: { id: true, name: true },
       })
     : [];
+  const [callReview, block] = await Promise.all([
+    allowance(user.org, user.id, "call_review"),
+    startBlockReason(user.org, user.id, "call_review"),
+  ]);
 
   return (
     <div className="max-w-3xl">
@@ -35,7 +40,17 @@ export default async function UploadCallPage() {
       />
 
       <Card>
-        <UploadForm reps={reps} currentUserId={user.id} />
+        <UploadForm
+          reps={reps}
+          currentUserId={user.id}
+          allowance={{
+            remainingSeconds: callReview.remainingSeconds,
+            limitSeconds: callReview.limitSeconds,
+            basis: callReview.basis,
+          }}
+          blockedReason={block?.reason ?? null}
+          manager={isManagerRole(user.role)}
+        />
       </Card>
 
       <Card title="Automatic ingestion" className="mt-6">
@@ -49,7 +64,7 @@ export default async function UploadCallPage() {
               email, deduplicated on <code className="text-foreground/80">externalId</code>, and run
               through the sampling policy — the response tells you whether it was graded and why.
               The <code className="text-foreground/80">transcript</code> field is optional (REP:/PROSPECT:
-              lines or a JSON segments array); without it, audio-less calls fall back to the demo engine.
+              lines or a JSON segments array); calls with audio are transcribed automatically.
             </p>
             <pre className="rounded-lg border border-line bg-surface-2 p-4 text-xs overflow-x-auto text-foreground/90">
               {WEBHOOK_EXAMPLE}

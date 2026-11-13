@@ -27,6 +27,9 @@ export function RoleplayChat({
   const [sending, setSending] = useState(false);
   const [ending, setEnding] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [billingUrl, setBillingUrl] = useState<string | null>(null);
+  const [cutoff, setCutoff] = useState(false);
+  const [remainingSec, setRemainingSec] = useState<number | null>(null);
   // Initialized to 0 (not Date.now()) so server render and client hydration agree.
   const [elapsedSec, setElapsedSec] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -60,7 +63,22 @@ export function RoleplayChat({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const data = (await res.json().catch(() => ({}))) as { reply?: string; error?: string };
+      const data = (await res.json().catch(() => ({}))) as {
+        reply?: string;
+        error?: string;
+        ended?: string;
+        billingUrl?: string;
+        remainingSeconds?: number | null;
+      };
+      if (data.remainingSeconds !== undefined) setRemainingSec(data.remainingSeconds);
+      if (res.status === 402) {
+        // The server kept the message and ended the session (allowance used
+        // up or trial expired). Only grading remains.
+        setCutoff(true);
+        setBillingUrl(data.billingUrl ?? "/billing");
+        setError(data.error ?? "This session has ended because your workspace's AI Role Play minutes are used up.");
+        return;
+      }
       if (!res.ok || !data.reply) {
         setError(data.error ?? "The prospect did not reply. Try sending another message.");
         return;
@@ -105,11 +123,21 @@ export function RoleplayChat({
         </div>
         <div className="flex items-center gap-3 text-xs text-muted tabular-nums sm:gap-4">
           <span>{fmtClock(elapsedSec)} elapsed</span>
+          {remainingSec !== null && (
+            <span className={remainingSec <= 300 ? "font-semibold text-amber-700" : ""} title="AI Role Play minutes left for your whole workspace">
+              {fmtClock(remainingSec)} left
+            </span>
+          )}
           <span>
             {repTurns} {repTurns === 1 ? "turn" : "turns"}
           </span>
         </div>
       </div>
+      {remainingSec !== null && remainingSec <= 300 && !cutoff && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800 sm:px-5" role="status">
+          About {Math.max(1, Math.ceil(remainingSec / 60))} min of AI Role Play left for your workspace. The session ends automatically when they run out.
+        </div>
+      )}
 
       <div ref={scrollRef} className="min-h-64 flex-1 space-y-3 overflow-y-auto p-3 sm:min-h-72 sm:max-h-[28rem] sm:p-5">
         {messages.length === 0 && !sending && (
@@ -143,8 +171,13 @@ export function RoleplayChat({
       </div>
 
       {error && (
-        <div className="mx-5 mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+        <div className="mx-5 mb-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">
           {error}
+          {billingUrl && (
+            <a href={billingUrl} className="ml-2 font-medium underline underline-offset-2">
+              Upgrade or view plan &amp; usage
+            </a>
+          )}
         </div>
       )}
 
@@ -162,18 +195,22 @@ export function RoleplayChat({
             placeholder="Say something to the prospect... (Enter to send, Shift+Enter for a new line)"
             rows={2}
             maxLength={2000}
-            disabled={sending || ending}
+            disabled={sending || ending || cutoff}
             className="flex-1 resize-none rounded-lg bg-surface-2 border border-line px-3 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:border-accent disabled:opacity-50"
           />
-          <Button className="w-full sm:w-auto" onClick={() => void send()} disabled={sending || ending || !input.trim()}>
+          <Button className="w-full sm:w-auto" onClick={() => void send()} disabled={sending || ending || cutoff || !input.trim()}>
             Send
           </Button>
         </div>
         <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <p className="text-xs text-muted">
-            {repTurns < 2
-              ? "Grading unlocks after two of your turns."
-              : "End whenever the conversation reaches a natural close."}
+            {cutoff
+              ? repTurns < 2
+                ? "The session ended before it could be graded (two of your turns are needed)."
+                : "The session has ended. Get your feedback below."
+              : repTurns < 2
+                ? "Grading unlocks after two of your turns."
+                : "End whenever the conversation reaches a natural close."}
           </p>
           <Button className="w-full sm:w-auto" variant="secondary" onClick={() => void endSession()} disabled={sending || ending || repTurns < 2}>
             {ending ? "Grading..." : "End session & get graded"}
