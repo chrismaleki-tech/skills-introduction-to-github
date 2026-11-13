@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
-import { previewBaseUrl, previewConnectionTarget } from "../preview-target";
+import { assertClerkDevelopmentKey, previewBaseUrl, previewConnectionTarget } from "../preview-target";
 
 describe("preview audit target", () => {
   it("accepts only the erota_preview database and returns no credentials", () => {
@@ -22,6 +22,17 @@ describe("preview audit target", () => {
       () => previewConnectionTarget("postgresql://appuser:s3cret@ep-example.neon.tech/other_db"),
       /other_db/,
     );
+  });
+
+  it("accepts only a Clerk development secret and does not echo the key", () => {
+    const development = "sk_test_development_instance_key";
+    assert.equal(assertClerkDevelopmentKey(`  ${development}  `), development);
+    assert.throws(() => assertClerkDevelopmentKey("sk_live_production_instance_key"), (error: unknown) => {
+      assert.match(String(error), /development secret key/);
+      assert.equal(String(error).includes("sk_live_production_instance_key"), false);
+      return true;
+    });
+    assert.throws(() => assertClerkDevelopmentKey(""), /CLERK_SECRET_KEY is not set/);
   });
 
   it("refuses the production Vercel hostname", () => {

@@ -8,14 +8,14 @@
  * Required to execute the authenticated cases, provided outside chat:
  *   ADMIN_PREVIEW_BASE_URL
  *   DATABASE_URL            database name must be erota_preview
- *   CLERK_SECRET_KEY        Clerk Backend API for the preview instance
+ *   CLERK_SECRET_KEY        Clerk development secret key only (sk_test_)
  *   VERCEL_AUTOMATION_BYPASS_SECRET
  * Optional:
  *   ADMIN_PREVIEW_OWNER_EMAIL   verified platform owner, default johnny.davis@erota.io
  *   CHROME_PATH
  */
 import { PrismaClient } from "@prisma/client";
-import { previewBaseUrl, previewConnectionTarget } from "../src/lib/preview-target";
+import { assertClerkDevelopmentKey, previewBaseUrl, previewConnectionTarget } from "../src/lib/preview-target";
 
 type Status = "passed" | "failed" | "unverified";
 type Case = { name: string; status: Status; evidence: string };
@@ -29,14 +29,24 @@ function record(name: string, status: Status, evidence: string) {
 }
 
 function sanitize(value: unknown) {
-  const text = value instanceof Error ? value.message : String(value);
+  let text = value instanceof Error ? value.message : String(value);
+  const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim();
+  if (bypass) text = text.split(bypass).join("[redacted-bypass]");
   return text.replace(/postgres(?:ql)?:\/\/\S+/gi, "[redacted-connection]").replace(/sk_(test|live)_\S+/g, "[redacted-clerk-key]").slice(0, 500);
 }
 
 async function main() {
   const baseRaw = process.env.ADMIN_PREVIEW_BASE_URL?.trim();
   const databaseRaw = process.env.DATABASE_URL;
-  const clerkKey = process.env.CLERK_SECRET_KEY?.trim() || "";
+  let clerkKey = "";
+  if (process.env.CLERK_SECRET_KEY?.trim()) {
+    try {
+      clerkKey = assertClerkDevelopmentKey(process.env.CLERK_SECRET_KEY);
+    } catch (error) {
+      record("clerk instance", "failed", sanitize(error));
+      return finish(1);
+    }
+  }
   const bypass = process.env.VERCEL_AUTOMATION_BYPASS_SECRET?.trim() || "";
 
   let base: URL | null = null;

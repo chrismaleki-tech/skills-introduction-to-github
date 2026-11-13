@@ -1,8 +1,20 @@
+/** Clerk development secret keys use this prefix. Production keys use sk_live_. */
+export const CLERK_DEVELOPMENT_KEY_PREFIX = "sk_test_";
+
 /** The only database the live preview audit is allowed to write. */
 export const PREVIEW_AUDIT_DATABASE = "erota_preview";
 
 /** Production Vercel alias. The preview audit must not target it. */
 export const PRODUCTION_VERCEL_HOST = "erota-salescoach.vercel.app";
+
+export function assertClerkDevelopmentKey(key: string | undefined): string {
+  const value = key?.trim() ?? "";
+  if (!value) throw new Error("CLERK_SECRET_KEY is not set.");
+  if (!value.startsWith(CLERK_DEVELOPMENT_KEY_PREFIX)) {
+    throw new Error("Refusing CLERK_SECRET_KEY. The preview audit accepts only a Clerk development secret key.");
+  }
+  return value;
+}
 
 export function previewConnectionTarget(connectionString: string | undefined): { host: string; database: string } {
   if (!connectionString?.trim()) {
