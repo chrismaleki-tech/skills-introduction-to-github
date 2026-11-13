@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { PLANS, TRIAL_ALLOWANCE } from "../plans";
 import { billingAccess, billingError } from "../billing";
+import { readFileSync } from "node:fs";
 import {
   allowanceFor,
   allowanceWindow,
+  describeAllowanceWindow,
   limitSecondsFor,
   meterSecondsForCall,
   TRANSCRIPT_WORDS_PER_MINUTE,
@@ -75,6 +77,14 @@ describe("allowance windows", () => {
     assert.equal(w.scope, "workspace");
     assert.equal(w.start.getTime(), 0, "nothing the workspace ever recorded is excluded");
     assert.equal(w.end?.getTime(), org.trialEndsAt?.getTime());
+    const text = describeAllowanceWindow(w, (value) => {
+      if (value.getTime() === 0) throw new Error("epoch sentinel was formatted");
+      return "Nov 15, 2026";
+    });
+    assert.equal(text.includes("1970"), false);
+    assert.match(text, /all usage recorded for the workspace/);
+    assert.match(text, /does not reset/);
+    assert.match(text, /runs through Nov 15, 2026/);
   });
 
   it("paid: per seat within the billing period", () => {
@@ -91,6 +101,8 @@ describe("allowance windows", () => {
     assert.equal(w.scope, "seat");
     assert.equal(w.start.toISOString(), "2026-11-03T00:00:00.000Z");
     assert.equal(w.end?.toISOString(), "2026-12-03T00:00:00.000Z");
+    const text = describeAllowanceWindow(w, (value) => value.toISOString().slice(0, 10));
+    assert.equal(text, "Window started 2026-11-03 and ends 2026-12-03.");
   });
 
   it("enterprise: unlimited", () => {
@@ -104,6 +116,13 @@ describe("allowance windows", () => {
     const a = allowanceFor("roleplay", 30 * 60, 45 * 60, w);
     assert.equal(a.usedSeconds, 45 * 60);
     assert.equal(a.remainingSeconds, 0);
+  });
+
+  it("the admin workspace page does not print the trial sentinel as a start date", () => {
+    const page = readFileSync(new URL("../../app/admin/(console)/workspaces/[id]/page.tsx", import.meta.url), "utf8");
+    assert.equal(page.includes("when(window.start)"), false);
+    assert.match(page, /describeAllowanceWindow\(window, when\)/);
+    assert.match(page, /Usage for this trial/);
   });
 
   it("exact boundary: using the full allowance leaves zero, one second less leaves one", () => {

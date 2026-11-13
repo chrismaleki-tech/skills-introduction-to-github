@@ -206,6 +206,8 @@ export function allowanceWindow(org: UsageOrg, now = new Date()) {
       planKey,
       basis: "trial" as const,
       scope: "workspace" as const,
+      // Unbounded lower bound so imported or backdated rows still count.
+      // This is not a calendar date. Display it through describeAllowanceWindow.
       start: new Date(0),
       end: billingAccess(org).trialEndsAt,
     };
@@ -220,6 +222,22 @@ export function allowanceWindow(org: UsageOrg, now = new Date()) {
     start: period.start,
     end: period.end,
   };
+}
+
+/**
+ * Words for the admin usage panel. Trial accounting keeps an epoch lower bound
+ * so every recorded session counts; that sentinel is never shown as a date.
+ */
+export function describeAllowanceWindow(
+  window: { basis: AllowanceBasis; start: Date; end: Date | null },
+  formatDate: (value: Date) => string,
+) {
+  if (window.basis === "trial" || window.start.getTime() === 0) {
+    const through = window.end ? ` It runs through ${formatDate(window.end)}.` : "";
+    return `This pool counts all usage recorded for the workspace. It is not a calendar window and it does not reset.${through}`;
+  }
+  const started = `Window started ${formatDate(window.start)}`;
+  return window.end ? `${started} and ends ${formatDate(window.end)}.` : `${started}.`;
 }
 
 /** Pure allowance arithmetic, shared by the server and the UI. */

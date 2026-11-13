@@ -84,6 +84,7 @@ describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_T
     assert.equal(paused.planStatus, "trialing");
     const block = await startBlockReason(paused, rep.id, "roleplay");
     assert.equal(block?.code, "WORKSPACE_SUSPENDED");
+    assert.equal((await startBlockReason(paused, rep.id, "call_review"))?.code, "WORKSPACE_SUSPENDED");
     const scenario = await db.scenario.create({ data: { orgId: org.id, title: "Pause", personaJson: "{}" } });
     const session = await db.roleplaySession.create({
       data: { orgId: org.id, repId: rep.id, scenarioId: scenario.id, meteredAt: new Date(Date.now() - 5000) },
@@ -123,8 +124,25 @@ describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_T
         ),
       /Not a platform owner/,
     );
+    await assert.rejects(
+      () => suspendWorkspace(actor, org.id, { reason: "This pause should not apply", confirm: "NO" }),
+      /Type SUSPEND/,
+    );
+    await assert.rejects(
+      () =>
+        grantWorkspaceAllowance(actor, org.id, {
+          kind: "roleplay",
+          minutes: "30",
+          reason: "This grant should not apply",
+          confirm: "grant",
+        }),
+      /Type GRANT/,
+    );
     const saved = await db.org.findUniqueOrThrow({ where: { id: org.id } });
     assert.equal(saved.trialEndsAt?.toISOString(), ends.toISOString());
+    assert.equal(saved.suspendedAt, null);
+    assert.equal(saved.bonusRoleplaySec, 0);
+    assert.equal(saved.bonusCallReviewSec, 0);
     assert.equal(await db.adminAudit.count({ where: { orgId: org.id } }), 0);
   });
 
@@ -210,5 +228,47 @@ describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_T
     assert.equal(leftAudits[0]?.beforeJson.includes("REP"), true);
     assert.equal(leftAudits[0]?.afterJson.includes("MANAGER"), true);
     assert.equal(rightAudits, 0);
+  });
+
+  it("keeps a paid Stripe subscription entitled when complimentary access is also stored", async () => {
+    const previousPrice = process.env.STRIPE_PRO_PRICE_ID;
+    process.env.STRIPE_PRO_PRICE_ID = "price_pro_audit_test";
+    process.env.ADMIN_EMAILS = actor.email;
+    try {
+      const org = await db.org.create({
+        data: {
+          name: `Paid ${RUN}`,
+          slug: `paid-${RUN}`,
+          planStatus: "active",
+          planKey: "pro",
+          stripePriceId: "price_pro_audit_test",
+          stripeSubscriptionId: `sub_paid_${RUN}`,
+          stripeSeatCount: 2,
+          subscriptionStartsAt: new Date(Date.now() - DAY),
+          subscriptionEndsAt: new Date(Date.now() + 20 * DAY),
+        },
+      });
+      orgIds.push(org.id);
+      const rep = await db.user.create({
+        data: { orgId: org.id, name: "Seat", email: `seat-${RUN}@example.com`, role: "REP" },
+      });
+      const result = await setComplimentaryAccess(actor, org.id, {
+        plan: "max",
+        date: new Date(Date.now() + 15 * DAY).toISOString().slice(0, 10),
+        reason: "Record a courtesy plan beside an active subscription",
+        confirm: "COMP",
+      });
+      assert.equal(result.appliesNow, false);
+      assert.equal(result.org.planKey, "pro");
+      assert.equal(result.org.planStatus, "active");
+      assert.equal(result.org.stripeSubscriptionId, `sub_paid_${RUN}`);
+      assert.equal(billingAccess(result.org).status, "active");
+      assert.equal(billingAccess(result.org).entitled, true);
+      assert.equal(await startBlockReason(result.org, rep.id, "roleplay"), null);
+      assert.equal(await startBlockReason(result.org, rep.id, "call_review"), null);
+    } finally {
+      if (previousPrice === undefined) delete process.env.STRIPE_PRO_PRICE_ID;
+      else process.env.STRIPE_PRO_PRICE_ID = previousPrice;
+    }
   });
 });

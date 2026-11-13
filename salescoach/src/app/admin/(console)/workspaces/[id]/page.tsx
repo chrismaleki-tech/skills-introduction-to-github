@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { ROLES } from "@/lib/invites";
 import { workspaceDetail } from "@/lib/platform-admin";
 import { TRIAL_SEAT_LIMIT } from "@/lib/seats";
-import { limitSecondsForOrg } from "@/lib/usage";
+import { describeAllowanceWindow, limitSecondsForOrg } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
 
@@ -76,10 +76,10 @@ export default async function WorkspaceAdminPage({
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold">Usage this allowance window</h2>
+        <h2 className="text-lg font-semibold">{window.basis === "trial" ? "Usage for this trial" : "Usage this billing period"}</h2>
         <p className="mt-1 text-sm text-muted">
           {window.scope === "workspace" ? "Shared by the whole workspace." : "Paid plans are capped per seat. Totals below are the workspace sum; each person has their own cap."}{" "}
-          Window started {when(window.start)}{window.end ? ` and ends ${when(window.end)}` : ""}. Extra allowance is included in the cap.
+          {describeAllowanceWindow(window, when)} Extra allowance is included in the cap.
           {window.scope === "seat" ? " On a paid plan the extra minutes are added to every seat." : " On a trial the extra minutes are added once to the shared pool."}
         </p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
