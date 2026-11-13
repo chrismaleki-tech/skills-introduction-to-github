@@ -44,6 +44,15 @@ describe("preview audit target", () => {
     assert.throws(() => previewBaseUrl("http://example.vercel.app"), /https/);
   });
 
+  it("the production migration refuses every database except neondb", () => {
+    const sql = readFileSync(new URL("../../../prisma/sql/2026-11-12-platform-admin-production.sql", import.meta.url), "utf8");
+    assert.match(sql, /current_database\(\) IS DISTINCT FROM 'neondb'/);
+    assert.equal(sql.includes("erota_preview"), false);
+    assert.match(sql, /Do not run prisma db push/);
+    assert.match(sql, /ADD COLUMN IF NOT EXISTS "suspendedAt"/);
+    assert.match(sql, /CREATE TABLE IF NOT EXISTS "AdminAudit"/);
+  });
+
   it("the live script does not read the all-environment unpooled URL", () => {
     const script = readFileSync(new URL("../../../scripts/admin-preview-audit.ts", import.meta.url), "utf8");
     assert.equal(script.includes("DATABASE_URL_UNPOOLED"), false);
