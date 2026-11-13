@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ROLES } from "@/lib/invites";
 import { workspaceDetail } from "@/lib/platform-admin";
+import { TRIAL_SEAT_LIMIT } from "@/lib/seats";
 import { limitSecondsForOrg } from "@/lib/usage";
 
 export const dynamic = "force-dynamic";
@@ -155,7 +156,10 @@ export default async function WorkspaceAdminPage({
           </form>
         </Action>
 
-        <Action title="Complimentary access" note={detail.paidEntitled ? "A paid Stripe period is still entitled, so a complimentary plan is saved but does not apply until that period ends. Stripe is not changed." : "Grants Pro or Max limits until the end of the selected UTC date, without writing the plan or the Stripe subscription."}>
+        <Action
+          title="Complimentary access"
+          note={`This grants Pro or Max minutes until the end of the selected UTC date. It does not change the stored plan, the Stripe subscription, or the Stripe seat quantity. While the complimentary plan is the access actually in effect, the workspace is limited to ${TRIAL_SEAT_LIMIT} seats, including members and pending invitations. That is the trial seat cap.${detail.paidEntitled ? " A paid Stripe period is still entitled, so this is saved but does not apply until that period ends. Until then, the Stripe seat count stays in effect." : ""}`}
+        >
           <form action={`/api/admin/workspaces/${org.id}/comp`} method="post" className="space-y-2">
             <input type="hidden" name="intent" value="set" />
             <select name="plan" className={field} defaultValue={org.compPlanKey === "max" ? "max" : "pro"}>

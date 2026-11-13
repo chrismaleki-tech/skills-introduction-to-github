@@ -11,13 +11,19 @@ import {
   memberRoleWhere,
   parseAdminDate,
   parseGrantMinutes,
+  platformOwnerEmailFromClerk,
   PlatformAdminError,
   requirePlatformOwnerApi,
   workspaceFilterWhere,
 } from "../platform-admin";
-import { seatLimitFor } from "../seats";
+import { seatLimitFor, TRIAL_SEAT_LIMIT } from "../seats";
 import { limitSecondsForOrg, resolvedPlanKey } from "../usage";
+import { GET as signups } from "../../app/api/admin/signups/route";
 import { POST as extendTrial } from "../../app/api/admin/workspaces/[id]/trial/route";
+import { POST as grantAllowance } from "../../app/api/admin/workspaces/[id]/allowance/route";
+import { POST as suspension } from "../../app/api/admin/workspaces/[id]/suspension/route";
+import { POST as comp } from "../../app/api/admin/workspaces/[id]/comp/route";
+import { POST as memberRole } from "../../app/api/admin/workspaces/[id]/members/[userId]/role/route";
 
 const previousAllowlist = process.env.ADMIN_EMAILS;
 
@@ -58,6 +64,21 @@ describe("platform owner allowlist", () => {
     assert.equal(isPlatformOwnerEmail("owner@example.com.evil"), false);
     assert.equal(isPlatformOwnerEmail("ADMIN"), false);
     assert.equal(isPlatformOwnerEmail(null), false);
+    const unverified = { emailAddress: "owner@example.com", verification: { status: "unverified" } };
+    const verifiedOther = { emailAddress: "person@customer.test", verification: { status: "verified" } };
+    const verifiedOwner = { emailAddress: "second@example.com", verification: { status: "verified" } };
+    assert.deepEqual(platformOwnerEmailFromClerk({ primary: unverified, emails: [unverified] }), {
+      email: null,
+      denial: "unverified",
+    });
+    assert.deepEqual(platformOwnerEmailFromClerk({ primary: verifiedOther, emails: [verifiedOther, unverified] }), {
+      email: "person@customer.test",
+      denial: "not_allowlisted",
+    });
+    assert.deepEqual(platformOwnerEmailFromClerk({ primary: unverified, emails: [unverified, verifiedOwner] }), {
+      email: "second@example.com",
+      denial: null,
+    });
     process.env.ADMIN_EMAILS = "";
     assert.equal(isPlatformOwnerEmail("owner@example.com"), false);
   });
@@ -67,16 +88,29 @@ describe("platform owner allowlist", () => {
     const gate = await requirePlatformOwnerApi();
     assert.equal(gate.actor, null);
     assert.equal(gate.response?.status, 503);
-    const body = new FormData();
-    body.set("date", "2027-01-01");
-    body.set("reason", "should not apply");
-    body.set("confirm", "EXTEND");
-    const response = await extendTrial(new Request("http://local/api/admin/workspaces/org_missing/trial", { method: "POST", body }), {
-      params: Promise.resolve({ id: "org_missing" }),
-    });
-    assert.equal(response.status, 503);
-    const payload = (await response.json()) as { error?: string };
-    assert.match(payload.error ?? "", /Clerk/);
+    const form = () => {
+      const body = new FormData();
+      body.set("date", "2027-01-01");
+      body.set("reason", "should not apply");
+      body.set("confirm", "EXTEND");
+      return body;
+    };
+    const endpoints = [
+      signups(),
+      extendTrial(new Request("http://local/trial", { method: "POST", body: form() }), { params: Promise.resolve({ id: "org_missing" }) }),
+      grantAllowance(new Request("http://local/allowance", { method: "POST", body: form() }), { params: Promise.resolve({ id: "org_missing" }) }),
+      suspension(new Request("http://local/suspension", { method: "POST", body: form() }), { params: Promise.resolve({ id: "org_missing" }) }),
+      comp(new Request("http://local/comp", { method: "POST", body: form() }), { params: Promise.resolve({ id: "org_missing" }) }),
+      memberRole(new Request("http://local/role", { method: "POST", body: form() }), {
+        params: Promise.resolve({ id: "org_missing", userId: "user_missing" }),
+      }),
+    ];
+    const responses = await Promise.all(endpoints);
+    for (const response of responses) {
+      assert.equal(response.status, 503);
+      const payload = (await response.json()) as { error?: string };
+      assert.match(payload.error ?? "", /Clerk/);
+    }
   });
 });
 
@@ -113,6 +147,8 @@ describe("suspension and complimentary access", () => {
     assert.equal(row.planKey, "trial");
     assert.equal(row.planStatus, "canceled");
     assert.equal(seatLimitFor(row).basis, "comp");
+    assert.equal(seatLimitFor(row).limit, TRIAL_SEAT_LIMIT);
+    assert.equal(TRIAL_SEAT_LIMIT, 5);
     assert.equal(resolvedPlanKey(row, new Date("2026-11-12T00:00:00Z")), "pro");
   });
 

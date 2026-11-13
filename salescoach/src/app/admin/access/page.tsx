@@ -19,10 +19,17 @@ export default async function PlatformAccessPage() {
         server allowlist. Being a workspace Admin, or having an @erota.io address, does not grant this dashboard.
       </p>
 
-      {gate.status === 403 && gate.email && (
+      {gate.status === 403 && (
         <p className="mt-4 rounded-lg border border-line bg-surface px-4 py-3 text-sm">
-          Clerk verified this sign-in as <span className="font-medium">{gate.email}</span>. That address is not on the
-          server allowlist.
+          {gate.error}
+          {gate.email ? (
+            <>
+              {" "}
+              The verified address checked was <span className="font-medium">{gate.email}</span>.
+            </>
+          ) : null}{" "}
+          An unverified address is ignored, even if it is listed in the server allowlist. A workspace Admin role is
+          not checked and cannot grant this page.
         </p>
       )}
 

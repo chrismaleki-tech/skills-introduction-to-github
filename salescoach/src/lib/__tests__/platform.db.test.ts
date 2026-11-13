@@ -5,6 +5,7 @@ import { after, describe, it } from "node:test";
 import { billingAccess } from "../billing";
 import { db } from "../db";
 import {
+  clearComplimentaryAccess,
   extendWorkspaceTrial,
   grantWorkspaceAllowance,
   restoreWorkspace,
@@ -80,8 +81,37 @@ describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_T
     assert.equal(billingAccess(restored).entitled, true);
 
     const audits = await db.adminAudit.findMany({ where: { orgId: org.id } });
-    assert.equal(audits.length, 4);
+    assert.deepEqual(
+      audits.map((row) => row.action).sort(),
+      ["access.restore", "access.suspend", "allowance.grant", "trial.extend"],
+    );
     assert.equal(audits.every((row) => row.actorEmail === actor.email && row.reason.length >= 8), true);
+  });
+
+  it("does not write an audit or change the workspace when the request is invalid or unauthorized", async () => {
+    process.env.ADMIN_EMAILS = actor.email;
+    const ends = new Date(Date.now() + 3 * DAY);
+    const org = await db.org.create({
+      data: { name: `Reject ${RUN}`, slug: `reject-${RUN}`, planStatus: "trialing", planKey: "trial", trialEndsAt: ends },
+    });
+    orgIds.push(org.id);
+    const date = new Date(Date.now() + 12 * DAY).toISOString().slice(0, 10);
+    await assert.rejects(
+      () => extendWorkspaceTrial(actor, org.id, { date, reason: "Missing the confirmation token", confirm: "NO" }),
+      /Type EXTEND/,
+    );
+    await assert.rejects(
+      () =>
+        extendWorkspaceTrial(
+          { clerkId: "clerk_other", email: "not-listed@example.com" },
+          org.id,
+          { date, reason: "This person is not an owner", confirm: "EXTEND" },
+        ),
+      /Not a platform owner/,
+    );
+    const saved = await db.org.findUniqueOrThrow({ where: { id: org.id } });
+    assert.equal(saved.trialEndsAt?.toISOString(), ends.toISOString());
+    assert.equal(await db.adminAudit.count({ where: { orgId: org.id } }), 0);
   });
 
   it("keeps Stripe fields unchanged when complimentary access is granted", async () => {
@@ -108,6 +138,16 @@ describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_T
     assert.equal(result.org.stripeSubscriptionId, `sub_${RUN}`);
     assert.equal(result.appliesNow, true);
     assert.equal(billingAccess(result.org).status, "comped");
+    await clearComplimentaryAccess(actor, org.id, {
+      reason: "Courtesy period is over",
+      confirm: "REVOKE_COMP",
+    });
+    const cleared = await db.org.findUniqueOrThrow({ where: { id: org.id } });
+    assert.equal(cleared.compPlanKey, null);
+    assert.equal(cleared.planKey, "pro");
+    assert.equal(cleared.stripeSubscriptionId, `sub_${RUN}`);
+    const audits = await db.adminAudit.findMany({ where: { orgId: org.id }, orderBy: { createdAt: "asc" } });
+    assert.deepEqual(audits.map((row) => row.action), ["comp.set", "comp.clear"]);
   });
 
   it("changes a role only inside that workspace and keeps the last admin", async () => {
@@ -148,5 +188,13 @@ describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_T
     assert.equal(leftTeammate?.orgId, left.id);
     assert.equal(rightAdmin?.role, "ADMIN");
     assert.equal(rightAdmin?.orgId, right.id);
+    const [leftAudits, rightAudits] = await Promise.all([
+      db.adminAudit.findMany({ where: { orgId: left.id } }),
+      db.adminAudit.count({ where: { orgId: right.id } }),
+    ]);
+    assert.deepEqual(leftAudits.map((row) => row.action), ["member.role"]);
+    assert.equal(leftAudits[0]?.beforeJson.includes("REP"), true);
+    assert.equal(leftAudits[0]?.afterJson.includes("MANAGER"), true);
+    assert.equal(rightAudits, 0);
   });
 });

@@ -1,7 +1,9 @@
 -- Platform-owner controls. Additive and idempotent.
--- Apply with: npx prisma db push
--- or run this file against the production database before deploying the code
--- that reads the new columns.
+-- Production: take a backup, run this file once, then deploy the app.
+-- Do not also run `prisma db push` against production. That command reconciles
+-- the entire schema and can drop columns that are not in schema.prisma.
+-- Use `prisma db push` only on a disposable database.
+-- This script does not update or delete existing customer rows.
 
 ALTER TABLE "Org" ADD COLUMN IF NOT EXISTS "suspendedAt" TIMESTAMP(3);
 ALTER TABLE "Org" ADD COLUMN IF NOT EXISTS "suspendedReason" TEXT NOT NULL DEFAULT '';

@@ -37,6 +37,36 @@ export function isPlatformOwnerEmail(email: string | null | undefined) {
   return isAdminEmail(email);
 }
 
+export type ClerkEmailIdentity = {
+  emailAddress?: string | null;
+  verification?: { status?: string | null } | null;
+};
+
+/**
+ * The allowlist is compared only to an email Clerk has verified.
+ * An unverified address is ignored even when it is typed into ADMIN_EMAILS.
+ */
+export function platformOwnerEmailFromClerk(input: {
+  primary?: ClerkEmailIdentity | null;
+  emails?: ClerkEmailIdentity[] | null;
+}): { email: string | null; denial: "unverified" | "not_allowlisted" | null } {
+  const verified = (input.emails ?? []).filter(
+    (entry) => entry.verification?.status === "verified" && entry.emailAddress,
+  );
+  const primary = input.primary?.verification?.status === "verified" ? input.primary.emailAddress : null;
+  const ordered = [...(primary ? [primary] : []), ...verified.map((entry) => entry.emailAddress as string)];
+  const seen = new Set<string>();
+  for (const raw of ordered) {
+    const email = raw.toLowerCase();
+    if (seen.has(email)) continue;
+    seen.add(email);
+    if (isPlatformOwnerEmail(email)) return { email, denial: null };
+  }
+  if (!primary && verified.length === 0) return { email: null, denial: "unverified" };
+  const display = (primary ?? verified[0]?.emailAddress ?? "").toLowerCase();
+  return { email: display || null, denial: "not_allowlisted" };
+}
+
 export function assertAdminReason(reason: string) {
   const trimmed = reason.trim().replace(/\s+/g, " ");
   if (trimmed.length < 8) throw new PlatformAdminError("Enter a reason of at least 8 characters.");
@@ -92,12 +122,22 @@ export async function platformOwnerFromClerk(): Promise<OwnerGate> {
   const { userId } = await auth();
   if (!userId) return { ok: false, status: 401, error: "Sign in required." };
   const clerkUser = await currentUser();
-  const email =
-    clerkUser?.primaryEmailAddress?.emailAddress || clerkUser?.emailAddresses?.[0]?.emailAddress || "";
-  if (!isPlatformOwnerEmail(email)) {
-    return { ok: false, status: 403, error: "This account is not a platform owner.", email };
+  const decision = platformOwnerEmailFromClerk({
+    primary: clerkUser?.primaryEmailAddress,
+    emails: clerkUser?.emailAddresses,
+  });
+  if (!decision.email || decision.denial) {
+    return {
+      ok: false,
+      status: 403,
+      error:
+        decision.denial === "unverified"
+          ? "Clerk has not verified an email address for this account."
+          : "This account is not a platform owner.",
+      email: decision.email ?? undefined,
+    };
   }
-  return { ok: true, actor: { clerkId: userId, email: email.toLowerCase() } };
+  return { ok: true, actor: { clerkId: userId, email: decision.email } };
 }
 
 export async function requirePlatformOwnerApi() {
