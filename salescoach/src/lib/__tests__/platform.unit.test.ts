@@ -6,6 +6,7 @@ import { TRIAL_ALLOWANCE } from "../plans";
 import {
   assertAdminReason,
   assertConfirmToken,
+  databaseIdentity,
   demotionRemovesLastAdmin,
   isPlatformOwnerEmail,
   memberRoleWhere,
@@ -54,6 +55,18 @@ function org(overrides: Record<string, unknown> = {}) {
     ...overrides,
   };
 }
+
+describe("database identity", () => {
+  it("returns only the host and database name", () => {
+    const identity = databaseIdentity(
+      "postgresql://appuser:s3cret-password@ep-prod-example.neon.tech/neondb?sslmode=require",
+    );
+    assert.deepEqual(identity, { host: "ep-prod-example.neon.tech", database: "neondb" });
+    assert.equal(JSON.stringify(identity).includes("s3cret-password"), false);
+    assert.equal(JSON.stringify(identity).includes("appuser"), false);
+    assert.deepEqual(databaseIdentity("not a url"), { host: null, database: null });
+  });
+});
 
 describe("platform owner allowlist", () => {
   it("matches the verified email exactly and ignores the domain and workspace role", () => {

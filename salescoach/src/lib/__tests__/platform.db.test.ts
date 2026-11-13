@@ -5,6 +5,8 @@ import { after, describe, it } from "node:test";
 import { billingAccess } from "../billing";
 import { db } from "../db";
 import {
+  adminSchemaStatus,
+  databaseIdentity,
   clearComplimentaryAccess,
   extendWorkspaceTrial,
   grantWorkspaceAllowance,
@@ -22,6 +24,18 @@ const orgIds: string[] = [];
 const actor = { clerkId: `clerk_${RUN}`, email: `owner-${RUN}@example.com` };
 
 describe("platform owner changes (database)", { skip: TEST_DB ? false : "USAGE_TEST_DB=1 and DATABASE_URL not set" }, () => {
+  it("sees the admin columns and audit table without printing the connection string", async () => {
+    const status = await adminSchemaStatus();
+    const identity = databaseIdentity();
+    assert.equal(status.ready, true);
+    assert.equal(status.reachable, true);
+    assert.equal(status.auditTable, true);
+    assert.deepEqual(status.missingColumns, []);
+    assert.equal(status.host, identity.host);
+    assert.equal(status.database, identity.database);
+    assert.equal(JSON.stringify(status).includes("@"), false);
+  });
+
   after(async () => {
     if (orgIds.length === 0) return;
     await db.adminAudit.deleteMany({ where: { orgId: { in: orgIds } } });

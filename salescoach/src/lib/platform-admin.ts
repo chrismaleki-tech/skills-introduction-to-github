@@ -30,6 +30,76 @@ export class PlatformAdminError extends Error {
   }
 }
 
+const REQUIRED_ORG_COLUMNS = [
+  "suspendedAt",
+  "suspendedReason",
+  "bonusRoleplaySec",
+  "bonusCallReviewSec",
+  "compPlanKey",
+  "compExpiresAt",
+  "compReason",
+] as const;
+
+/** Hostname and database name only. User, password, and query string are never returned. */
+export function databaseIdentity(connectionString = process.env.DATABASE_URL) {
+  if (!connectionString) return { host: null as string | null, database: null as string | null };
+  try {
+    const url = new URL(connectionString);
+    const database = decodeURIComponent(url.pathname.replace(/^\//, ""));
+    return { host: url.hostname || null, database: database || null };
+  } catch {
+    return { host: null, database: null };
+  }
+}
+
+type SchemaClient = Prisma.TransactionClient | typeof db;
+
+/** Read-only check. Does not add columns or write customer data. */
+export async function adminSchemaStatus(client: SchemaClient = db) {
+  const identity = databaseIdentity();
+  try {
+    const columns = await client.$queryRaw<Array<{ column_name: string }>>`
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'Org'
+        AND column_name IN (
+          'suspendedAt',
+          'suspendedReason',
+          'bonusRoleplaySec',
+          'bonusCallReviewSec',
+          'compPlanKey',
+          'compExpiresAt',
+          'compReason'
+        )
+    `;
+    const audit = await client.$queryRaw<Array<{ present: boolean | string | null }>>`
+      SELECT (to_regclass('public."AdminAudit"') IS NOT NULL) AS present
+    `;
+    const found = new Set(columns.map((row) => row.column_name));
+    const missingColumns = REQUIRED_ORG_COLUMNS.filter((name) => !found.has(name));
+    const present = audit[0]?.present;
+    const auditTable = present === true || present === "t" || present === "true";
+    return {
+      ready: missingColumns.length === 0 && auditTable,
+      missingColumns,
+      auditTable,
+      host: identity.host,
+      database: identity.database,
+      reachable: true,
+    };
+  } catch {
+    return {
+      ready: false,
+      missingColumns: [...REQUIRED_ORG_COLUMNS],
+      auditTable: false,
+      host: identity.host,
+      database: identity.database,
+      reachable: false,
+    };
+  }
+}
+
 export type OwnerActor = { clerkId: string; email: string };
 
 /** Exact allowlist match. A workspace role and an email domain never qualify. */
