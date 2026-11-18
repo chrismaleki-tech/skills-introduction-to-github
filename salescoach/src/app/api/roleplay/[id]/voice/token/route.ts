@@ -6,8 +6,8 @@ import { parseCompanyProfile, parsePersona } from "@/lib/types";
 import { billingError } from "@/lib/billing";
 import {
   buildProspectSystemPrompt,
+  buildVoiceRealtimeSession,
   REALTIME_MODEL,
-  turnDetectionConfig,
   voiceAvailable,
   voiceForPersona,
 } from "@/lib/roleplay";
@@ -97,25 +97,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   try {
     secret = await getClient().realtime.clientSecrets.create({
       expires_after: { anchor: "created_at", seconds: TOKEN_TTL_SECONDS },
-      session: {
-        type: "realtime",
-        model: REALTIME_MODEL,
+      session: buildVoiceRealtimeSession({
         instructions,
-        output_modalities: ["audio"],
-        audio: {
-          input: {
-            transcription: {
-              model: "gpt-4o-mini-transcribe",
-              language: "en",
-              // Biases the rep-side transcript toward the names in play.
-              prompt: `Sales call between a salesperson and ${persona.name} at ${persona.company}.`,
-            },
-            noise_reduction: { type: "near_field" },
-            turn_detection: turnDetectionConfig(),
-          },
-          output: { voice },
-        },
-      },
+        voice,
+        transcriptionPrompt: `Sales call between a salesperson and ${persona.name} at ${persona.company}.`,
+      }),
     });
   } catch (err) {
     console.error("[voice] realtime client secret failed", err);
