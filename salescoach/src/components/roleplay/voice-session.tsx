@@ -300,7 +300,7 @@ export function VoiceRoleplay({
       switch (ev.type) {
         case "input_audio_buffer.speech_started":
           setUserSpeaking(true);
-          // Barge-in: the server cancels the in-flight response and clears
+          // Barge-in: the provider cancels the in-flight response and clears
           // the output buffer; reflect that immediately in the UI.
           setState("listening");
           break;
@@ -362,25 +362,9 @@ export function VoiceRoleplay({
         },
       });
     }
-    const last = history[history.length - 1];
-    if (!last) {
-      sendEvent({
-        type: "response.create",
-        response: {
-          instructions:
-            "The phone just connected and you are picking up. Answer the call the way this persona would — one short sentence, like a real busy person answering an unknown number — then stop and wait for the caller.",
-        },
-      });
-    } else if (last.role === "rep") {
-      sendEvent({ type: "response.create" });
-    } else {
-      sendEvent({
-        type: "response.create",
-        response: {
-          instructions: "The line dropped for a moment and is back. Say one very short thing to pick the conversation back up, then wait.",
-        },
-      });
-    }
+    // No per-response instructions here. Those replace the session prompt,
+    // which is where the scenario and the live-call behavior live.
+    sendEvent({ type: "response.create" });
   }, [messagesForServer, sendEvent]);
 
   // --- Connect ----------------------------------------------------------------------
